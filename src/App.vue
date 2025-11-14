@@ -42,7 +42,7 @@
         <!-- Opciones de usuario dinámicas -->
         <v-list-item
           v-for="opcion in opcionesMenu"
-          :key="opcion.id"
+          :key="opcion.orden"
           :to="{ name: opcion.ruta }"
           @click="cerrarOpcion"
           active-class="menu-item--active"
@@ -146,7 +146,11 @@ export default {
         }
 
         if (data.success) {
-          this.opcionesMenu = data.data;
+          // Ordenar el menú por el campo 'orden'
+          const menuOrdenado = data.data.sort((a, b) => {
+            return Number(a.orden) - Number(b.orden);
+          });
+          this.opcionesMenu = menuOrdenado;
         } else {
           throw new Error(data.message || "Error desconocido en el servidor.");
         }
