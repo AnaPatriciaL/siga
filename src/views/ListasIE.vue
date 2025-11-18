@@ -1,5 +1,5 @@
 <template>
-  <v-container fill-height>
+  <v-container>
     <v-container class="my-2">
 
             <!-- Botón Crear y Exportar -->
@@ -27,7 +27,7 @@
                 >
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on">
+                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
                       <v-icon large>mdi-microsoft-excel</v-icon>
                     </v-btn>
                   </template>
