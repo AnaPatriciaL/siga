@@ -34,13 +34,13 @@
               <vue-excel-xlsx v-if="permiso"
                 :data="prospectosie"
                 :columns="columnas"
-                :file-name="'Prospectos IE'"
+                :file-name="'Consultas IE'"
                 :file-type="'xlsx'"
-                :sheet-name="'ProspectosIE'"
+                :sheet-name="'ConsultasIE'"
                 >
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on">
+                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
                       <v-icon large>mdi-microsoft-excel</v-icon>
                     </v-btn>
                   </template>
@@ -70,7 +70,7 @@
                 >
                 <v-tooltip top color="pink accent-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="pink accent-3 ml-3" dark v-bind="attrs" v-on="on">
+                    <v-btn fab class="pink accent-3 ml-3 mt-2" dark v-bind="attrs" v-on="on">
                       <v-icon large>mdi-map-marker-remove</v-icon>
                     </v-btn>
                   </template>
@@ -303,17 +303,14 @@
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="oficinas_listado"
-                            v-model="prospectoie.oficina_id"
-                            label="Oficina"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
-                          </v-select>
+                          <v-text-field 
+                            v-model="prospectoie.oficina_descripcion" 
+                            label="Oficina" 
+                            outlined 
+                            dense 
+                            disabled 
+                            readonly
+                          ></v-text-field>
                         </v-col>
                         <!-- Giro -->
                         <v-col class="my-0 py-0" cols="12" md="6">
@@ -629,6 +626,7 @@
 
 export default {
   name: "ConsultasIE",
+  
   data() {
     return {
       cargando:false,
@@ -714,7 +712,7 @@ export default {
         {label:"IMPUESTO", field:"impuesto"},
         {label:"FECHA CAPTURA", field:"fecha_captura"},
         {label:"PROGRAMADOR", field:"programador_descripcion"},
-        {label:"REPRESENTANTE LEGAL", field:"representante_legal"},
+        {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
       ],
       prospectosie: [],
@@ -732,7 +730,7 @@ export default {
         colonia: null,
         cp: null,
         localidad: null,
-        municipio:null,
+        municipio_id:null,
         oficina_id: null,
         fuente_id:null,
         giro: null,
@@ -796,6 +794,25 @@ export default {
             ref[0].focus();
           }
         });
+      }
+    },
+    'prospectoie.municipio_id'(newVal) {
+      if (newVal) {
+        // Buscar por ID o por nombre para asegurar que funcione en todos los casos
+        const municipioSeleccionado = this.municipios_listado.find(m => m.id === newVal || m.nombre === newVal);
+        this.prospectoie.oficina_descripcion = null; // Limpiar la descripción antes de la nueva asignación
+        if (municipioSeleccionado) {
+          this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
+          // Buscar la descripción de la oficina en oficinas_listado
+          const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
+          if (oficina) {
+            this.prospectoie.oficina_descripcion = oficina.nombre;
+          }
+        }
+      } else {
+        // Si se deselecciona el municipio, limpiar los campos de oficina
+        this.prospectoie.oficina_descripcion = null;
+        this.prospectoie.oficina_id = null;
       }
     },
   },
@@ -987,7 +1004,6 @@ export default {
       let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
       let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let municipio = this.prospectoie.municipio != null && this.prospectoie.municipio !== '' ? this.prospectoie.municipio.toUpperCase() : this.prospectoie.municipio;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
       let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
@@ -1245,7 +1261,6 @@ export default {
       this.prospectoie.colonia=null;
       this.prospectoie.cp=null;
       this.prospectoie.localidad=null;
-      this.prospectoie.municipio_id=null;
       this.prospectoie.giro=null;
       this.prospectoie.oficina_id=null;
       this.prospectoie.fuente_id=null;
@@ -1275,7 +1290,6 @@ export default {
       this.prospectoie.colonia=objeto.colonia;
       this.prospectoie.cp=objeto.cp;
       this.prospectoie.localidad=objeto.localidad;
-      this.prospectoie.municipio_id=objeto.municipio_id;
       this.prospectoie.giro=objeto.giro;
       this.prospectoie.oficina_id=objeto.oficina_id;
       this.prospectoie.fuente_id=objeto.fuente_id;

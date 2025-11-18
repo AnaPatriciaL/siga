@@ -1,12 +1,12 @@
 <template>
-  <v-container fill-height>
+  <v-container>
     <v-container class="my-2">
 
             <!-- Botón Crear y Exportar -->
             <v-row class="center">
               <v-spacer></v-spacer>
               <v-col cols="8"  class="text-center">
-                <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>
+                <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>+
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
@@ -19,7 +19,7 @@
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
               <vue-excel-xlsx v-if="permiso"
-                :data="lista_prospectosie"
+                :data="prospectosie"
                 :columns="columnas"
                 :file-name="'Prospectos IE'"
                 :file-type="'xlsx'"
@@ -27,7 +27,7 @@
                 >
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on">
+                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
                       <v-icon large>mdi-microsoft-excel</v-icon>
                     </v-btn>
                   </template>
@@ -62,7 +62,7 @@
             <!-- Tabla y formulario -->
             <v-data-table
               :headers="encabezados"
-              :items="lista_prospectosie"
+              :items="prospectosie"
               item-key="id"
               class="elevation-1"
               :search="busca"
@@ -259,8 +259,8 @@
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="oficinas_listado"
-                            v-model="prospectoie.municipio"
+                            :items="municipios_listado"
+                            v-model="prospectoie.municipio_id"
                             label="Municipio"
                             outlined
                             dense
@@ -272,20 +272,17 @@
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="oficinas_listado"
-                            v-model="prospectoie.oficina_id"
-                            label="Oficina"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
-                          </v-select>
+                          <v-text-field 
+                            v-model="prospectoie.oficina_descripcion" 
+                            label="Oficina" 
+                            outlined 
+                            dense 
+                            disabled 
+                            readonly
+                          ></v-text-field>
                         </v-col>
                         <!-- Giro -->
-                        <v-col class="my-0 py-0" cols="12" md="12">
+                        <v-col class="my-0 py-0" cols="12" md="6">
                           <v-text-field
                             class="my-0 py-0 mayusculas"
                             v-model="prospectoie.giro"
@@ -298,41 +295,30 @@
                             {{prospectoie.giro}}
                           </v-text-field>
                         </v-col>
-                        <!-- Periodo -->
-                        <!-- Campo para la Fecha de Inicio -->
-                        <v-col cols="12" md="2">
+                        <v-col class="my-0 py-0" cols="12" md="1">
+                          <v-tooltip top>
+                            <template v-slot:activator="{ on, attrs }">
+                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true">
+                                <v-icon large >mdi-plus-circle</v-icon>
+                              </v-btn>
+                            </template>
+                            <span>Agregar Periodo</span>
+                          </v-tooltip>
+                        </v-col>
+                        <v-col class="my-0 py-0" cols="12" md="5" >
                           <v-text-field
-                            v-model="fechaInicio"
-                            v-maska="'##/##/##'"
-                            :rules="[rules.dateFormat]"
-                            label="Fecha Inicio"
+                            class="my-0 py-0 mayusculas"
+                            v-model="prospectoie.periodos"
+                            label="Periodos"
                             outlined
                             dense
-                            maxlength="8"
-                            placeholder="DD/MM/YY"
-                          ></v-text-field>
+                            readonly
+                          >
+                            {{prospectoie.periodos}}
+                          </v-text-field>
                         </v-col>
-
-                        <!-- Separador visual -->
-                        <v-col cols="12" md="1" class="d-flex align-center justify-center">
-                          <span>AL</span>
-                        </v-col>
-
-                        <!-- Campo para la fecha de fin -->
-                        <v-col cols="12" md="2">
-                          <v-text-field
-                            v-model="fechaFin"
-                            v-maska="'##/##/##'"
-                            :rules="[rules.dateFormat]"
-                            label="Fecha Fin"
-                            outlined
-                            dense
-                            maxlength="8"
-                            placeholder="DD/MM/YY"
-                          ></v-text-field>
-                        </v-col>                   
                         <!-- Antecedentes -->
-                        <v-col class="my-0 py-0" cols="12" md="4">
+                        <v-col class="my-0 py-0" cols="12" md="6">
                           <v-select
                             :items="antecedentes_listado"
                             v-model="prospectoie.antecedente_id"
@@ -451,7 +437,7 @@
                             class="my-0 py-0 mayusculas"
                             v-model="prospectoie.origen"
                             inset
-                            :label="prospectoie.origen ? 'Origen: Cruce' : 'Origen: Prospecto'">
+                            :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
                              {{prospectoie.origen}}
                           ></v-switch>
                         </v-col>
@@ -506,6 +492,72 @@
 
           </v-dialog>
 					<!-- Cargando -->
+          <!-- Componente de Diálogo para PERIODOS -->
+          <v-dialog v-model="dialogPeriodos" max-width="600px" persistent>
+            <v-card>
+              <v-card-title class="pink darken-4 white--text py-2">
+                Agregar Periodo
+              </v-card-title>
+              <v-card-text>
+                <v-container>
+                  <v-row v-for="(periodo, index) in periodosParaAgregar" :key="index" class="mt-2 align-center no-gutters">
+                      <v-col cols="12" sm="5">
+                        <v-text-field
+                        class="mr-4"
+                          v-model="periodo.inicio"
+                          :ref="'fechaInicio' + index"
+                          v-maska="'##/##/####'"
+                          :rules="[rules.dateFormat]"
+                          label="Fecha Inicial"
+                          outlined
+                          dense
+                          @input="manejarInputFecha(periodo, index, 'inicio')"
+                          @keydown="soloNumeros"
+                          maxlength="10"
+                          placeholder="DD/MM/YYYY"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" sm="5">
+                        <v-text-field
+                          v-model="periodo.fin"
+                          v-maska="'##/##/####'"
+                          :rules="[rules.dateFormat]"
+                          label="Fecha Final"
+                          :ref="'fechaFin' + index"
+                          @input="validarFechaFinal(periodo, index)"
+                          @keydown.enter.prevent="enfocarBotonAgregar"
+                          @keydown="soloNumeros"
+                          outlined
+                          dense
+                          maxlength="10"
+                          placeholder="DD/MM/YYYY"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" sm="2" class="text-center">
+                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)">
+                          <v-icon>mdi-delete</v-icon>
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+                </v-container>
+              </v-card-text>
+              <v-card-actions class="grey lighten-2 py-2">
+                <v-spacer></v-spacer>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on">
+                      <v-icon large >mdi-plus-circle</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Agregar un periodo extra</span>
+                </v-tooltip>
+                <v-btn ref="botonAgregarPeriodo" color="success" dark @click="agregarPeriodo">Agregar</v-btn>
+                <v-btn color="blue-grey" dark @click="cerrarDialogoPeriodo">Cerrar</v-btn>
+                <v-spacer></v-spacer>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+
 					<v-dialog v-model="cargando" 	max-width="290" persistent  >
 
 						<v-card
@@ -538,7 +590,8 @@
   var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
   var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
+  //var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
+  var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
 
 export default {
   name: "ComitesIE",
@@ -549,7 +602,7 @@ export default {
       rules: {
         dateFormat: value => {
           // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
-          const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{2}$/;
+          const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
           
           // Verificar si el valor cumple con la longitud y el patrón
           if (value && value.length === 8 && pattern.test(value)) {
@@ -630,7 +683,7 @@ export default {
         {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
       ],
-      lista_prospectosie: [],
+      prospectosie: [],
       prospectosie_no_localizados: [],
       dialog: false,
       operacion: "",
@@ -645,6 +698,7 @@ export default {
         colonia: null,
         cp: null,
         localidad: null,
+        municipio_id:null,
         oficina_id: null,
         fuente_id:null,
         giro: null,
@@ -663,10 +717,11 @@ export default {
       antecedentes_listado:[],
       programadores_listado: [],
       oficinas_listado: [],
+      municipios_listado:[],
       fuentes_listado:[],
       permiso:false,
-      fechaInicio: '',
-      fechaFin: ''
+      dialogPeriodos: false,
+      periodosParaAgregar: [{ inicio: '', fin: '' }],
             // }
     };
   },
@@ -682,21 +737,67 @@ export default {
     }
   },
   watch: {
-    // Observador para asignar el valor de la propiedad computada al modelo final
-    periodoCompleto(newVal) {
-      this.lista_prospectosie.periodos = newVal;
-    }
+    'periodosParaAgregar': {
+      handler(newVal) {
+        newVal.forEach(periodo => {
+          // Añade la diagonal después del día
+          if (periodo.inicio && periodo.inicio.length === 2 && !periodo.inicio.includes('/')) {
+            periodo.inicio += '/';
+          }
+          // Añade la diagonal después del mes
+          if (periodo.inicio && periodo.inicio.length === 5 && periodo.inicio.split('/').length - 1 < 2) {
+            periodo.inicio += '/';
+          }
+          // Repite para la fecha final
+          if (periodo.fin && periodo.fin.length === 2 && !periodo.fin.includes('/')) {
+            periodo.fin += '/';
+          }
+          if (periodo.fin && periodo.fin.length === 5 && periodo.fin.split('/').length - 1 < 2) {
+            periodo.fin += '/';
+          }
+        });
+      },
+      deep: true
+    },
+    dialogPeriodos(val) { // Observador para enfocar al abrir el diálogo
+      if (val) {
+        this.$nextTick(() => {
+          const ref = this.$refs.fechaInicio0;
+          if (ref && ref[0]) ref[0].focus();
+        });
+      }
+    },
+    'prospectoie.municipio_id'(newVal) {
+      if (newVal) {
+        // Buscar por ID o por nombre para asegurar que funcione en todos los casos
+        const municipioSeleccionado = this.municipios_listado.find(m => m.id === newVal || m.nombre === newVal);
+        this.prospectoie.oficina_descripcion = null; // Limpiar la descripción antes de la nueva asignación
+        if (municipioSeleccionado) {
+          this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
+          // Buscar la descripción de la oficina en oficinas_listado
+          const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
+          if (oficina) {
+            this.prospectoie.oficina_descripcion = oficina.nombre;
+          }
+        }
+      } else {
+        // Si se deselecciona el municipio, limpiar los campos de oficina
+        this.prospectoie.oficina_descripcion = null;
+        this.prospectoie.oficina_id = null;
+      }
+    },
   },
   created() {
     this.obtenerPermisos();
-    this.mostrarLista(),
+    this.mostrar(),
     this.obtieneoficinas(),
     this.obtienefuentes(),
     this.obtieneimpuestos(),
     this.obtieneusuarios(),
     this.obtieneantecedentes()
+    this.obtienemunicipios()
   },
-  methods: {
+ methods: {
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
@@ -711,16 +812,15 @@ export default {
         console.error('Error al obtener los datos de la sesión:', error);
       }
     },
-
-    mostrarLista: function () {
+    mostrar: function () {
       axios
-        .post(crud, { opcion: 1, estatus_prospecto: 4 })
+        .post(crud, { opcion: 1, estatus_prospecto:4 })
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.lista_prospectosie = response.data;
+            this.prospectosie = response.data;
 
             // Filtrar los registros con antecedente_id = 7
-            this.prospectosie_no_localizados = this.lista_prospectosie
+            this.prospectosie_no_localizados = this.prospectosie
             .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
             .map(item => ({ ...item }));
 
@@ -791,6 +891,7 @@ export default {
           this.prospectoie.colonia=null;
           this.prospectoie.cp=null;
           this.prospectoie.localidad=null;
+          this.prospectoie.municipio=null;
           this.prospectoie.giro=null;
           this.prospectoie.nombre=response.data[0].nombre;
           this.prospectoie.calle=response.data[0].calle;
@@ -825,9 +926,8 @@ export default {
         this.prospectoie.nombre===null || this.prospectoie.nombre==="" ||
         this.prospectoie.calle===null || this.prospectoie.calle==="" ||
         this.prospectoie.num_exterior===null || this.prospectoie.num_exterior==="" ||
-        this.prospectoie.num_interior===null || this.prospectoie.num_interior==="" ||
-        this.prospectoie.colonia===null || this.prospectoie.colonia==="" ||
-        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
+        this.prospectoie.num_interior===null || this.prospectoie.num_interior==="" ||        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
+        this.prospectoie.municipio_id===null || this.prospectoie.municipio_id==="" ||
         this.prospectoie.oficina_id===null || this.prospectoie.oficina_id==="" ||
         this.prospectoie.periodos===null || this.prospectoie.periodos==="" ||
         this.prospectoie.antecedente_id===null || this.prospectoie.antecedente_id==="" ||
@@ -875,7 +975,7 @@ export default {
       axios.post(crud, 
             {
               // Nuevo
-              opcion:2, 
+              opcion:2,  
               // Campos a guardar
               rfc:this.prospectoie.rfc.toUpperCase(),
               nombre:nombre,
@@ -885,6 +985,7 @@ export default {
               colonia:colonia,
               cp:this.prospectoie.cp,
               localidad:localidad,
+              municipio_id:this.prospectoie.municipio_id,
               giro:giro,
               oficina_id:this.prospectoie.oficina_id,
               fuente_id:this.prospectoie.fuente_id,
@@ -919,7 +1020,9 @@ export default {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Hubo un error al cargar los datos: ' + error.message
+            text: 'Hubo un error al guardar los datos: ' + error.message,
+            confirmButtonText: 'OK',
+            confirmButtonAriaLabel: 'OK'
           });
       })
       .finally(() => {
@@ -936,6 +1039,7 @@ export default {
       this.prospectoie.colonia = null;
       this.prospectoie.cp = null;
       this.prospectoie.localidad = null;
+      this.prospectoie.municipio_id = null;
       this.prospectoie.giro = null;
       this.prospectoie.oficina_id = null;
       this.prospectoie.fuente_id = null;
@@ -956,6 +1060,7 @@ export default {
       let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
       let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
+      let municipio = this.prospectoie.municipio != null && this.prospectoie.municipio !== '' ? this.prospectoie.municipio.toUpperCase() : this.prospectoie.municipio;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
       let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
@@ -975,6 +1080,7 @@ export default {
             colonia:colonia,
             cp:this.prospectoie.cp,
             localidad:localidad,
+            municipio_id:this.prospectoie.municipio_id,
             giro:giro,
             oficina_id:this.prospectoie.oficina_id,
             fuente_id:this.prospectoie.fuente_id,
@@ -1008,7 +1114,9 @@ export default {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Hubo un error al cargar los datos: ' + error.message
+            text: 'Hubo un error al actualizar los datos: ' + error.message,
+            confirmButtonText: 'OK',
+            confirmButtonAriaLabel: 'OK'
           });
         })
         .finally(() => {
@@ -1076,6 +1184,13 @@ export default {
         this.programadores_listado = response.data;
       });
     },
+
+    obtienemunicipios: function () {
+      axios.post(urlmunicipios).then((response) => {
+        this.municipios_listado = response.data;
+      });
+    },
+    
     salir: function(){
       window.location.href = "logout.php";
     },
@@ -1153,7 +1268,7 @@ export default {
       this.prospectoie.observaciones=objeto.observaciones;
       // this.ActualizaComboDeptos();
     },
-    generar_antecedente: function (objeto) {
+    /*generar_antecedente: function (objeto) {
       console.log(objeto);
         axios.post(urlgenerar_antecedente, {
           data: objeto
@@ -1171,7 +1286,7 @@ export default {
         .catch(error => {
           console.error("Error al generar el archivo:", error);
         });
-    },
+    },*/
     
     convertirFecha(fechaCaptura) {
     // Convertir a objeto Date
@@ -1197,6 +1312,200 @@ export default {
 
       return fechaactual;
     },
+    agregarFilaPeriodo() {
+      this.periodosParaAgregar.push({ inicio: '', fin: '' });
+    },
+    eliminarFilaPeriodo(index) {
+      // Evita que se elimine la última fila
+      if (this.periodosParaAgregar.length > 1) {
+        this.periodosParaAgregar.splice(index, 1);
+      }
+    },
+    agregarPeriodo() {
+      // Primero, valida que todos los periodos sean correctos.
+      if (!this.validarTodosLosPeriodos()) {
+        return; // Detiene la ejecución si hay un error de validación.
+      }
+
+      const nuevosPeriodos = this.periodosParaAgregar
+        .filter(p => p.inicio && p.fin) // Filtra los que están completos
+        .map(p => `${p.inicio}-${p.fin}`); // Les da el nuevo formato
+
+      if (nuevosPeriodos.length > 0) {
+        // Si ya hay periodos, los concatena. Si no, los asigna.
+        this.prospectoie.periodos = this.prospectoie.periodos
+          ? `${this.prospectoie.periodos}, ${nuevosPeriodos.join(', ')}`
+          : nuevosPeriodos.join(', ');
+      }
+      this.cerrarDialogoPeriodo();
+    },
+    cerrarDialogoPeriodo() {
+      this.dialogPeriodos = false;
+      this.periodosParaAgregar = [{ inicio: '', fin: '' }]; // Resetea el array
+    },
+    /**
+     * Establece el campo de periodos a partir de un array de objetos.
+     * @param {Array<Object>} periodosArray - Un array de objetos, donde cada objeto tiene las propiedades 'inicio' y 'fin'.
+     * Ejemplo: [{ inicio: '01/01/2024', fin: '31/01/2024' }]
+     */
+    establecerPeriodosDesdeArray(periodosArray) {
+      // Valida que el parámetro sea un array
+      if (!Array.isArray(periodosArray)) {
+        console.error("El parámetro proporcionado no es un array válido.");
+        this.prospectoie.periodos = ''; // Limpia el campo en caso de error
+        return;
+      }
+
+      const nuevosPeriodos = periodosArray
+        .filter(p => p.inicio && p.fin) // Filtra los periodos que están completos
+        .map(p => `${p.inicio}-${p.fin}`); // Les da el formato 'inicio-fin'
+
+      this.prospectoie.periodos = nuevosPeriodos.join(', '); // Asigna el string final
+    },
+    manejarInputFecha(periodo, index, tipo) {
+      if (tipo === 'inicio' && periodo.inicio && periodo.inicio.length === 10) {
+        // Usar $nextTick para asegurarse de que el DOM se haya actualizado
+        this.$nextTick(() => { //
+          const finRef = this.$refs['fechaFin' + index]; //
+          if (finRef && finRef[0]) {
+            const inputElement = finRef[0].$el.querySelector('input');
+            inputElement.focus();
+            inputElement.select();
+          }
+        });
+      }
+    },
+    async validarFechaFinal(periodo, index) {
+      if (periodo.inicio && periodo.fin && periodo.fin.length === 10) {
+        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
+          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+        }
+
+       const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
+        const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
+
+        const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
+        const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
+        
+        if (fechaFin <= fechaInicio) {
+          // Espera a que el usuario interactúe con la alerta.
+          const result = await Swal.fire({
+            icon: 'error',
+            title: 'Fecha incorrecta',
+            text: 'La fecha final debe ser mayor a la fecha inicial.',
+            confirmButtonText: 'Corregir',
+            confirmButtonAriaLabel: 'Corregir fecha',
+            // Forzar el foco en el botón de confirmación después de que la alerta se muestre.
+            didRender: () => {
+              const confirmButton = Swal.getConfirmButton();
+              if (confirmButton) confirmButton.focus();
+            }
+          });
+
+          // Si el usuario confirma, enfoca el campo para su corrección.
+          if (result.isConfirmed) {
+            const finRef = this.$refs['fechaFin' + index];
+            if (finRef && finRef[0]) {
+              finRef[0].$el.querySelector('input').select();
+            }
+          }
+        }
+      }
+    },
+    validarTodosLosPeriodos() {
+      for (const [index, periodo] of this.periodosParaAgregar.entries()) {
+        // Solo validar filas que tienen al menos una fecha ingresada
+        const tieneFechaInicial = periodo.inicio && periodo.inicio.length === 10;
+        const tieneFechaFinal = periodo.fin && periodo.fin.length === 10;
+
+        if (periodo.inicio || periodo.fin) { // Si hay algún intento de ingresar fechas en esta fila
+          if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
+            Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+            return false;
+          }
+
+          if (!tieneFechaInicial || !tieneFechaFinal) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Fechas incompletas',
+              text: `En la fila ${index + 1}, ambas fechas (inicial y final) deben estar completas (DD/MM/YYYY).`,
+              confirmButtonText: 'Corregir'
+            });
+            return false;
+          }
+
+          // Convertir fechas a objetos Date para comparación
+          const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
+          const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
+
+          const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
+          const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
+
+          // 1. Validar que la fecha final sea mayor que la fecha inicial en la misma fila
+          if (fechaFin <= fechaInicio) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Fecha incorrecta',
+              text: `En la fila ${index + 1}, la fecha final debe ser mayor que la fecha inicial.`,
+              confirmButtonText: 'Corregir'
+            });
+            return false;
+          }
+
+          // 2. Validar que la fecha inicial de la fila actual sea mayor que la fecha final de la fila anterior
+          if (index > 0) {
+            const periodoAnterior = this.periodosParaAgregar[index - 1];
+            // Asegurarse de que el período anterior también esté completo para la comparación
+            if (periodoAnterior.fin && periodoAnterior.fin.length === 10) {
+              const [prevDiaFin, prevMesFin, prevAnioFin] = periodoAnterior.fin.split('/');
+              const prevFechaFin = new Date(`${prevAnioFin}-${prevMesFin}-${prevDiaFin}`);
+
+              if (fechaInicio <= prevFechaFin) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Fechas superpuestas',
+                  text: `En la fila ${index + 1}, la fecha inicial debe ser posterior a la fecha final de la fila anterior.`,
+                  confirmButtonText: 'Corregir'
+                });
+                return false;
+              }
+            }
+          }
+        }
+      }
+      return true; // Indica que todos los periodos son válidos.
+    },
+    esFechaValida(fecha) {
+      if (!fecha || fecha.length !== 10) return false;
+
+      const [dia, mes, anio] = fecha.split('/');
+      if (!/^\d+$/.test(dia) || !/^\d+$/.test(mes) || !/^\d+$/.test(anio)) return false;
+
+      const d = new Date(`${anio}-${mes}-${dia}`);
+      if (isNaN(d.getTime())) return false;
+
+      if (d.getDate() != dia || (d.getMonth() + 1) != mes || d.getFullYear() != anio) return false;
+
+      return true;
+
+    },
+    soloNumeros(event) {
+      // Permite teclas de control como backspace, delete, tab, escape, enter, y las flechas.
+      const controlKeys = [8, 9, 13, 27, 37, 38, 39, 40, 46];
+      if (controlKeys.includes(event.keyCode)) {
+        return;
+      }
+
+      // Permite combinaciones como Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+      if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
+        return;
+      }
+
+      // Si la tecla presionada no es un número, previene la acción.
+      if (!/^\d$/.test(event.key)) {
+        event.preventDefault();
+      }
+    }
   },
 };
 </script>
@@ -1229,6 +1538,7 @@ tbody tr:nth-of-type(odd) {
 .mayusculas input{
   text-transform: uppercase
 }
+
 .center-header {
   text-align: center;
 }
