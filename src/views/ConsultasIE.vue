@@ -34,9 +34,9 @@
               <vue-excel-xlsx v-if="permiso"
                 :data="prospectosie"
                 :columns="columnas"
-                :file-name="'Prospectos IE'"
+                :file-name="'Consultas IE'"
                 :file-type="'xlsx'"
-                :sheet-name="'ProspectosIE'"
+                :sheet-name="'ConsultasIE'"
                 >
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
@@ -626,6 +626,7 @@
 
 export default {
   name: "ConsultasIE",
+  
   data() {
     return {
       cargando:false,
@@ -711,7 +712,7 @@ export default {
         {label:"IMPUESTO", field:"impuesto"},
         {label:"FECHA CAPTURA", field:"fecha_captura"},
         {label:"PROGRAMADOR", field:"programador_descripcion"},
-        {label:"REPRESENTANTE LEGAL", field:"representante_legal"},
+        {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
       ],
       prospectosie: [],
@@ -766,33 +767,6 @@ export default {
       }
       return ''; // O maneja el caso donde uno o ambos están vacíos
     }
-  },
-  watch: {
-    // Observador para asignar el valor de la propiedad computada al modelo final
-    'periodosParaAgregar': {
-      handler(newVal) {
-        newVal.forEach(periodo => {
-          // Añade la diagonal después del día
-          if (periodo.inicio && periodo.inicio.length === 2 && !periodo.inicio.includes('/')) {
-            periodo.inicio += '/';
-          }
-          // Añade la diagonal después del mes
-          if (periodo.inicio && periodo.inicio.length === 5 && periodo.inicio.split('/').length - 1 < 2) {
-            periodo.inicio += '/';
-          }
-
-          // Añade la diagonal después del día para la fecha final
-          if (periodo.fin && periodo.fin.length === 2 && !periodo.fin.includes('/')) {
-            periodo.fin += '/';
-          }
-          // Añade la diagonal después del mes para la fecha final
-          if (periodo.fin && periodo.fin.length === 5 && periodo.fin.split('/').length - 1 < 2) {
-            periodo.fin += '/';
-          }
-        });
-      },
-      deep: true // Observa cambios profundos en el array de objetos
-    },
   },
   watch: {
     'periodosParaAgregar': {
@@ -1290,9 +1264,7 @@ export default {
       this.prospectoie.colonia=null;
       this.prospectoie.cp=null;
       this.prospectoie.localidad=null;
-      this.prospectoie.municipio_id=null;
       this.prospectoie.giro=null;
-      this.prospectoie.oficina_descripcion=null;
       this.prospectoie.oficina_id=null;
       this.prospectoie.fuente_id=null;
       this.prospectoie.antecedente_id=null;
@@ -1321,9 +1293,7 @@ export default {
       this.prospectoie.colonia=objeto.colonia;
       this.prospectoie.cp=objeto.cp;
       this.prospectoie.localidad=objeto.localidad;
-      this.prospectoie.municipio_id=objeto.municipio_id;
       this.prospectoie.giro=objeto.giro;
-      this.prospectoie.oficina_descripcion=objeto.oficina_descripcion;
       this.prospectoie.oficina_id=objeto.oficina_id;
       this.prospectoie.fuente_id=objeto.fuente_id;
       this.prospectoie.periodos=objeto.periodos;
