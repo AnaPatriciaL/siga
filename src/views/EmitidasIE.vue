@@ -6,7 +6,7 @@
             <v-row class="center">
               <v-spacer></v-spacer>
               <v-col cols="8"  class="text-center">
-                <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>+
+                <h1>LISTA DE EMITIDAS</h1>
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
@@ -99,18 +99,14 @@
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
                 <!-- Icono Editar en el data-table -->
-                <v-icon
-                  large
-                  class="mr-2"
-                  color="amber"
-                  dark
-                  dense
-                  alt="Editar"
-                  @click="formEditar(item)"
-                >
-                  mdi-pencil
-                </v-icon>
-                
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="mr-2" color="amber" dark dense @click="formEditar(item)">
+                      mdi-pencil
+                    </v-icon>
+                  </template>
+                  <span>Editar Prospecto</span>
+                </v-tooltip>
               </template>
 
             </v-data-table>
