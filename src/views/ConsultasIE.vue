@@ -349,7 +349,7 @@
                           </v-text-field>
                         </v-col>
                         <!-- Antecedentes -->
-                        <v-col class="my-0 py-0" cols="12" md="6">
+                        <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
                             :items="antecedentes_listado"
                             v-model="prospectoie.antecedente_id"
@@ -363,7 +363,7 @@
                           </v-select> 
                         </v-col>
                         <!-- Impuesto -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
+                        <v-col class="my-0 py-0" cols="12" md="2">
                           <v-select
                             :items="impuestos_listado"
                             v-model="prospectoie.impuesto_id"
@@ -378,7 +378,7 @@
                         </v-col>
 
                         <!-- Presuntiva -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
+                        <v-col class="my-0 py-0" cols="12" md="2">
                           <v-text-field
                             class="my-0 py-0"
                             label="Presuntiva/Determinado"
@@ -395,22 +395,8 @@
                             {{prospectoie.determinado}}
                           </v-text-field>
                         </v-col>
-                        <!-- Fecha -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            reverse
-                            readonly
-                            disabled
-                            dense
-                            outlined
-                            maxlength="10"
-                            v-model="prospectoie.fecha_captura"
-                            label="Fecha captura"
-                          ></v-text-field>
-                        </v-col>
-
                         <!-- Usuario -->
-                        <v-col class="my-0 py-0" cols="12" md="4">
+                        <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
                             :items="programadores_listado"
                             v-model="prospectoie.programador_id"
@@ -424,8 +410,8 @@
                           >
                           </v-select>
                         </v-col>
-                        <!-- Fuente -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
+                                                <!-- Fuente -->
+                        <v-col class="my-0 py-0" cols="12" md="2">
                           <v-select
                             :items="fuentes_listado"
                             v-model="prospectoie.fuente_id"
@@ -448,6 +434,7 @@
                             {{prospectoie.retenedor}}
                           </v-switch>
                         </v-col>
+
                         <!-- Representante Legal -->
                         <v-col class="my-0 py-0" cols="12" md="10">
                           <v-text-field
@@ -473,7 +460,7 @@
                           ></v-switch>
                         </v-col>
                         <!-- Observaciones -->
-                        <v-col class="my-0 py-0" cols="12" md="10">
+                        <v-col class="my-0 py-0" cols="12" md="8">
                           <v-text-field
                             class="my-0 py-0 mayusculas"
                             v-model="prospectoie.observaciones"
@@ -485,6 +472,19 @@
                           >
                             {{prospectoie.observaciones}}
                           </v-text-field>
+                        </v-col>
+                        <!-- Fecha captura-->
+                        <v-col class="my-0 py-0" cols="12" md="2">
+                          <v-text-field
+                            reverse
+                            readonly
+                            disabled
+                            dense
+                            outlined
+                            maxlength="10"
+                            v-model="prospectoie.fecha_captura"
+                            label="Fecha captura"
+                          ></v-text-field>
                         </v-col>
 
                       </v-row>
@@ -772,30 +772,27 @@ export default {
     'periodosParaAgregar': {
       handler(newVal) {
         newVal.forEach(periodo => {
-          // Añade la diagonal después del día
-          if (periodo.inicio && periodo.inicio.length === 2 && !periodo.inicio.includes('/')) {
-            periodo.inicio += '/';
-          }
-          // Añade la diagonal después del mes
-          if (periodo.inicio && periodo.inicio.length === 5 && periodo.inicio.split('/').length - 1 < 2) {
-            periodo.inicio += '/';
-          }
+          // Lógica para añadir la diagonal después del día
+          if (periodo.inicio && periodo.inicio.length === 2 && !periodo.inicio.includes('/')) periodo.inicio += '/';
+          // Lógica para añadir la diagonal después del mes
+          if (periodo.inicio && periodo.inicio.length === 5 && periodo.inicio.split('/').length - 1 < 2) periodo.inicio += '/';
+
           // Repite para la fecha final
           if (periodo.fin && periodo.fin.length === 2 && !periodo.fin.includes('/')) {
             periodo.fin += '/';
           }
-          if (periodo.fin && periodo.fin.length === 5 && periodo.fin.split('/').length - 1 < 2) {
-            periodo.fin += '/';
-          }
+          if (periodo.fin && periodo.fin.length === 5 && periodo.fin.split('/').length - 1 < 2) periodo.fin += '/';
         });
       },
       deep: true
     },
-    dialogPeriodos(val) { // Observador para enfocar al abrir el diálogo
+    dialogPeriodos(val) {
       if (val) {
         this.$nextTick(() => {
           const ref = this.$refs.fechaInicio0;
-          if (ref && ref[0]) ref[0].focus();
+          if (ref && ref[0]) {
+            ref[0].focus();
+          }
         });
       }
     },
@@ -964,7 +961,7 @@ export default {
         this.prospectoie.nombre===null || this.prospectoie.nombre==="" ||
         this.prospectoie.calle===null || this.prospectoie.calle==="" ||
         this.prospectoie.num_exterior===null || this.prospectoie.num_exterior==="" ||
-        this.prospectoie.num_interior===null || this.prospectoie.num_interior==="" ||        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
+        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
         this.prospectoie.municipio_id===null || this.prospectoie.municipio_id==="" ||
         this.prospectoie.oficina_id===null || this.prospectoie.oficina_id==="" ||
         this.prospectoie.periodos===null || this.prospectoie.periodos==="" ||
@@ -972,7 +969,7 @@ export default {
         this.prospectoie.giro===null || this.prospectoie.giro==="" ||
         this.prospectoie.impuesto_id===null || this.prospectoie.impuesto_id==="" ||
         this.prospectoie.determinado===null || this.prospectoie.determinado==="" ||
-        this.prospectoie.programador_id===null
+        this.prospectoie.programador_id===null //FLA-quité num_int y colonia porque no siempre hay esos 2 campos
       ) {
         textoMostrar='Es necesario llenar toda la información';
         errores=3;
@@ -1014,7 +1011,7 @@ export default {
       axios.post(crud, 
             {
               // Nuevo
-              opcion:2,  
+              opcion:2, 
               // Campos a guardar
               rfc:this.prospectoie.rfc.toUpperCase(),
               nombre:nombre,
@@ -1413,13 +1410,28 @@ export default {
         });
       }
     },
+    enfocarBotonAgregar() {
+      this.$nextTick(() => {
+        const boton = this.$refs.botonAgregarPeriodo;
+        if (boton) {
+          boton.$el.focus();
+        }
+      });
+    },
     async validarFechaFinal(periodo, index) {
       if (periodo.inicio && periodo.fin && periodo.fin.length === 10) {
-        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
-          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+        // Primero, verificar que ambas fechas estén completas en formato DD/MM/YYYY
+        if (periodo.inicio.length !== 10 || periodo.fin.length !== 10) {
+          return; // No hacer nada si las fechas están incompletas, la máscara o el watcher las completará.
         }
 
-       const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
+        // Luego, verificar si son fechas válidas (ej. no 31/02/2024)
+        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
+          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+          return Swal.fire('Error', 'Una de las fechas ingresadas no es válida (ej. 31/02/2024).', 'error');
+        }
+
+        const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
         const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
 
         const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
@@ -1514,16 +1526,19 @@ export default {
       return true; // Indica que todos los periodos son válidos.
     },
     esFechaValida(fecha) {
-      if (!fecha || fecha.length !== 10) return false;
+      const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+      if (!fecha || !pattern.test(fecha)) {
+        return false;
+      }
 
       const [dia, mes, anio] = fecha.split('/');
-      if (!/^\d+$/.test(dia) || !/^\d+$/.test(mes) || !/^\d+$/.test(anio)) return false;
-
-      const d = new Date(`${anio}-${mes}-${dia}`);
-      if (isNaN(d.getTime())) return false;
-
-      if (d.getDate() != dia || (d.getMonth() + 1) != mes || d.getFullYear() != anio) return false;
-
+      const d = new Date(anio, mes - 1, dia);
+      
+      return (
+        d.getFullYear() == anio &&
+        d.getMonth() + 1 == mes &&
+        d.getDate() == dia
+      );
       return true;
 
     },
