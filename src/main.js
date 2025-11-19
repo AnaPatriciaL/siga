@@ -3,7 +3,9 @@ import Vue from "vue";
 import App from "./App.vue";
 import router from "./router/index.js";
 import Vuetify from "vuetify";
-import VueTheMask from 'vue-the-mask';
+import VueTheMask from "vue-the-mask";
+import VueExcelXlsx from "vue-excel-xlsx";
+
 // import CompoMillares from "@/components/CampoMillares.vue"; // 👈 importa el componente
 import "vuetify/dist/vuetify.min.css"; // Importar los estilos de Vuetify
 import axios from "axios"; // Importar axios
@@ -22,7 +24,10 @@ Vue.prototype.$Swal = Swal; // Esto hace que $Swal esté accesible en todos los 
 Vue.config.productionTip = false;
 
 // Usar Vuetify
-Vue.use(Vuetify,VueTheMask);
+Vue.use(Vuetify);
+Vue.use(VueTheMask);
+Vue.use(VueExcelXlsx);
+
 
 // Definir una variable global `$user` en Vue prototype
 Vue.prototype.$user = {

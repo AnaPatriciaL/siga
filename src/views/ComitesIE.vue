@@ -18,22 +18,14 @@
 
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso"
-                :data="prospectosie"
-                :columns="columnas"
-                :file-name="'Prospectos enviados a comite'"
-                :file-type="'xlsx'"
-                :sheet-name="'ProspectosEnviados'"
-                >
-                <v-tooltip top color="green darken-3">
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
-                      <v-icon large>mdi-microsoft-excel</v-icon>
-                    </v-btn>
-                  </template>
-                  <span>Exportar a Excel</span>
-                </v-tooltip>
-              </vue-excel-xlsx>
+              <v-tooltip top color="green darken-3" v-if="permiso">
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on" @click="exportarExcelConEstilo">
+                    <v-icon large>mdi-microsoft-excel</v-icon>
+                  </v-btn>
+                </template>
+                <span>Exportar a Excel</span>
+              </v-tooltip>
               <!-- Boton recargar  -->
               <v-tooltip right color="light-blue darken-4">
                 <template v-slot:activator="{ on, attrs }">
@@ -584,6 +576,7 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
+  import * as XLSX from 'xlsx-js-style';
   import VueExcelXlsx from "vue-excel-xlsx";
 
   // var crud = "./backend/crud_prospectosie.php";
@@ -802,6 +795,102 @@ export default {
     this.obtienemunicipios()
   },
  methods: {
+    exportarExcelConEstilo() {      
+      // 1. Definir los estilos
+      const border = {
+        top: { style: 'thin', color: { rgb: "000000" } },
+        bottom: { style: 'thin', color: { rgb: "000000" } },
+        left: { style: 'thin', color: { rgb: "000000" } },
+        right: { style: 'thin', color: { rgb: "000000" } }
+      };
+      const subHeaderStyleborder = {
+        top: { style: 'thick', color: { rgb: "000000" } },
+        bottom: { style: 'thick', color: { rgb: "000000" } },
+        left: { style: 'thick', color: { rgb: "000000" } },
+        right: { style: 'thick', color: { rgb: "000000" } }
+      };
+      const titleStyle = {
+        font: { bold: true, sz: 18 },
+        alignment: { horizontal: "center", vertical: "center" }
+      };
+      const subHeaderStyle = {
+        font: { bold: true, sz: 11 },
+        fill: { fgColor: { rgb: "D9D9D9" } }, // Gris claro (Blanco, Fondo 1, Oscuro 15%)
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: subHeaderStyleborder
+      };
+      const dataStyleLeft = {
+        font: { sz: 11 },
+        border: border
+      };
+      const dataStyleCenter = {
+        ...dataStyleLeft,
+        alignment: { horizontal: "center", vertical: "center" }
+      };
+      const dataStyleCurrency = {
+        ...dataStyleCenter,
+        numFmt: "$#,##0"
+      };
+
+      // 2. Preparar los datos y encabezados
+      const title = "LISTADO DE CRUCE DE ORDENES DE VISITAS DE IMPUESTOS ESTATALES";
+      const headers = ["No.", "R.F.C.", "NOMBRE DEL CONTRIBUYENTE", "MÉTODO\nPROPUESTO", "PERIODO", "IMPUESTOS", "MUNICIPIO", "PRESUNTIVA", "REPRESENTANTE\nLEGAL"];
+      
+      const data = this.prospectosie.map((item, index) => {
+        const row = [
+          { v: index + 1, s: dataStyleCenter },
+          { v: item.rfc, s: dataStyleLeft },
+          { v: item.nombre, s: dataStyleLeft },
+          { v: item.antecedente_descripcion, s: dataStyleCenter },
+          { v: item.periodos, s: dataStyleCenter },
+          { v: item.impuesto, s: dataStyleCenter },
+          { v: item.municipio_descripcion || item.localidad, s: dataStyleCenter },
+          { v: Number(item.determinado), t: 'n', s: dataStyleCurrency },
+          { v: item.representante_legal, s: dataStyleCenter }
+        ];
+        return row;
+      });
+
+      // 3. Crear la hoja de cálculo con el título y encabezados
+      const ws_data = [
+        [{v: title, s: titleStyle}], // Fila 1 para el título con estilo
+        headers, // Fila 2 para los encabezados
+        ...data    // Resto de los datos
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+      // 4. Combinar celdas para el título (Fila 1, de Columna A a I)
+      if (!ws['!merges']) ws['!merges'] = [];
+      ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } });
+
+      // 5. Aplicar estilos
+      // Estilo a los encabezados de la fila 2
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = XLSX.utils.encode_cell({ r: 1, c: C });
+        if (ws[cell_address]) ws[cell_address].s = subHeaderStyle;
+      }
+
+      // 6. Ajustar el ancho de las columnas dinámicamente
+      const colWidths = headers.map((header, i) => {
+        // Iniciar con el ancho del encabezado
+        let max = header.length;
+        // Recorrer los datos de la columna para encontrar el valor más largo
+        data.forEach(row => {
+          const cellValue = row[i].v; // Acceder al valor 'v' del objeto celda
+          if (cellValue != null) {
+            max = Math.max(max, String(cellValue).length);
+          }
+        });
+        return { wch: max + 2 }; // Añadir un pequeño padding
+      });
+      ws['!cols'] = colWidths;
+
+      // 7. Crear el libro y descargar
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "CRUCE");
+      XLSX.writeFile(wb, "LISTADO DE CRUCE DE ORDENES DE IMPUESTOS ESTATALES.xlsx");
+    },
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP

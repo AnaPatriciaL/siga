@@ -18,22 +18,23 @@
 
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso"
-                :data="prospectosie"
-                :columns="columnas"
-                :file-name="'Lista de prospectos por trabajar'"
-                :file-type="'xlsx'"
-                :sheet-name="'ProspectosporTrabajar'"
-                >
-                <v-tooltip top color="green darken-3">
-                  <template v-slot:activator="{ on, attrs }">
+               <v-tooltip v-if="permiso" top color="green darken-3">
+                <template v-slot:activator="{ on, attrs }">
+                  <vue-excel-xlsx
+                    :data="prospectosie"
+                    :columns="columnas"
+                    :file-name="'Lista de prospectos por trabajar'"
+                    :file-type="'xlsx'"
+                    :sheet-name="'ProspectosporTrabajar'"
+                  >
                     <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
                       <v-icon large>mdi-microsoft-excel</v-icon>
                     </v-btn>
-                  </template>
-                  <span>Exportar a Excel</span>
-                </v-tooltip>
-              </vue-excel-xlsx>
+                  </vue-excel-xlsx>
+                </template>
+                <span>Exportar a Excel</span>
+              </v-tooltip>
+
               <!-- Boton recargar  -->
               <v-tooltip right color="light-blue darken-4">
                 <template v-slot:activator="{ on, attrs }">
