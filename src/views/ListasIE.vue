@@ -6,7 +6,7 @@
             <v-row class="center">
               <v-spacer></v-spacer>
               <v-col cols="8"  class="text-center">
-                <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>
+                <h1>PROSPECTOS LISTOS PARA ENVIAR A COMITE</h1>
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
@@ -21,9 +21,9 @@
               <vue-excel-xlsx v-if="permiso"
                 :data="prospectosie"
                 :columns="columnas"
-                :file-name="'Prospectos IE'"
+                :file-name="'ProspectosSeleccionados'"
                 :file-type="'xlsx'"
-                :sheet-name="'ProspectosIE'"
+                :sheet-name="'ProspectosSeleccionados'"
                 >
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
@@ -99,17 +99,22 @@
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
                 <!-- Icono Editar en el data-table -->
-                <v-icon
-                  large
-                  class="mr-2"
-                  color="amber"
-                  dark
-                  dense
-                  alt="Editar"
-                  @click="formEditar(item)"
-                >
-                  mdi-pencil
-                </v-icon>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="mr-2" color="amber" dark dense @click="formEditar(item)">
+                      mdi-pencil
+                    </v-icon>
+                  </template>
+                  <span>Editar Prospecto</span>
+                </v-tooltip>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">
+                      mdi-send-circle
+                    </v-icon>
+                  </template>
+                  <span>Enviar a Comité</span>
+                </v-tooltip>
                 
               </template>
 
@@ -811,6 +816,36 @@ export default {
         // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
       }
+    },
+    seleccionarProspecto: function (item) {
+      Swal.fire({
+        title: '¿Enviar a comité?',
+        text: "Esta acción marcará el prospecto como enviado a comité",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Seleccionar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          axios.post(crud, {
+            opcion: 5, // Opción para actualizar solo el estatus
+            id: item.id,
+            estatus: 4
+          }).then(response => {
+            Swal.fire(
+              '¡Enviado!',
+              'El prospecto ha sido enviado a comité.',
+              'success'
+            );
+            this.mostrar(); // Recargar la tabla para reflejar el cambio
+          }).catch(error => {
+            Swal.fire('Error', 'No se pudo autorizar el prospecto.', 'error');
+            console.error("Error al cambiar estatus:", error);
+          });
+        }
+      });
     },
     mostrar: function () {
       axios

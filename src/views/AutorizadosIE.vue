@@ -6,7 +6,7 @@
             <v-row class="center">
               <v-spacer></v-spacer>
               <v-col cols="8"  class="text-center">
-                <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>+
+                <h1>PROSPECTOS AUTORIZADOS PARA EMITIR</h1>
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
@@ -99,18 +99,30 @@
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
                 <!-- Icono Editar en el data-table -->
-                <v-icon
-                  large
-                  class="mr-2"
-                  color="amber"
-                  dark
-                  dense
-                  alt="Editar"
-                  @click="formEditar(item)"
-                >
-                  mdi-pencil
-                </v-icon>
-                
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="mr-2" color="amber" dark dense @click="formEditar(item)">
+                      mdi-pencil
+                    </v-icon>
+                  </template>
+                  <span>Editar Prospecto</span>
+                </v-tooltip>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="primary" dark dense>
+                      mdi-file-word
+                    </v-icon>
+                  </template>
+                  <span>Generar Documento</span>
+                </v-tooltip>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">
+                      mdi-check-circle
+                    </v-icon>
+                  </template>
+                  <span>Enviar a Emitidas</span>
+                </v-tooltip>
               </template>
 
             </v-data-table>
@@ -811,6 +823,36 @@ export default {
         // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
       }
+    },
+    seleccionarProspecto: function (item) {
+      Swal.fire({
+        title: '¿Enviar este prospecto a emitidas?',
+        text: "Esta acción enviará el prospecto a emitidas.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Seleccionar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          axios.post(crud, {
+            opcion: 5, // Opción para actualizar solo el estatus
+            id: item.id,
+            estatus: 6
+          }).then(response => {
+            Swal.fire(
+              '¡Emitida!',
+              'El prospecto ha sido enviado a emitidas.',
+              'success'
+            );
+            this.mostrar(); // Recargar la tabla para reflejar el cambio
+          }).catch(error => {
+            Swal.fire('Error', 'No se pudo enviar el prospecto.', 'error');
+            console.error("Error al cambiar estatus:", error);
+          });
+        }
+      });
     },
     mostrar: function () {
       axios
