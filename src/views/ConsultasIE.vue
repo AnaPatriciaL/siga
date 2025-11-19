@@ -152,7 +152,17 @@
               <v-card>
                 <v-form>
                   <v-card-title class="pink darken-4 white--text py-2"
-                    >PROSPECTO DE IMPUESTOS ESTATALES</v-card-title
+                    >PROSPECTO DE IMPUESTOS ESTATALES
+                    <v-spacer></v-spacer>
+                    <span class="text-h6">
+                      <template v-if="operacion === 'editar'">
+                        EDITAR (<span class="yellow--text">Estatus: {{ prospectoie.estatus_descripcion }}</span>)
+                      </template>
+                      <template v-else>
+                        {{ operacion.toUpperCase() }}
+                      </template>
+                    </span>
+                  </v-card-title
                   >
                   <v-card-text class="mb-2 py-0">
                     <v-container>
@@ -297,7 +307,7 @@
                             dense
                             required
                             item-text="nombre"
-                            item-value="id"
+                            item-value="municipio_id"
                           >
                           </v-select>
                         </v-col>
@@ -430,13 +440,14 @@
                             class="my-0 py-0 mayusculas"
                             v-model="prospectoie.retenedor"
                             inset
-                            label="Retenedor">
-                            {{prospectoie.retenedor}}
+                            label="Retenedor"
+                            :true-value="1"
+                            :false-value="0">
                           </v-switch>
                         </v-col>
 
                         <!-- Representante Legal -->
-                        <v-col class="my-0 py-0" cols="12" md="10">
+                        <v-col v-if="prospectoie.rfc && prospectoie.rfc.length === 12" class="my-0 py-0" cols="12" md="10">
                           <v-text-field
                             class="my-0 py-0 mayusculas"
                             v-model="prospectoie.representante_legal"
@@ -453,10 +464,11 @@
                         <v-col class="my-0 py-0" cols="12" md="2">
                           <v-switch
                             class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.origen"
+                            v-model="prospectoie.origen_id"
                             inset
-                            :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
-                             {{prospectoie.origen}}
+                            :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"
+                            :true-value="1"
+                            :false-value="0">
                           ></v-switch>
                         </v-col>
                         <!-- Observaciones -->
@@ -495,13 +507,13 @@
                     <v-spacer></v-spacer>
                     <v-btn
                       class="my-1 ma-2 py-1"
-                      color="blue-grey"
+                      color="primary"
                       @click="validar_supervisor()"
                       dark
                       >
                       <!-- type="submit" -->
                       Enviar a supervisor
-                      <v-icon dark right> mdi-account-tie-hat</v-icon>
+                      <v-icon right color="yellow"> mdi-account-tie-hat</v-icon>
                     </v-btn>
                     <v-btn
                       class="my-1 ma-2 py-1"
@@ -731,6 +743,7 @@ export default {
         cp: null,
         localidad: null,
         municipio_id:null,
+        municipio: null,
         oficina_id: null,
         fuente_id:null,
         giro: null,
@@ -739,7 +752,8 @@ export default {
         antecedente_id:null,
         determinado: 0,
         programador_id: null,
-        retenedor:0,
+        retenedor:null,
+        origen_id:null,
         representante_legal: null,
         estatus: 1,
       },
@@ -796,21 +810,18 @@ export default {
         });
       }
     },
-    'prospectoie.municipio_id'(newVal) {
-      if (newVal) {
-        // Buscar por ID o por nombre para asegurar que funcione en todos los casos
-        const municipioSeleccionado = this.municipios_listado.find(m => m.id === newVal || m.nombre === newVal);
-        this.prospectoie.oficina_descripcion = null; // Limpiar la descripción antes de la nueva asignación
+    'prospectoie.municipio_id'(id_municipio) {      
+      if (id_municipio) {
+        const municipioSeleccionado = this.municipios_listado.find(m => m.municipio_id === id_municipio);
+        this.prospectoie.oficina_descripcion = null;
         if (municipioSeleccionado) {
           this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
-          // Buscar la descripción de la oficina en oficinas_listado
           const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
           if (oficina) {
             this.prospectoie.oficina_descripcion = oficina.nombre;
           }
         }
       } else {
-        // Si se deselecciona el municipio, limpiar los campos de oficina
         this.prospectoie.oficina_descripcion = null;
         this.prospectoie.oficina_id = null;
       }
@@ -926,7 +937,7 @@ export default {
           this.prospectoie.colonia=null;
           this.prospectoie.cp=null;
           this.prospectoie.localidad=null;
-          this.prospectoie.municipio=null;
+          this.prospectoie.municipio = null;
           this.prospectoie.giro=null;
           this.prospectoie.nombre=response.data[0].nombre;
           this.prospectoie.calle=response.data[0].calle;
@@ -936,7 +947,10 @@ export default {
           this.prospectoie.cp=response.data[0].cp;
           this.prospectoie.giro=response.data[0].giro;
           this.prospectoie.localidad=response.data[0].localidad;
-          this.prospectoie.retenedor= false;
+          this.prospectoie.retenedor= 0;
+          this.prospectoie.representante_legal = null;
+          this.prospectoie.origen_id = 0;
+          this.prospectoie.observaciones=null;
           this.prospectoie.estatus= 1;
       })
       .catch(e => {
@@ -988,11 +1002,10 @@ export default {
           this.$refs.rfc.focus();
           return;
       }else{
-        console.log('guardar');
         this.guardar();
       }
     },
-    async validar_supervisor() {
+   async validar_supervisor() {
       
       this.prospectoie.estatus = 2;
       await this.validar();
@@ -1008,31 +1021,32 @@ export default {
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
       let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
+      console.log ("this.prospectoie.municipio_id", this.prospectoie.municipio_id);
       axios.post(crud, 
             {
               // Nuevo
               opcion:2, 
               // Campos a guardar
               rfc:this.prospectoie.rfc.toUpperCase(),
-              nombre:nombre,
-              calle:calle,
-              num_exterior:num_exterior,
-              num_interior:num_interior,
-              colonia:colonia,
+              nombre:this.prospectoie.nombre != null ? this.prospectoie.nombre.toUpperCase() : null,
+              calle:this.prospectoie.calle != null ? this.prospectoie.calle.toUpperCase() : null,
+              num_exterior:this.prospectoie.num_exterior != null ? this.prospectoie.num_exterior.toUpperCase() : null,
+              num_interior:this.prospectoie.num_interior != null ? this.prospectoie.num_interior.toUpperCase() : null,
+              colonia:this.prospectoie.colonia != null ? this.prospectoie.colonia.toUpperCase() : null,
               cp:this.prospectoie.cp,
-              localidad:localidad,
+              localidad:this.prospectoie.localidad != null ? this.prospectoie.localidad.toUpperCase() : null,
               municipio_id:this.prospectoie.municipio_id,
-              giro:giro,
               oficina_id:this.prospectoie.oficina_id,
               fuente_id:this.prospectoie.fuente_id,
-              giro: this.prospectoie.giro,
-              periodos:periodos,
+              giro:this.prospectoie.giro != null ? this.prospectoie.giro.toUpperCase() : null,
+              periodos:this.prospectoie.periodos != null ? this.prospectoie.periodos.toUpperCase() : null,
               antecedente_id:this.prospectoie.antecedente_id,
               impuesto_id:this.prospectoie.impuesto_id,
               determinado:this.prospectoie.determinado,
               programador_id:this.prospectoie.programador_id,
-              retenedor:this.prospectoie.retenedor,
               representante_legal:representante_legal,
+              retenedor:this.prospectoie.retenedor,
+              origen_id: this.prospectoie.origen_id,
               observaciones:observaciones,
               estatus:this.prospectoie.estatus
       })
@@ -1084,8 +1098,9 @@ export default {
       this.prospectoie.impuesto_id = null;
       this.prospectoie.determinado = null;
       this.prospectoie.programador_id = null;
-      this.prospectoie.retenedor = null;
       this.prospectoie.representante_legal = null;
+      this.prospectoie.retenedor = 0;
+      this.prospectoie.origen_id = 0;
       this.prospectoie.observaciones = null; 
       this.prospectoie.estatus = 1; 
     },   
@@ -1096,18 +1111,16 @@ export default {
       let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
       let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let municipio = this.prospectoie.municipio != null && this.prospectoie.municipio !== '' ? this.prospectoie.municipio.toUpperCase() : this.prospectoie.municipio;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
       let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
-
       axios
         .post(crud, {
             // Cambios
             opcion: 3,
             // Campos a guardar
-            // rfc:this.prospectoie.rfc,
+            rfc:this.prospectoie.rfc,
             id:this.prospectoie.id,
             nombre:nombre,
             calle:calle,
@@ -1117,18 +1130,17 @@ export default {
             cp:this.prospectoie.cp,
             localidad:localidad,
             municipio_id:this.prospectoie.municipio_id,
-            giro:giro,
             oficina_id:this.prospectoie.oficina_id,
             fuente_id:this.prospectoie.fuente_id,
-            giro: this.prospectoie.giro,
+            giro:giro,
             periodos:periodos,
             antecedente_id:this.prospectoie.antecedente_id,
             impuesto_id:this.prospectoie.impuesto_id,
             determinado:this.prospectoie.determinado,
             programador_id:this.prospectoie.programador_id,
-            determinado:this.prospectoie.determinado,
-            retenedor:this.prospectoie.retenedor,
             representante_legal:representante_legal,
+            retenedor:this.prospectoie.retenedor,
+            origen_id: this.prospectoie.origen_id,
             observaciones:observaciones,
             estatus:this.prospectoie.estatus
         })
@@ -1224,7 +1236,7 @@ export default {
     obtienemunicipios: function () {
       axios.post(urlmunicipios).then((response) => {
         this.municipios_listado = response.data;
-      });
+      });   
     },
     salir: function(){
       window.location.href = "logout.php";
@@ -1261,6 +1273,7 @@ export default {
       this.prospectoie.colonia=null;
       this.prospectoie.cp=null;
       this.prospectoie.localidad=null;
+      this.prospectoie.municipio_id=null;
       this.prospectoie.giro=null;
       this.prospectoie.oficina_id=null;
       this.prospectoie.fuente_id=null;
@@ -1290,6 +1303,7 @@ export default {
       this.prospectoie.colonia=objeto.colonia;
       this.prospectoie.cp=objeto.cp;
       this.prospectoie.localidad=objeto.localidad;
+      this.prospectoie.municipio_id=objeto.municipio_id;
       this.prospectoie.giro=objeto.giro;
       this.prospectoie.oficina_id=objeto.oficina_id;
       this.prospectoie.fuente_id=objeto.fuente_id;
@@ -1298,9 +1312,11 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.origen_id=objeto.origen_id;
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
+      this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
       // this.ActualizaComboDeptos();
     },
     generar_antecedente: function (objeto) {
@@ -1367,10 +1383,8 @@ export default {
         .map(p => `${p.inicio}-${p.fin}`); // Les da el nuevo formato
 
       if (nuevosPeriodos.length > 0) {
-        // Si ya hay periodos, los concatena. Si no, los asigna.
-        this.prospectoie.periodos = this.prospectoie.periodos
-          ? `${this.prospectoie.periodos}, ${nuevosPeriodos.join(', ')}`
-          : nuevosPeriodos.join(', ');
+        // Reemplaza los periodos existentes con los nuevos.
+        this.prospectoie.periodos = nuevosPeriodos.join(', ');
       }
       this.cerrarDialogoPeriodo();
     },
