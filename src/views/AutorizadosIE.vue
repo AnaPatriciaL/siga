@@ -59,6 +59,12 @@
               </v-col>
             </v-row>
 
+            <!-- Contador de folios -->
+            <v-row>
+              <v-col cols="12" class="text-right">
+                <span>Folios Disponibles: {{ foliosDisponiblesCount }}</span>
+              </v-col>
+            </v-row>
             <!-- Tabla y formulario -->
             <v-data-table
               :headers="encabezados"
@@ -595,15 +601,16 @@
   var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
   var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  //var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
   var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
+  var urlfolios_oficios ="http://10.10.120.228/siga/backend/folios_oficios.php";
 
 export default {
   name: "AutorizadasIE",
   data() {
     return {
       cargando:false,
+      foliosDisponiblesCount: 0,
       busca: "",
       rules: {
         dateFormat: value => {
@@ -728,6 +735,7 @@ export default {
       permiso:false,
       dialogPeriodos: false,
       periodosParaAgregar: [{ inicio: '', fin: '' }],
+      foliosDisponibles: 0,
             // }
     };
   },
@@ -802,6 +810,7 @@ export default {
     this.obtieneusuarios(),
     this.obtieneantecedentes()
     this.obtienemunicipios()
+    this.obtienefoliosoficios();
   },
  methods: {
     async obtenerPermisos() {
@@ -818,41 +827,74 @@ export default {
         console.error('Error al obtener los datos de la sesión:', error);
       }
     },
-    generarDocumento: function (item) {
-      this.cargando = true;
-      axios.post(urlgenerar_ordenes, {
-        prospecto: item
-      }, {
-        responseType: 'blob' // Es importante para recibir el archivo
-      })
-      .then(response => {
+    obtienefoliosoficios: function () {
+      axios
+        .post(urlfolios_oficios,{ opcion: 1})
+        .then((response) => {
+          if (Array.isArray(response.data)) {
+            this.folios_oficios = response.data;
+            // Filtrar los registros con estatus=0 y obtener el primero
+            const foliosConEstatusDisponible = this.folios_oficios.filter(item => Number(item.estatus) === 0);
+            if (foliosConEstatusDisponible.length > 0) {
+              this.siguientefolio = foliosConEstatusDisponible[0];
+            }
+            this.foliosDisponiblesCount = foliosConEstatusDisponible.length;
+
+          } else if (response.data.error) {
+            console.error('Error desde el servidor:', response.data.error);
+            Swal.fire('Error', response.data.error, 'error');
+          } else {
+            console.warn('Respuesta inesperada:', response.data);
+          }
+        })
+        .catch((error) => {
+          console.error('Error en la solicitud:', error);
+          Swal.fire('Error de conexión', 'No se pudo obtener la información', 'error');
+      });
+    },
+    async generarDocumento(item) {
+      try {
+        this.cargando = true;
+
+        // Llamada única al backend que se encarga de toda la lógica
+        const docResponse = await axios.post(urlgenerar_ordenes, {
+          prospecto: item,
+          usuario_id: this.sessionData.id_usuario // Enviar el ID del usuario actual
+        }, {
+          responseType: 'blob' // Es importante para recibir el archivo
+        });
+
         this.cargando = false;
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+
+        const url = window.URL.createObjectURL(new Blob([docResponse.data]));
         const link = document.createElement('a');
         link.href = url;
-
-        const contentDisposition = response.headers['content-disposition']; // Ej: "attachment; filename="ISN_...""
+        
+        const contentDisposition = docResponse.headers['content-disposition'];
         let fileName = 'ISN_' + item.rfc.toUpperCase() + '.docx'; // Nombre de respaldo
 
-        // Si la cabecera existe, extrae el nombre del archivo que envía el servidor
         if (contentDisposition) {
-            const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
-            if (fileNameMatch && fileNameMatch[1]) {
-                fileName = fileNameMatch[1];
-            }
+          const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+          if (fileNameMatch && fileNameMatch[1]) {
+            fileName = fileNameMatch[1];
+          }
         }
+
         link.setAttribute('download', fileName);
         document.body.appendChild(link);
-        console.log(fileName);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
-      })
-      .catch(error => {
+
+        // Actualizar el contador de folios disponibles en la vista
+        this.obtienefoliosoficios();
+
+      } catch (error) {
         this.cargando = false;
-        Swal.fire('Error', 'No se pudo generar el documento.', 'error');
-        console.error("Error al generar el documento:", error);
-      });
+        const mensajeError = error.message || 'No se pudo generar el documento.';
+        Swal.fire('Error', mensajeError, 'error');
+        console.error("Error en el proceso de generación de documento:", error);
+      }
     },
     seleccionarProspecto: function (item) {
       Swal.fire({
