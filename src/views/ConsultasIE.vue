@@ -1276,10 +1276,10 @@ export default {
       this.prospectoie.municipio_id=null;
       this.prospectoie.giro=null;
       this.prospectoie.oficina_id=null;
-      this.prospectoie.fuente_id=null;
-      this.prospectoie.antecedente_id=null;
+      this.prospectoie.fuente_id = 3; // Valor por defecto para Fuente
+      this.prospectoie.antecedente_id = 1; // Valor por defecto para Antecedente
       this.prospectoie.periodos=null;
-      this.prospectoie.impuesto_id=null;
+      this.prospectoie.impuesto_id = 1; // Valor por defecto para Impuesto
       this.prospectoie.programador_id=null;
       this.prospectoie.determinado=null;
       this.prospectoie.representante_legal=null;
