@@ -107,14 +107,7 @@
                   </template>
                   <span>Editar Prospecto</span>
                 </v-tooltip>
-                <v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="primary" dark dense>
-                      mdi-file-word
-                    </v-icon>
-                  </template>
-                  <span>Generar Documento</span>
-                </v-tooltip>
+                <v-icon large class="ml-2" color="primary" dark dense @click="generarDocumento(item)">mdi-file-word</v-icon>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
                     <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">
@@ -604,6 +597,7 @@
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
   //var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
+  var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
 
 export default {
   name: "AutorizadasIE",
@@ -823,6 +817,42 @@ export default {
         // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
       }
+    },
+    generarDocumento: function (item) {
+      this.cargando = true;
+      axios.post(urlgenerar_ordenes, {
+        prospecto: item
+      }, {
+        responseType: 'blob' // Es importante para recibir el archivo
+      })
+      .then(response => {
+        this.cargando = false;
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+
+        const contentDisposition = response.headers['content-disposition']; // Ej: "attachment; filename="ISN_...""
+        let fileName = 'ISN_' + item.rfc.toUpperCase() + '.docx'; // Nombre de respaldo
+
+        // Si la cabecera existe, extrae el nombre del archivo que envía el servidor
+        if (contentDisposition) {
+            const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+            if (fileNameMatch && fileNameMatch[1]) {
+                fileName = fileNameMatch[1];
+            }
+        }
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        console.log(fileName);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        this.cargando = false;
+        Swal.fire('Error', 'No se pudo generar el documento.', 'error');
+        console.error("Error al generar el documento:", error);
+      });
     },
     seleccionarProspecto: function (item) {
       Swal.fire({
