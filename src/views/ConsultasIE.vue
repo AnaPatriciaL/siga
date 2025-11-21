@@ -744,6 +744,7 @@ export default {
         localidad: null,
         municipio_id:null,
         municipio: null,
+        oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
         oficina_id: null,
         fuente_id:null,
         giro: null,
@@ -941,6 +942,7 @@ export default {
           this.prospectoie.giro=null;
           this.prospectoie.nombre=response.data[0].nombre;
           this.prospectoie.calle=response.data[0].calle;
+          this.prospectoie.num_interior=null; // Limpiar num_interior también
           this.prospectoie.num_exterior=response.data[0].num_exterior;
           this.prospectoie.num_interior=response.data[0].num_interior;
           this.prospectoie.colonia=response.data[0].colonia;
@@ -1011,6 +1013,7 @@ export default {
       await this.validar();
     },
     crear() {
+      console.log(this.prospectoie.periodos)
       let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
       let calle = this.prospectoie.calle != null && this.prospectoie.calle !== '' ? this.prospectoie.calle.toUpperCase() : this.prospectoie.calle;
       let num_exterior = this.prospectoie.num_exterior != null && this.prospectoie.num_exterior !== '' ? this.prospectoie.num_exterior.toUpperCase() : this.prospectoie.num_exterior;
@@ -1019,9 +1022,7 @@ export default {
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
-      let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
-      console.log ("this.prospectoie.municipio_id", this.prospectoie.municipio_id);
       axios.post(crud, 
             {
               // Nuevo
@@ -1044,13 +1045,14 @@ export default {
               impuesto_id:this.prospectoie.impuesto_id,
               determinado:this.prospectoie.determinado,
               programador_id:this.prospectoie.programador_id,
-              representante_legal:representante_legal,
+              representante_legal:this.prospectoie.representante_legal != null ? this.prospectoie.representante_legal.toUpperCase() : null,
               retenedor:this.prospectoie.retenedor,
               origen_id: this.prospectoie.origen_id,
               observaciones:observaciones,
               estatus:this.prospectoie.estatus
       })
       .then(response =>{
+        console.log("esto regresa al creae",response.data);
         Swal.fire({
           title: "Exito",
           text: "La información fue guardada satisfactoriamente",
@@ -1063,6 +1065,10 @@ export default {
           allowEscapeKey: false, // Bloquea la tecla de escape
           allowEnterKey: false // Bloquea la tecla enter
         })
+        // Asumiendo que el backend devuelve el ID del nuevo prospecto
+        if (response.data && response.data.id) {
+          this.sincronizarPeriodosDetalle(response.data.id, this.periodosParaAgregar, true);
+        }
 
         
       })
@@ -1157,6 +1163,7 @@ export default {
             allowEscapeKey: false, // Bloquea la tecla de escape
             allowEnterKey: false // Bloquea la tecla enter
           })
+          this.sincronizarPeriodosDetalle(this.prospectoie.id, this.periodosParaAgregar, true);
         })
         .catch(error => {
           Swal.fire({
@@ -1281,6 +1288,8 @@ export default {
       this.prospectoie.periodos=null;
       this.prospectoie.impuesto_id = 1; // Valor por defecto para Impuesto
       this.prospectoie.programador_id=null;
+      this.prospectoie.retenedor = 0; // Valor por defecto para Retenedor
+      this.prospectoie.origen_id = 0; // Valor por defecto para Origen
       this.prospectoie.determinado=null;
       this.prospectoie.representante_legal=null;
       this.prospectoie.observaciones=null;
@@ -1386,11 +1395,47 @@ export default {
         // Reemplaza los periodos existentes con los nuevos.
         this.prospectoie.periodos = nuevosPeriodos.join(', ');
       }
-      this.cerrarDialogoPeriodo();
+      this.dialogPeriodos = false; // Solo cierra el diálogo, no resetea el array
+    },
+    async sincronizarPeriodosDetalle(prospectoId, periodsArray, limpiarDespues = false) {
+      // Valida que el parámetro sea un array y no esté vacío.
+      if (!Array.isArray(periodsArray) || periodsArray.length === 0) {
+        console.log("No hay periodos para sincronizar.");
+        return;
+      }
+      try {
+        // 1. Eliminar periodos existentes para este prospecto en la BD.
+        await axios.post(crud, {
+          opcion: 6, // Nueva opción para eliminar periodos por prospecto_id
+          prospecto_id: prospectoId
+        });
+
+        // 2. Insertar los nuevos periodos uno por uno desde el array.
+        for (const periodo of periodsArray) {
+          if (periodo.inicio && periodo.fin) {
+            await axios.post(crud, {
+              opcion: 7, // Nueva opción para insertar un periodo
+              prospecto_id: prospectoId,
+              fecha_inicial: periodo.inicio,
+              fecha_final: periodo.fin,
+              status: 1 // Asumiendo un status por defecto
+            });
+          }
+        }
+        console.log('Periodos sincronizados correctamente.');
+
+        // 3. Si se indica, limpiar el array de periodos después de una operación exitosa.
+        if (limpiarDespues) {
+          this.periodosParaAgregar = [{ inicio: '', fin: '' }];
+        }
+
+      } catch (error) {
+        Swal.fire('Error', 'Hubo un problema al sincronizar los periodos: ' + error.message, 'error');
+        console.error('Error al sincronizar periodos:', error);
+      }
     },
     cerrarDialogoPeriodo() {
-      this.dialogPeriodos = false;
-      this.periodosParaAgregar = [{ inicio: '', fin: '' }]; // Resetea el array
+      this.dialogPeriodos = false; // Ahora solo cierra el diálogo
     },
     /**
      * Establece el campo de periodos a partir de un array de objetos.
