@@ -9,6 +9,7 @@ import ListasIE from "@/views/ListasIE.vue";
 import ComitesIE from "@/views/ComitesIE.vue";
 import AutorizadosIE from "@/views/AutorizadosIE.vue";
 import EmitidasIE from "@/views/EmitidasIE.vue";
+import FoliosIE from "@/views/FoliosIE.vue";
 import Usuarios from "@/views/Usuarios.vue";
 import Permisos from "@/views/Permisos.vue";
 
@@ -59,6 +60,12 @@ const router = new Router({
       path: "/EmitidasIE",
       name: "EmitidasIE",
       component: EmitidasIE,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/FoliosIE",
+      name: "FoliosIE",
+      component: FoliosIE,
       meta: { requiresAuth: true },
     },
     {

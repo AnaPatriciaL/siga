@@ -59,6 +59,14 @@
               </v-col>
             </v-row>
 
+            <!-- Contador de folios y órdenes -->
+            <v-row>
+              <v-col cols="12" class="text-right">
+                <span class="mr-4 font-weight-bold">Órdenes Generadas: {{ ordenesGeneradasCount }}</span>
+                <span class="mr-4 font-weight-bold">Órdenes Pendientes: {{ ordenesPendientesCount }}</span>
+                <span class="mr-4 font-weight-bold">Folios Disponibles: {{ foliosDisponiblesCount }}</span>
+              </v-col>
+            </v-row>
             <!-- Tabla y formulario -->
             <v-data-table
               :headers="encabezados"
@@ -101,7 +109,7 @@
                 <!-- Icono Editar en el data-table -->
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="mr-2" color="amber" dark dense @click="formEditar(item)">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">
                       mdi-pencil
                     </v-icon>
                   </template>
@@ -109,20 +117,28 @@
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="primary" dark dense>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumento(item)">
                       mdi-file-word
                     </v-icon>
                   </template>
-                  <span>Generar Documento</span>
+                  <span>{{ tieneOrdenGenerada(item) ? 'Ver Orden' : 'Generar Orden' }}</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">
                       mdi-check-circle
                     </v-icon>
                   </template>
                   <span>Enviar a Emitidas</span>
                 </v-tooltip>
+                <!--<v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">
+                      mdi-printer-eye
+                    </v-icon>
+                  </template>
+                  <span>Vista previa</span>
+                </v-tooltip>-->
               </template>
 
             </v-data-table>
@@ -586,6 +602,37 @@
 							</v-card-text>
 						</v-card>
 					</v-dialog>
+
+          <!-- Componente de Diálogo para VISTA PREVIA -->
+          <v-dialog
+            v-model="dialogVistaPrevia"
+            max-width="1000"
+            transition="dialog-top-transition"
+            persistent
+          >
+            <v-card>
+              <v-card-title class="pink darken-4 white--text">
+                VISTA PREVIA - {{ vistaPreviaRFC }}
+                <v-spacer></v-spacer>
+                <v-btn icon dark @click="cerrarVistaPrevia">
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+              </v-card-title>
+              <v-card-text>
+                <div v-if="cargandoVistaPrevia" class="text-center py-5">
+                  <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
+                  <p class="mt-2">Generando vista previa...</p>
+                </div>
+                <embed
+                  v-else-if="pdfSrc"
+                  :src="pdfSrc"
+                  type="application/pdf"
+                  width="100%"
+                  height="600px"
+                />
+              </v-card-text>
+            </v-card>
+          </v-dialog>
   </v-container>
 </template>
 
@@ -602,14 +649,19 @@
   var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
   var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  //var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
+  var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
+  var urlfolios_oficios ="http://10.10.120.228/siga/backend/folios_oficios.php";
 
 export default {
   name: "AutorizadasIE",
   data() {
     return {
       cargando:false,
+      ordenesGeneradasCount: 0,
+      ordenesPendientesCount: 0,
+      prospectosConOrdenGenerada: new Set(),
+      foliosDisponiblesCount: 0,
       busca: "",
       rules: {
         dateFormat: value => {
@@ -734,6 +786,11 @@ export default {
       permiso:false,
       dialogPeriodos: false,
       periodosParaAgregar: [{ inicio: '', fin: '' }],
+      dialogVistaPrevia: false, // Controla la visibilidad del diálogo de vista previa
+      cargandoVistaPrevia: false, // Controla el estado de carga de la vista previa
+      pdfSrc: '', // Contendrá la URL del PDF para el embed
+      vistaPreviaRFC: '', // Para mostrar el RFC en el título del diálogo de vista previa
+      foliosDisponibles: 0,
             // }
     };
   },
@@ -808,8 +865,12 @@ export default {
     this.obtieneusuarios(),
     this.obtieneantecedentes()
     this.obtienemunicipios()
+    this.obtienefoliosoficios();
   },
  methods: {
+   tieneOrdenGenerada(item) {
+      return this.prospectosConOrdenGenerada.has(item.id);
+    },
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
@@ -822,6 +883,152 @@ export default {
       } catch (error) {
         // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
+      }
+    },
+    async obtienefoliosoficios() {
+      try {
+        const response = await axios.post(urlfolios_oficios, { opcion: 1 });
+        if (Array.isArray(response.data)) {
+          this.folios_oficios = response.data;
+          const foliosConEstatusDisponible = this.folios_oficios.filter(item => Number(item.estatus) === 0);
+          if (foliosConEstatusDisponible.length > 0) {
+            this.siguientefolio = foliosConEstatusDisponible[0];
+          }
+          this.foliosDisponiblesCount = foliosConEstatusDisponible.length;
+          // Esperamos a que los contadores de órdenes se actualicen antes de continuar
+          await this.actualizarOrdenesCount();
+        } else if (response.data.error) {
+          console.error('Error desde el servidor:', response.data.error);
+          Swal.fire('Error', response.data.error, 'error');
+        } else {
+          console.warn('Respuesta inesperada:', response.data);
+        }
+      } catch (error) {
+        console.error('Error en la solicitud de folios:', error);
+        Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
+      }
+    },
+    async generarDocumento(item) {
+      if (this.foliosDisponiblesCount < 1) {
+        Swal.fire({
+          title: 'Folios no suficientes',
+          text: 'No tienes folios suficientes para generar la orden.',
+          icon: 'warning'
+        });
+        return;
+      }
+
+      try {
+        this.cargando = true;
+
+        // Llamada única al backend que se encarga de toda la lógica
+        const docResponse = await axios.post(urlgenerar_ordenes, {
+          prospecto: item,
+          usuario_id: this.sessionData.id_usuario // Enviar el ID del usuario actual
+        }, {
+          responseType: 'blob' // Es importante para recibir el archivo
+        });
+
+        this.cargando = false;
+
+        const url = window.URL.createObjectURL(new Blob([docResponse.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        const contentDisposition = docResponse.headers['content-disposition'];
+        let fileName = 'ISN_' + item.rfc.toUpperCase() + '.docx'; // Nombre de respaldo
+
+        if (contentDisposition) {
+          const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+          if (fileNameMatch && fileNameMatch[1]) {
+            fileName = fileNameMatch[1];
+          }
+        }
+
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Actualizar el contador de folios disponibles en la vista
+        this.obtienefoliosoficios();
+        this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
+
+
+      } catch (error) {
+        this.cargando = false;
+        const mensajeError = error.message || 'No se pudo generar el documento.';
+        Swal.fire('Error', mensajeError, 'error');
+        console.error("Error en el proceso de generación de documento:", error);
+      }
+    },
+    async vistaPrevia(item) {
+      this.cargandoVistaPrevia = true;
+      this.pdfSrc = ''; // Limpiar el PDF anterior
+      this.vistaPreviaRFC = item.rfc; // Establecer el RFC para el título del diálogo
+      this.dialogVistaPrevia = true; // Abrir el diálogo con el estado de carga
+
+      const payload = {
+        opcion: 5, // Opción para VISTA PREVIA
+        prospecto: item,
+        usuario_id: this.sessionData.id_usuario
+      };
+
+      try {
+        const response = await axios.post(urlgenerar_ordenes, payload, {
+          responseType: 'blob' // Es importante para recibir el archivo binario (PDF)
+        });
+
+        if (response.data.size > 0) {
+          const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+          this.pdfSrc = url;
+        } else {
+          Swal.fire('Error', 'El documento de vista previa está vacío.', 'error');
+          this.dialogVistaPrevia = false; // Cerrar diálogo si no hay contenido
+        }
+      } catch (error) {
+        console.error("Error en el proceso de vista previa:", error);
+        Swal.fire('Error', 'No se pudo generar la vista previa del documento.', 'error');
+        this.dialogVistaPrevia = false; // Cerrar diálogo en caso de error
+      } finally {
+        this.cargandoVistaPrevia = false;
+      }
+    },
+    async actualizarOrdenesCount() {
+      this.ordenesGeneradasCount = 0;
+      this.ordenesPendientesCount = 0;
+
+      if (this.prospectosie.length === 0) {
+        return;
+      }
+
+      const prospectoIds = this.prospectosie.map(p => p.id);
+
+      try {
+        const response = await axios.post(urlgenerar_ordenes, {
+          opcion: 4, // Opción para obtener conteos de órdenes
+          prospecto_ids: prospectoIds
+        });
+
+        if (response.data && !response.data.error) {
+          this.ordenesGeneradasCount = response.data.ordenes_generadas_count || 0;
+          this.ordenesPendientesCount = response.data.ordenes_pendientes_count || 0;
+          this.prospectosConOrdenGenerada = new Set(response.data.ids_con_orden || []);
+
+          // Mover la validación aquí para asegurar que se ejecuta después de tener los datos.
+          if (this.ordenesPendientesCount > 0 && this.foliosDisponiblesCount < this.ordenesPendientesCount) {
+            Swal.fire({
+              title: 'Folios no suficientes',
+              text: 'No tienes folios suficientes para generar todas las órdenes pendientes.',
+              icon: 'warning'
+            });
+          }
+        } else {
+          console.error('Error al obtener conteo de órdenes:', response.data.error);
+        }
+      } catch (error) {
+        console.error('Error en la solicitud para conteo de órdenes:', error);
       }
     },
     seleccionarProspecto: function (item) {
@@ -847,6 +1054,8 @@ export default {
               'success'
             );
             this.mostrar(); // Recargar la tabla para reflejar el cambio
+            this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
+
           }).catch(error => {
             Swal.fire('Error', 'No se pudo enviar el prospecto.', 'error');
             console.error("Error al cambiar estatus:", error);
@@ -866,7 +1075,8 @@ export default {
             .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
             .map(item => ({ ...item }));
 
-            // console.log("No Localizados:", this.prospectosie_no_localizados);
+            this.actualizarOrdenesCount(); // Llamar al método para actualizar los conteos de órdenes
+
 
           } else if (response.data.error) {
             console.error('Error desde el servidor:', response.data.error);
@@ -1310,25 +1520,7 @@ export default {
       this.prospectoie.observaciones=objeto.observaciones;
       // this.ActualizaComboDeptos();
     },
-    /*generar_antecedente: function (objeto) {
-      console.log(objeto);
-        axios.post(urlgenerar_antecedente, {
-          data: objeto
-        }, {
-          responseType: 'blob' // Para recibir el archivo Excel
-        })
-        .then(response => {
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', 'antecedente_'+objeto.rfc.toUpperCase()+'.xlsx'); // Nombre del archivo descargado
-          document.body.appendChild(link);
-          link.click();
-        })
-        .catch(error => {
-          console.error("Error al generar el archivo:", error);
-        });
-    },*/
+    
     
     convertirFecha(fechaCaptura) {
     // Convertir a objeto Date
@@ -1353,6 +1545,13 @@ export default {
       let fechaactual = day + "/" + month + "/" + year;
 
       return fechaactual;
+    },
+    cerrarVistaPrevia() {
+      this.dialogVistaPrevia = false;
+      // Revocar la URL del objeto para liberar memoria
+      if (this.pdfSrc) {
+        window.URL.revokeObjectURL(this.pdfSrc);
+      }
     },
     agregarFilaPeriodo() {
       this.periodosParaAgregar.push({ inicio: '', fin: '' });
