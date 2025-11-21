@@ -638,7 +638,6 @@
 
 export default {
   name: "ConsultasIE",
-  
   data() {
     return {
       cargando:false,
@@ -769,12 +768,9 @@ export default {
       permiso:false,
       dialogPeriodos: false,
       periodosParaAgregar: [{ inicio: '', fin: '' }],
-            // }
     };
   },
   computed: {
-    // Propiedad computada que observa cambios en fechaInicio y fechaFin
-    // y actualiza prospectoie.periodos
     periodoCompleto() {
       // Concatenar los valores con " AL " en medio si ambos campos tienen datos
       if (this.fechaInicio && this.fechaFin) {
@@ -1327,25 +1323,6 @@ export default {
       this.prospectoie.observaciones=objeto.observaciones;
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
       // this.ActualizaComboDeptos();
-    },
-    generar_antecedente: function (objeto) {
-      console.log(objeto);
-        axios.post(urlgenerar_antecedente, {
-          data: objeto
-        }, {
-          responseType: 'blob' // Para recibir el archivo Excel
-        })
-        .then(response => {
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', 'antecedente_'+objeto.rfc.toUpperCase()+'.xlsx'); // Nombre del archivo descargado
-          document.body.appendChild(link);
-          link.click();
-        })
-        .catch(error => {
-          console.error("Error al generar el archivo:", error);
-        });
     },
     
     convertirFecha(fechaCaptura) {
