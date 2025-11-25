@@ -5,12 +5,12 @@ include_once 'cors.php';
 include_once 'conexion.php';
 require __DIR__ . '/vendor/autoload.php'; // Esta es la ruta correcta una vez instalado Composer en la carpeta backend.
 
-// --- INICIO DE CORRECCIÓN ---
 // Asegurar que la librería TCPDF esté cargada y configurada.
 require_once __DIR__ . '/vendor/tecnickcom/tcpdf/tcpdf.php';
+ 
+// Configurar el renderizador de PDF para PhpWord.
 \PhpOffice\PhpWord\Settings::setPdfRendererPath(__DIR__ . '/vendor/tecnickcom/tcpdf');
 \PhpOffice\PhpWord\Settings::setPdfRendererName('TCPDF');
-// --- FIN DE CORRECCIÓN ---
 use PhpOffice\PhpWord\TemplateProcessor;
 
 // Recibir los datos desde la solicitud POST, manejando tanto JSON raw como form-urlencoded
@@ -94,6 +94,11 @@ switch ($opcion) {
                               IF(a.cp != '', CONCAT(' C.P. ', a.cp), ''),
                               IF(a.localidad != '', CONCAT(', ', a.localidad), '')
                           ) AS domicilio_completo,
+                           CONCAT(
+                              IFNULL(a.calle, ''),
+                              IF(a.num_exterior != '', CONCAT(', ', a.num_exterior), ''),
+                              IF(a.num_interior != '', CONCAT(', ', a.num_interior), '')
+                          ) AS calle_numero,
                           CONCAT(
                               IF(a.localidad != '', CONCAT(a.localidad), ''),
                               IF(j.nombre != '', CONCAT(', ', j.nombre), ''),
@@ -154,7 +159,6 @@ switch ($opcion) {
             $templateProcessor->setValue('art_retenedor', $prospecto['art_retenedor']);
             $templateProcessor->setValue('sujeto_retenedor', $prospecto['sujeto_retenedor']);
 
-        // --- INICIO DE CORRECCIÓN ---
         // 3. Obtener los datos del personal actuante para las firmas
         $consulta_personal = "SELECT id_actuante, nombre AS nombre_actuante, cargo, iniciales, estatus FROM siga_prospectosie_personal_actuante";
         $stmt_personal = $conexion->prepare($consulta_personal);
@@ -163,7 +167,7 @@ switch ($opcion) {
 
         $iniciales = [];
         foreach ($personal_actuante as $persona) {
-            if ($persona['estatus'] == 1) { // Asegurarse que el tipo de dato es correcto
+            if (intval($persona['estatus']) === 1) { // Asegurarse que el tipo de dato es correcto
                 if ($persona['id_actuante'] == 1) { // El firmante principal
                     $templateProcessor->setValue('cargo', $persona['cargo']);
                     $templateProcessor->setValue('nombre_actuante', $persona['nombre_actuante']);
@@ -173,17 +177,13 @@ switch ($opcion) {
             }
         }
         $templateProcessor->setValue('iniciales', implode(' / ', $iniciales));
-        // --- FIN DE CORRECCIÓN ---
-
-        // 4. Guardar temporal DOCX
-        $tmpDocx = tempnam(sys_get_temp_dir(), 'VISTA_PREVIA_');
+        // 4. Guardar el documento procesado en un archivo DOCX temporal
+        $tmpDocx = tempnam(sys_get_temp_dir(), 'VISTA_PREVIA_') . '.docx';
         $templateProcessor->saveAs($tmpDocx);
 
-        // 5. Convertir DOCX → PDF (usando el renderizador global TCPDF)
-
+        // 5. Cargar el DOCX temporal y convertirlo a PDF
         $phpWord = \PhpOffice\PhpWord\IOFactory::load($tmpDocx);
         $tmpPdf = tempnam(sys_get_temp_dir(), 'VISTA_PREVIA_') . '.pdf';
-
         $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
         $pdfWriter->save($tmpPdf);
 
@@ -349,7 +349,7 @@ switch ($opcion) {
 
             $iniciales = [];
             foreach ($personal_actuante as $persona) {
-                if ($persona['estatus'] === 1) {
+                if (intval($persona['estatus']) === 1) {
                     if ($persona['id_actuante'] === 1) {
                         $templateProcessor->setValue('cargo', $persona['cargo']);
                         $templateProcessor->setValue('nombre_actuante', $persona['nombre_actuante']);
@@ -362,19 +362,35 @@ switch ($opcion) {
 
             $conexion->commit(); // Confirmar la transacción si todo fue exitoso
 
-            $fileName = 'ISN_' . $prospecto['rfc'] . '.docx'; // Cambiado a .docx
-            header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            header('Content-Disposition: attachment; filename="' . $fileName . '"');
-            header('Access-Control-Expose-Headers: Content-Disposition');
-            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-            $templateProcessor->saveAs('php://output');
-            ob_end_flush(); // Envía el buffer de salida (el archivo) al navegador.
+            // Definir la ruta de guardado en el servidor
+            $savePath = __DIR__ . '/ordenes_generadas/';
+            if (!is_dir($savePath)) {
+                mkdir($savePath, 0777, true);
+            }
+            $fileName = 'ISN_' . strtoupper($prospecto['rfc']) . '.docx';
+            $filePath = $savePath . $fileName;
+            $templateProcessor->saveAs($filePath);
+
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($filePath);
+            
+            // 2. Definir la ruta para el PDF
+            $pdfFileName = 'ISN_' . strtoupper($prospecto['rfc']) . '.pdf';
+            $pdfFilePath = $savePath . $pdfFileName;
+
+            // 3. Crear el escritor de PDF y guardar el archivo
+            $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+            $pdfWriter->save($pdfFilePath);
+
+            // 4. Enviar una respuesta JSON de éxito en lugar de forzar la descarga
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Documentos generados correctamente.']);
+            // --- FIN DE CAMBIOS ---
 
         } catch (Exception $e) {
             ob_end_clean(); // Limpiar buffer en caso de error
             error_log('Error al generar el documento: ' . $e->getMessage());
-            header("HTTP/1.1 500 Internal Server Error");
-            echo 'Error al generar el documento: ',  $e->getMessage(), "\n";
+            header("HTTP/1.1 500 Internal Server Error", true, 500);
+            echo json_encode(['error' => 'Error al generar el documento: ' . $e->getMessage()]);
         }
         break;
 }

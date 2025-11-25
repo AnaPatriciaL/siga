@@ -1,7 +1,6 @@
 <template>
   <v-container>
     <v-container class="my-2">
-
             <!-- Botón Crear y Exportar -->
             <v-row class="center">
               <v-spacer></v-spacer>
@@ -10,26 +9,15 @@
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
-                  <v-btn color="pink darken-4" dark @click="salir()">
-                    <v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir
-                  </v-btn>
+                  <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
               </v-col>
             </v-row>
-
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso"
-                :data="prospectosie"
-                :columns="columnas"
-                :file-name="'Prospectos IE'"
-                :file-type="'xlsx'"
-                :sheet-name="'ProspectosIE'"
-                >
+              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos IE'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
-                      <v-icon large>mdi-microsoft-excel</v-icon>
-                    </v-btn>
+                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
                   </template>
                   <span>Exportar a Excel</span>
                 </v-tooltip>
@@ -37,28 +25,15 @@
               <!-- Boton recargar  -->
               <v-tooltip right color="light-blue darken-4">
                 <template v-slot:activator="{ on, attrs }">
-                  <v-btn class="mt-2 ml-3"
-                    color="light-blue darken-4" fab dark @click="mostrar()"
-                    v-bind="attrs"
-                    v-on="on"
-                  >
-                    <v-icon large>mdi-refresh</v-icon>
-                  </v-btn>
+                  <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
                 </template>
                 <span>Recargar información</span>
               </v-tooltip>              
               <v-spacer></v-spacer>
               <v-col COL="6">
-                <v-text-field
-                  v-model="busca"
-                  append-icon="mdi-magnify"
-                  label="Buscar"
-                  single-line
-                  hide-details
-                ></v-text-field>
+                <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
               </v-col>
             </v-row>
-
             <!-- Contador de folios y órdenes -->
             <v-row>
               <v-col cols="12" class="text-right">
@@ -68,503 +43,225 @@
               </v-col>
             </v-row>
             <!-- Tabla y formulario -->
-            <v-data-table
-              :headers="encabezados"
-              :items="prospectosie"
-              item-key="id"
-              class="elevation-1"
-              :search="busca"
-            >
+            <v-data-table v-model="selectedProspectos" :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" 
+            :search="busca" show-select>
               <template v-slot:item.tipo="{ item }">
-                <v-icon v-if="item.antecedente_id==6"
-                  large
-                  class="mr-2"
-                  color="blue-grey darken-2"
-                  dark
-                  dense
-                >
-                  mdi-cog-sync
-                </v-icon>
-                <v-icon v-if="item.antecedente_id==7"
-                  large
-                  class="mr-2"
-                  color="pink accent-3"
-                  dark
-                  dense
-                >
-                  mdi-map-marker-remove
-                </v-icon>
-                <v-icon v-else
-                  large
-                  class="mr-2"
-                  color="teal accent-4"
-                  dark
-                  dense
-                >
-                  mdi-progress-check
-                </v-icon>
+                <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync </v-icon>
+                <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove </v-icon>
+                <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check </v-icon>
               </template>
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
-                <!-- Icono Editar en el data-table -->
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">
-                      mdi-pencil
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil </v-icon>
                   </template>
                   <span>Editar Prospecto</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumento(item)">
-                      mdi-file-word
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumento(item, $event)">mdi-file-word</v-icon>
                   </template>
                   <span>{{ tieneOrdenGenerada(item) ? 'Ver Orden' : 'Generar Orden' }}</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">
-                      mdi-check-circle
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">mdi-check-circle </v-icon>
                   </template>
                   <span>Enviar a Emitidas</span>
                 </v-tooltip>
-                <!--<v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">
-                      mdi-printer-eye
-                    </v-icon>
-                  </template>
-                  <span>Vista previa</span>
-                </v-tooltip>-->
               </template>
-
             </v-data-table>
+            <v-row class="mt-4">
+              <v-col class="text-right">
+                <v-btn color="blue-grey" dark @click="generarDocumentosSeleccionados" :disabled="selectedProspectos.length === 0">Generar Órdenes Seleccionadas ({{ selectedProspectos.length }})</v-btn>
+              </v-col>
+            </v-row>
           </v-container>
-
           <!-- Componente de Diálogo para CREAR y EDITAR -->
           <v-dialog v-model="dialog" max-width="1100px" persistent >
               <v-card>
                 <v-form>
                   <v-card-title class="pink darken-4 white--text py-2"
-                    >PROSPECTO DE IMPUESTOS ESTATALES</v-card-title
-                  >
+                    >PROSPECTO DE IMPUESTOS ESTATALES</v-card-title>
                   <v-card-text class="mb-2 py-0">
                     <v-container>
                       <v-row class="my-2 pt-4">
-                       
                         <!-- RFC -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-text-field
-                            maxlength="13"
-														minlength="12"
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.rfc"
-                            label="RFC"
-                            outlined
-                            :readonly="operacion=='editar'"
-                            dense
-														ref="rfc"
-                            >
-                            <!-- autocapitalize="words" -->
+                            maxlength="13" minlength="12" class="my-0 py-0 mayusculas" v-model="prospectoie.rfc" label="RFC" outlined :readonly="operacion=='editar'" dense ref="rfc">
                             {{prospectoie.rfc}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Boton buscar -->
                         <v-col class="my-0 py-0" cols="12" md="1">
-                          <v-btn 
-                            dense 
-                            color="orange" 
-                            dark
-                            @click="datos_contribuyentes">
-                            <v-icon>
-                              mdi-database-search-outline
-                            </v-icon>
+                          <v-btn dense color="orange" dark @click="datos_contribuyentes"><v-icon>mdi-database-search-outline </v-icon>
                           </v-btn>
-                         
                         </v-col>
-
                         <!-- Nombre -->
                         <v-col class="my-0 py-0" cols="12" md="8">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.nombre"
-                            label="Nombre"
-                            outlined
-                            maxlength="300"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" label="Nombre" outlined maxlength="300" dense>
                             {{prospectoie.nombre}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Calle -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.calle"
-                            label="Calle/Avenida/Vialidad"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense>
                             {{prospectoie.calle}}
                           </v-text-field>
                         </v-col>
                         <!-- Numero exterior -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.num_exterior"
-                            label="No. exterior"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_exterior" label="No. exterior" maxlength="250" outlined dense>
                             {{prospectoie.num_exterior}}
                           </v-text-field>
                         </v-col>
                         <!-- Numero interior -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.num_interior"
-                            label="No. interior"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" label="No. interior" maxlength="250" outlined dense>
                             {{prospectoie.num_interior}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Colonia -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.colonia"
-                            label="Colonia"
-                            maxlength="150"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" label="Colonia" maxlength="150" outlined dense>
                             {{prospectoie.colonia}}
                           </v-text-field>
                         </v-col>
-
                         <!-- CP -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0"
-                            v-model="prospectoie.cp"
-                            label="C.P."
-                            outlined
-                            maxlength="5"
-                            minlength="5"
-                            dense
-                            type="number"
-                          >
+                          <v-text-field class="my-0 py-0" v-model="prospectoie.cp" label="C.P." outlined maxlength="5" minlength="5" dense type="number">
                             {{prospectoie.cp}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Localidad -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.localidad"
-                            label="Localidad"
-                            maxlength="100"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" label="Localidad" maxlength="100" outlined dense>
                             {{prospectoie.localidad}}
                           </v-text-field>
                         </v-col>
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="municipios_listado"
-                            v-model="prospectoie.municipio_id"
-                            label="Municipio"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
+                            :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="id" >
                           </v-select>
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field 
-                            v-model="prospectoie.oficina_descripcion" 
-                            label="Oficina" 
-                            outlined 
-                            dense 
-                            disabled 
-                            readonly
-                          ></v-text-field>
+                          <v-text-field v-model="prospectoie.oficina_descripcion" label="Oficina" outlined dense disabled readonly></v-text-field>
                         </v-col>
                         <!-- Giro -->
                         <v-col class="my-0 py-0" cols="12" md="6">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.giro"
-                            label="Giro/Actividad"
-                            item-text=""
-                            outlined
-                            maxlength="250"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.giro" label="Giro/Actividad" item-text="" outlined maxlength="250" dense>
                             {{prospectoie.giro}}
                           </v-text-field>
                         </v-col>
                         <v-col class="my-0 py-0" cols="12" md="1">
                           <v-tooltip top>
                             <template v-slot:activator="{ on, attrs }">
-                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true">
-                                <v-icon large >mdi-plus-circle</v-icon>
-                              </v-btn>
+                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true"><v-icon large >mdi-plus-circle</v-icon></v-btn>
                             </template>
                             <span>Agregar Periodo</span>
                           </v-tooltip>
                         </v-col>
                         <v-col class="my-0 py-0" cols="12" md="5" >
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.periodos"
-                            label="Periodos"
-                            outlined
-                            dense
-                            readonly
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" label="Periodos" outlined dense readonly>
                             {{prospectoie.periodos}}
                           </v-text-field>
                         </v-col>
                         <!-- Antecedentes -->
                         <v-col class="my-0 py-0" cols="12" md="6">
                           <v-select
-                            :items="antecedentes_listado"
-                            v-model="prospectoie.antecedente_id"
-                            label="Antecedente"
-                            outlined
-                            dense
-                            required
-                            item-text="descripcion"
-                            item-value="id"
-                          >
+                            :items="antecedentes_listado" v-model="prospectoie.antecedente_id" label="Antecedente" outlined dense required item-text="descripcion" item-value="id">
                           </v-select> 
                         </v-col>
                         <!-- Impuesto -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="impuestos_listado"
-                            v-model="prospectoie.impuesto_id"
-                            label="Impuesto"
-                            outlined
-                            dense
-                            required
-                            item-text="impuesto"
-                            item-value="id"
-                          >
+                            :items="impuestos_listado" v-model="prospectoie.impuesto_id" label="Impuesto" outlined dense required item-text="impuesto" item-value="id">
                           </v-select> 
                         </v-col>
-
                         <!-- Presuntiva -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-text-field
-                            class="my-0 py-0"
-                            label="Presuntiva/Determinado"
-                            v-model="prospectoie.determinado"
-                            item-text=""
-                            outlined
-                            hide-spin-buttons
-                            suffix="$"
-                            maxlength="12"
-                            reverse
-                            type="number"
-                            dense
-                          >
+                            class="my-0 py-0" label="Presuntiva/Determinado" v-model="prospectoie.determinado" item-text="" outlined hide-spin-buttons suffix="$" maxlength="12" reverse type="number" dense>
                             {{prospectoie.determinado}}
                           </v-text-field>
                         </v-col>
                         <!-- Fecha -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            reverse
-                            readonly
-                            disabled
-                            dense
-                            outlined
-                            maxlength="10"
-                            v-model="prospectoie.fecha_captura"
-                            label="Fecha captura"
-                          ></v-text-field>
+                          <v-text-field reverse readonly disabled dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
                         </v-col>
-
                         <!-- Usuario -->
                         <v-col class="my-0 py-0" cols="12" md="4">
                           <v-select
-                            :items="programadores_listado"
-                            v-model="prospectoie.programador_id"
-                            label="Programador"
-                            outlined
-                            dense
-                            required
-                            item-text="usuario"
-                            item-value="id"
-                            ref="programador"
-                          >
+                            :items="programadores_listado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
                           </v-select>
                         </v-col>
                         <!-- Fuente -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="fuentes_listado"
-                            v-model="prospectoie.fuente_id"
-                            label="Fuente"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
+                            :items="fuentes_listado" v-model="prospectoie.fuente_id" label="Fuente" outlined dense required item-text="nombre" item-value="id">
                           </v-select> 
                         </v-col>
                         <!-- Retenedor -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.retenedor"
-                            inset
-                            label="Retenedor">
+                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor">
                             {{prospectoie.retenedor}}
                           </v-switch>
                         </v-col>
                         <!-- Representante Legal -->
                         <v-col class="my-0 py-0" cols="12" md="10">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.representante_legal"
-                            label="Representante Legal"
-                            item-text=""
-                            outlined
-                            maxlength="200"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" label="Representante Legal" item-text="" outlined maxlengt>
                             {{prospectoie.representante_legal}}
                           </v-text-field>
                         </v-col>
                         <!-- Origen -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.origen"
-                            inset
-                            :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
-                             {{prospectoie.origen}}
-                          ></v-switch>
+                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen" inset :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
+                             {{prospectoie.origen}}>
+                          </v-switch>
                         </v-col>
                         <!-- Observaciones -->
                         <v-col class="my-0 py-0" cols="12" md="10">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.observaciones"
-                            label="Observaciones"
-                            item-text=""
-                            outlined
-                            maxlength="200"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" label="Observaciones" item-text="" outlined  maxlength="200"dense>
                             {{prospectoie.observaciones}}
                           </v-text-field>
                         </v-col>
-
                       </v-row>
                     </v-container>
                   </v-card-text>
                   <v-divider></v-divider>
                   <v-card-actions class="grey lighten-2 py-2">
                     <v-spacer></v-spacer>
-                    <v-btn
-                      class="my-1 ma-2 py-1"
-                      color="blue-grey"
-                      @click="validar_supervisor()"
-                      dark
-                      >
-                      <!-- type="submit" -->
-                      Enviar a supervisor
-                      <v-icon dark right> mdi-account-tie-hat</v-icon>
-                    </v-btn>
-                    <v-btn
-                      class="my-1 ma-2 py-1"
-                      color="success"
-                      @click="validar()"
-                      dark
-                      >
-                      Guardar
-                      <v-icon dark right> mdi-checkbox-marked-circle </v-icon>
-                    </v-btn>
-                    <v-btn class="ma-2" dark @click="dialog=false">
-                      Cancelar
-                      <v-icon dark left> mdi-cancel </v-icon>
-                    </v-btn>
+                    <v-btn class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor()" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
+                    <v-btn class="my-1 ma-2 py-1" color="success" @click="validar()" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
+                    <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
                   </v-card-actions>
                 </v-form>
-                <!-- </v-container> -->
               </v-card>
-
           </v-dialog>
-					<!-- Cargando -->
           <!-- Componente de Diálogo para PERIODOS -->
           <v-dialog v-model="dialogPeriodos" max-width="600px" persistent>
             <v-card>
-              <v-card-title class="pink darken-4 white--text py-2">
-                Agregar Periodo
-              </v-card-title>
+              <v-card-title class="pink darken-4 white--text py-2">Agregar Periodo</v-card-title>
               <v-card-text>
                 <v-container>
                   <v-row v-for="(periodo, index) in periodosParaAgregar" :key="index" class="mt-2 align-center no-gutters">
                       <v-col cols="12" sm="5">
                         <v-text-field
-                        class="mr-4"
-                          v-model="periodo.inicio"
-                          :ref="'fechaInicio' + index"
-                          v-maska="'##/##/####'"
-                          :rules="[rules.dateFormat]"
-                          label="Fecha Inicial"
-                          outlined
-                          dense
-                          @input="manejarInputFecha(periodo, index, 'inicio')"
-                          @keydown="soloNumeros"
-                          maxlength="10"
-                          placeholder="DD/MM/YYYY"
-                        ></v-text-field>
+                        class="mr-4" v-model="periodo.inicio" :ref="'fechaInicio' + index" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Inicial" 
+                        outlined dense @input="manejarInputFecha(periodo, index, 'inicio')"@keydown="soloNumeros"maxlength="10"placeholder="DD/MM/YYYY">
+                        </v-text-field>
                       </v-col>
                       <v-col cols="12" sm="5">
-                        <v-text-field
-                          v-model="periodo.fin"
-                          v-maska="'##/##/####'"
-                          :rules="[rules.dateFormat]"
-                          label="Fecha Final"
-                          :ref="'fechaFin' + index"
-                          @input="validarFechaFinal(periodo, index)"
-                          @keydown.enter.prevent="enfocarBotonAgregar"
-                          @keydown="soloNumeros"
-                          outlined
-                          dense
-                          maxlength="10"
-                          placeholder="DD/MM/YYYY"
-                        ></v-text-field>
+                        <v-text-field v-model="periodo.fin" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Final" :ref="'fechaFin' + index" 
+                        @input="validarFechaFinal(periodo, index)" @keydown.enter.prevent="enfocarBotonAgregar" @keydown="soloNumeros" outlined dense maxlength="10"placeholder="DD/MM/YYYY">
+                        </v-text-field>
                       </v-col>
                       <v-col cols="12" sm="2" class="text-center">
-                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)">
-                          <v-icon>mdi-delete</v-icon>
-                        </v-btn>
+                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)"><v-icon>mdi-delete</v-icon></v-btn>
                       </v-col>
                     </v-row>
                 </v-container>
@@ -573,9 +270,7 @@
                 <v-spacer></v-spacer>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on">
-                      <v-icon large >mdi-plus-circle</v-icon>
-                    </v-btn>
+                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on"><v-icon large >mdi-plus-circle</v-icon></v-btn>
                   </template>
                   <span>Agregar un periodo extra</span>
                 </v-tooltip>
@@ -585,51 +280,28 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
-
 					<v-dialog v-model="cargando" 	max-width="290" persistent  >
-
-						<v-card
-							color="pink darken-4"
-							dark
-						>
+						<v-card color="pink darken-4" dark>
 							<v-card-text class="pt-3">
 								Buscando información
-								<v-progress-linear
-									indeterminate
-									color="white"
-									class="my-3"
-								></v-progress-linear>
+								<v-progress-linear indeterminate color="white" class="my-3"></v-progress-linear>
 							</v-card-text>
 						</v-card>
 					</v-dialog>
-
           <!-- Componente de Diálogo para VISTA PREVIA -->
-          <v-dialog
-            v-model="dialogVistaPrevia"
-            max-width="1000"
-            transition="dialog-top-transition"
-            persistent
-          >
+          <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
             <v-card>
               <v-card-title class="pink darken-4 white--text">
                 VISTA PREVIA - {{ vistaPreviaRFC }}
                 <v-spacer></v-spacer>
-                <v-btn icon dark @click="cerrarVistaPrevia">
-                  <v-icon>mdi-close</v-icon>
-                </v-btn>
+                <v-btn icon dark @click="cerrarVistaPrevia"><v-icon>mdi-close</v-icon></v-btn>
               </v-card-title>
               <v-card-text>
                 <div v-if="cargandoVistaPrevia" class="text-center py-5">
                   <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
                   <p class="mt-2">Generando vista previa...</p>
                 </div>
-                <embed
-                  v-else-if="pdfSrc"
-                  :src="pdfSrc"
-                  type="application/pdf"
-                  width="100%"
-                  height="600px"
-                />
+                <embed v-else-if="pdfSrc" :src="pdfSrc" type="application/pdf" width="100%" height="600px" />
               </v-card-text>
             </v-card>
           </v-dialog>
@@ -641,13 +313,12 @@
   import axios from 'axios';
   import VueExcelXlsx from "vue-excel-xlsx";
 
-  // var crud = "./backend/crud_prospectosie.php";
+
   var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
   var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
   var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
   var urlprogramadores = "http://10.10.120.228/siga/backend/programadores_listado.php";
   var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
-  var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
   var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
@@ -661,23 +332,28 @@ export default {
       ordenesGeneradasCount: 0,
       ordenesPendientesCount: 0,
       prospectosConOrdenGenerada: new Set(),
+      selectedProspectos: [],
       foliosDisponiblesCount: 0,
       busca: "",
       rules: {
         dateFormat: value => {
           // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
           const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-          
           // Verificar si el valor cumple con la longitud y el patrón
           if (value && value.length === 8 && pattern.test(value)) {
             // Opcional: Validar que sea una fecha real (ej. no 31/02/24)
             return true; 
           }
-          
           return 'Formato incorrecto (DD/MM/YY).'; // Mensaje de error
         },
       },
       encabezados: [
+        {
+          text: "", // El texto del encabezado del checkbox puede ser vacío
+          value: "data-table-select", // Valor especial para la columna de selección
+          class: "pink darken-4 white--text elevation-1 center-header", // Aplica las mismas clases de estilo
+          width: "20" // Ajusta el ancho según sea necesario
+        },
         {
           text: "RFC",
           value: "rfc",
@@ -751,29 +427,10 @@ export default {
       prospectosie_no_localizados: [],
       dialog: false,
       operacion: "",
-      prospectoie: {
-        id: null,
-        fecha_captura: null,
-        rfc: null,
-        nombre: null,
-        calle: null,
-        num_exterior: null,
-        num_interior: null,
-        colonia: null,
-        cp: null,
-        localidad: null,
-        municipio_id:null,
-        oficina_id: null,
-        fuente_id:null,
-        giro: null,
-        periodos: null,
-        impuesto_id: null,
-        antecedente_id:null,
-        determinado: 0,
-        programador_id: null,
-        retenedor:0,
-        representante_legal: null,
-        estatus: 1,
+      prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
+        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
       },
       date: (new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000)).toISOString().substr(0, 10),
       menufechaorden: false,
@@ -791,12 +448,9 @@ export default {
       pdfSrc: '', // Contendrá la URL del PDF para el embed
       vistaPreviaRFC: '', // Para mostrar el RFC en el título del diálogo de vista previa
       foliosDisponibles: 0,
-            // }
     };
   },
   computed: {
-    // Propiedad computada que observa cambios en fechaInicio y fechaFin
-    // y actualiza prospectoie.periodos
     periodoCompleto() {
       // Concatenar los valores con " AL " en medio si ambos campos tienen datos
       if (this.fechaInicio && this.fechaFin) {
@@ -838,12 +492,10 @@ export default {
     },
     'prospectoie.municipio_id'(newVal) {
       if (newVal) {
-        // Buscar por ID o por nombre para asegurar que funcione en todos los casos
         const municipioSeleccionado = this.municipios_listado.find(m => m.id === newVal || m.nombre === newVal);
-        this.prospectoie.oficina_descripcion = null; // Limpiar la descripción antes de la nueva asignación
+        this.prospectoie.oficina_descripcion = null; 
         if (municipioSeleccionado) {
           this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
-          // Buscar la descripción de la oficina en oficinas_listado
           const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
           if (oficina) {
             this.prospectoie.oficina_descripcion = oficina.nombre;
@@ -857,17 +509,25 @@ export default {
     },
   },
   created() {
-    this.obtenerPermisos();
+    this.obtenerPermisos(),
     this.mostrar(),
     this.obtieneoficinas(),
     this.obtienefuentes(),
     this.obtieneimpuestos(),
     this.obtieneusuarios(),
-    this.obtieneantecedentes()
-    this.obtienemunicipios()
+    this.obtienemunicipios(),
     this.obtienefoliosoficios();
   },
  methods: {
+   async generarDocumentosSeleccionados() {
+      if (this.selectedProspectos.length === 0) {
+        return Swal.fire('Sin selección', 'No has seleccionado ningún prospecto para generar órdenes.', 'info');
+      }
+
+      for (const prospecto of this.selectedProspectos) {
+        await this.generarDocumento(prospecto);
+      }
+    },
    tieneOrdenGenerada(item) {
       return this.prospectosConOrdenGenerada.has(item.id);
     },
@@ -875,13 +535,11 @@ export default {
       try {
         // Hacer la solicitud al endpoint PHP
         const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
-        // Asignar la respuesta a sessionData
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso
         const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente
         this.permiso = [0, 2].includes(nivel); // Validar si está en los valores permitidos
       } catch (error) {
-        // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
       }
     },
@@ -895,7 +553,6 @@ export default {
             this.siguientefolio = foliosConEstatusDisponible[0];
           }
           this.foliosDisponiblesCount = foliosConEstatusDisponible.length;
-          // Esperamos a que los contadores de órdenes se actualicen antes de continuar
           await this.actualizarOrdenesCount();
         } else if (response.data.error) {
           console.error('Error desde el servidor:', response.data.error);
@@ -908,7 +565,12 @@ export default {
         Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
       }
     },
-    async generarDocumento(item) {
+    async generarDocumento(item, event) {
+      // Quita el foco del elemento que disparó el evento para evitar el error de aria-hidden
+      if (event && event.target) {
+        event.target.blur();
+      }
+
       if (this.foliosDisponiblesCount < 1) {
         Swal.fire({
           title: 'Folios no suficientes',
@@ -917,45 +579,25 @@ export default {
         });
         return;
       }
-
       try {
         this.cargando = true;
-
         // Llamada única al backend que se encarga de toda la lógica
-        const docResponse = await axios.post(urlgenerar_ordenes, {
+        const response = await axios.post(urlgenerar_ordenes, {
           prospecto: item,
           usuario_id: this.sessionData.id_usuario // Enviar el ID del usuario actual
-        }, {
-          responseType: 'blob' // Es importante para recibir el archivo
+        // Es importante para recibir el archivo
         });
 
         this.cargando = false;
-
-        const url = window.URL.createObjectURL(new Blob([docResponse.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        
-        const contentDisposition = docResponse.headers['content-disposition'];
-        let fileName = 'ISN_' + item.rfc.toUpperCase() + '.docx'; // Nombre de respaldo
-
-        if (contentDisposition) {
-          const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
-          if (fileNameMatch && fileNameMatch[1]) {
-            fileName = fileNameMatch[1];
-          }
+        if (response.data && response.data.success) {
+          // Actualizar contadores y luego mostrar la vista previa
+          this.obtienefoliosoficios();
+          this.actualizarOrdenesCount();
+          this.vistaPrevia(item); // Llama a la vista previa si todo fue exitoso
+        } else {
+          // Muestra el error que devuelve el backend en formato JSON
+          Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
         }
-
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-
-        // Actualizar el contador de folios disponibles en la vista
-        this.obtienefoliosoficios();
-        this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
-
-
       } catch (error) {
         this.cargando = false;
         const mensajeError = error.message || 'No se pudo generar el documento.';
@@ -965,19 +607,17 @@ export default {
     },
     async vistaPrevia(item) {
       this.cargandoVistaPrevia = true;
-      this.pdfSrc = ''; // Limpiar el PDF anterior
-      this.vistaPreviaRFC = item.rfc; // Establecer el RFC para el título del diálogo
-      this.dialogVistaPrevia = true; // Abrir el diálogo con el estado de carga
-
-      const payload = {
-        opcion: 5, // Opción para VISTA PREVIA
-        prospecto: item,
-        usuario_id: this.sessionData.id_usuario
-      };
+      this.pdfSrc = '';
+      this.vistaPreviaRFC = item.rfc;
+      this.dialogVistaPrevia = true;
 
       try {
-        const response = await axios.post(urlgenerar_ordenes, payload, {
-          responseType: 'blob' // Es importante para recibir el archivo binario (PDF)
+        const response = await axios.post(urlgenerar_ordenes, {
+          opcion: 1, // Opción para VISTA PREVIA
+          prospecto: item,
+          usuario_id: this.sessionData.id_usuario
+        }, {
+          responseType: 'blob'
         });
 
         if (response.data.size > 0) {
@@ -985,12 +625,12 @@ export default {
           this.pdfSrc = url;
         } else {
           Swal.fire('Error', 'El documento de vista previa está vacío.', 'error');
-          this.dialogVistaPrevia = false; // Cerrar diálogo si no hay contenido
+          this.dialogVistaPrevia = false;
         }
       } catch (error) {
-        console.error("Error en el proceso de vista previa:", error);
         Swal.fire('Error', 'No se pudo generar la vista previa del documento.', 'error');
-        this.dialogVistaPrevia = false; // Cerrar diálogo en caso de error
+        this.dialogVistaPrevia = false;
+        console.error("Error al generar la vista previa:", error);
       } finally {
         this.cargandoVistaPrevia = false;
       }
@@ -998,16 +638,14 @@ export default {
     async actualizarOrdenesCount() {
       this.ordenesGeneradasCount = 0;
       this.ordenesPendientesCount = 0;
-
       if (this.prospectosie.length === 0) {
         return;
       }
-
       const prospectoIds = this.prospectosie.map(p => p.id);
 
       try {
         const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 4, // Opción para obtener conteos de órdenes
+          opcion: 2, // Opción para obtener conteos de órdenes
           prospecto_ids: prospectoIds
         });
 
@@ -1015,8 +653,6 @@ export default {
           this.ordenesGeneradasCount = response.data.ordenes_generadas_count || 0;
           this.ordenesPendientesCount = response.data.ordenes_pendientes_count || 0;
           this.prospectosConOrdenGenerada = new Set(response.data.ids_con_orden || []);
-
-          // Mover la validación aquí para asegurar que se ejecuta después de tener los datos.
           if (this.ordenesPendientesCount > 0 && this.foliosDisponiblesCount < this.ordenesPendientesCount) {
             Swal.fire({
               title: 'Folios no suficientes',
@@ -1069,15 +705,10 @@ export default {
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data;
-
-            // Filtrar los registros con antecedente_id = 7
             this.prospectosie_no_localizados = this.prospectosie
             .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
             .map(item => ({ ...item }));
-
             this.actualizarOrdenesCount(); // Llamar al método para actualizar los conteos de órdenes
-
-
           } else if (response.data.error) {
             console.error('Error desde el servidor:', response.data.error);
             Swal.fire('Error', response.data.error, 'error');
@@ -1091,14 +722,13 @@ export default {
         });
     },
     datos_contribuyentes: function () {
-      // Validaciones
       if (this.prospectoie.rfc===null || this.prospectoie.rfc==="") {
         Swal.fire({  
           position: 'center',  
           icon: 'error',  
           titleText: 'Oops...',
           text:'El RFC no debe estar vacio',
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
+          allowOutsideClick: false, 
           showConfirmButton: false,  
           timerProgressBar: true,
           timer: 1800})
@@ -1111,7 +741,7 @@ export default {
           icon: 'error',  
           titleText:'Oops...',
           text: 'El RFC debe tener 12 digitos minimo y maximo 13',
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
+          allowOutsideClick: false, 
           showConfirmButton: false,  
           timerProgressBar: true,
           timer: 1800})
@@ -1119,7 +749,6 @@ export default {
          return
       }
       this.cargando=true;
-      
       axios.post( urlpadron, { rfc: this.prospectoie.rfc })
         .then((response) => {
           this.cargando=false;
@@ -1158,13 +787,11 @@ export default {
       })
       .catch(e => {
         console.log(e);
-        // Capturamos los errores
       });
     },
     async validar() {
       var errores=0;
       var textoMostrar='';
-      // Validaciones
       if (this.prospectoie.rfc===null || this.prospectoie.rfc==="") {
         textoMostrar='El RFC no debe estar vacio';
         errores=1;
@@ -1226,7 +853,6 @@ export default {
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
       axios.post(crud, 
             {
-              // Nuevo
               opcion:2,  
               // Campos a guardar
               rfc:this.prospectoie.rfc.toUpperCase(),
@@ -1265,8 +891,6 @@ export default {
           allowEscapeKey: false, // Bloquea la tecla de escape
           allowEnterKey: false // Bloquea la tecla enter
         })
-
-        
       })
       .catch(error => {
           Swal.fire({
@@ -1491,12 +1115,8 @@ export default {
     },
 
     formEditar: function (objeto) {
-      //capturamos los datos del registro seleccionado 
-      // y los mostramos en el formulario
-
       this.dialog = true;
       this.operacion = "editar";
-      
       this.prospectoie.id=objeto.id;
       this.prospectoie.fecha_captura=this.convertirFecha(objeto.fecha_captura);
       this.prospectoie.rfc=objeto.rfc;
@@ -1518,37 +1138,25 @@ export default {
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
-      // this.ActualizaComboDeptos();
     },
-    
-    
     convertirFecha(fechaCaptura) {
-    // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
-
-    // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');
     const month = String(fecha.getMonth() + 1).padStart(2, '0'); // Meses empiezan en 0
     const year = fecha.getFullYear();
-
-    // Formatear fecha en DD-MM-YYYY
     const fechaFormateada = `${day}/${month}/${year}`;
-
     return fechaFormateada;
     },
     fechaactual: function () {
       let date = new Date();
-
       let day = date.getDate();
       let month = date.getMonth() + 1;
       let year = date.getFullYear();
       let fechaactual = day + "/" + month + "/" + year;
-
       return fechaactual;
     },
     cerrarVistaPrevia() {
       this.dialogVistaPrevia = false;
-      // Revocar la URL del objeto para liberar memoria
       if (this.pdfSrc) {
         window.URL.revokeObjectURL(this.pdfSrc);
       }
@@ -1557,13 +1165,11 @@ export default {
       this.periodosParaAgregar.push({ inicio: '', fin: '' });
     },
     eliminarFilaPeriodo(index) {
-      // Evita que se elimine la última fila
       if (this.periodosParaAgregar.length > 1) {
         this.periodosParaAgregar.splice(index, 1);
       }
     },
     agregarPeriodo() {
-      // Primero, valida que todos los periodos sean correctos.
       if (!this.validarTodosLosPeriodos()) {
         return; // Detiene la ejecución si hay un error de validación.
       }
@@ -1573,7 +1179,6 @@ export default {
         .map(p => `${p.inicio}-${p.fin}`); // Les da el nuevo formato
 
       if (nuevosPeriodos.length > 0) {
-        // Si ya hay periodos, los concatena. Si no, los asigna.
         this.prospectoie.periodos = this.prospectoie.periodos
           ? `${this.prospectoie.periodos}, ${nuevosPeriodos.join(', ')}`
           : nuevosPeriodos.join(', ');
@@ -1585,12 +1190,9 @@ export default {
       this.periodosParaAgregar = [{ inicio: '', fin: '' }]; // Resetea el array
     },
     /**
-     * Establece el campo de periodos a partir de un array de objetos.
-     * @param {Array<Object>} periodosArray - Un array de objetos, donde cada objeto tiene las propiedades 'inicio' y 'fin'.
-     * Ejemplo: [{ inicio: '01/01/2024', fin: '31/01/2024' }]
+     * @param {Array<Object>} periodosArray 
      */
     establecerPeriodosDesdeArray(periodosArray) {
-      // Valida que el parámetro sea un array
       if (!Array.isArray(periodosArray)) {
         console.error("El parámetro proporcionado no es un array válido.");
         this.prospectoie.periodos = ''; // Limpia el campo en caso de error
@@ -1605,7 +1207,6 @@ export default {
     },
     manejarInputFecha(periodo, index, tipo) {
       if (tipo === 'inicio' && periodo.inicio && periodo.inicio.length === 10) {
-        // Usar $nextTick para asegurarse de que el DOM se haya actualizado
         this.$nextTick(() => { //
           const finRef = this.$refs['fechaFin' + index]; //
           if (finRef && finRef[0]) {
@@ -1624,26 +1225,17 @@ export default {
 
        const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
         const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
-
         const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
         const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
         
         if (fechaFin <= fechaInicio) {
-          // Espera a que el usuario interactúe con la alerta.
-          const result = await Swal.fire({
-            icon: 'error',
-            title: 'Fecha incorrecta',
-            text: 'La fecha final debe ser mayor a la fecha inicial.',
-            confirmButtonText: 'Corregir',
-            confirmButtonAriaLabel: 'Corregir fecha',
-            // Forzar el foco en el botón de confirmación después de que la alerta se muestre.
-            didRender: () => {
-              const confirmButton = Swal.getConfirmButton();
+          const result = await Swal.fire({ icon: 'error', title: 'Fecha incorrecta',
+            text: 'La fecha final debe ser mayor a la fecha inicial.', confirmButtonText: 'Corregir', confirmButtonAriaLabel: 'Corregir fecha',
+            didRender: () => { const confirmButton = Swal.getConfirmButton();
               if (confirmButton) confirmButton.focus();
             }
           });
 
-          // Si el usuario confirma, enfoca el campo para su corrección.
           if (result.isConfirmed) {
             const finRef = this.$refs['fechaFin' + index];
             if (finRef && finRef[0]) {
@@ -1655,7 +1247,6 @@ export default {
     },
     validarTodosLosPeriodos() {
       for (const [index, periodo] of this.periodosParaAgregar.entries()) {
-        // Solo validar filas que tienen al menos una fecha ingresada
         const tieneFechaInicial = periodo.inicio && periodo.inicio.length === 10;
         const tieneFechaFinal = periodo.fin && periodo.fin.length === 10;
 
@@ -1666,30 +1257,19 @@ export default {
           }
 
           if (!tieneFechaInicial || !tieneFechaFinal) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Fechas incompletas',
-              text: `En la fila ${index + 1}, ambas fechas (inicial y final) deben estar completas (DD/MM/YYYY).`,
-              confirmButtonText: 'Corregir'
-            });
+            Swal.fire({ icon: 'error', title: 'Fechas incompletas',
+              text: `En la fila ${index + 1}, ambas fechas (inicial y final) deben estar completas (DD/MM/YYYY).`, confirmButtonText: 'Corregir' });
             return false;
           }
 
-          // Convertir fechas a objetos Date para comparación
           const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
           const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
-
           const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
           const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
 
-          // 1. Validar que la fecha final sea mayor que la fecha inicial en la misma fila
           if (fechaFin <= fechaInicio) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Fecha incorrecta',
-              text: `En la fila ${index + 1}, la fecha final debe ser mayor que la fecha inicial.`,
-              confirmButtonText: 'Corregir'
-            });
+            Swal.fire({ icon: 'error', title: 'Fecha incorrecta',
+              text: `En la fila ${index + 1}, la fecha final debe ser mayor que la fecha inicial.`, confirmButtonText: 'Corregir' });
             return false;
           }
 
@@ -1702,12 +1282,8 @@ export default {
               const prevFechaFin = new Date(`${prevAnioFin}-${prevMesFin}-${prevDiaFin}`);
 
               if (fechaInicio <= prevFechaFin) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Fechas superpuestas',
-                  text: `En la fila ${index + 1}, la fecha inicial debe ser posterior a la fecha final de la fila anterior.`,
-                  confirmButtonText: 'Corregir'
-                });
+                Swal.fire({ icon: 'error', title: 'Fechas superpuestas', 
+                text: `En la fila ${index + 1}, la fecha inicial debe ser posterior a la fecha final de la fila anterior.`, confirmButtonText: 'Corregir'});
                 return false;
               }
             }
