@@ -54,15 +54,21 @@
               <template v-slot:item.actions="{ item }">
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
                   </template>
                   <span>Editar Prospecto</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumento(item, $event)">mdi-file-word</v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="generarDocumento(item, $event, 1)">mdi-file-eye</v-icon>
                   </template>
-                  <span>{{ tieneOrdenGenerada(item) ? 'Ver Orden' : 'Generar Orden' }}</span>
+                  <span>Vista previa</span>
+                </v-tooltip>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumentoUnico(item, $event, 0)">mdi-file-word</v-icon>
+                  </template>
+                  <span>Generar/imprimir Orden</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
@@ -305,6 +311,12 @@
               </v-card-text>
             </v-card>
           </v-dialog>
+          <v-dialog v-model="progresoVisible" persistent max-width="400">
+            <v-card class="pa-4" style="text-align: center;">
+              <v-progress-circular indeterminate size="50"></v-progress-circular>
+              <div class="mt-3">{{ progresoMensaje }}</div>
+            </v-card>
+          </v-dialog>
   </v-container>
 </template>
 
@@ -335,6 +347,8 @@ export default {
       selectedProspectos: [],
       foliosDisponiblesCount: 0,
       busca: "",
+      progresoVisible: false,
+      progresoMensaje: "",
       rules: {
         dateFormat: value => {
           // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
@@ -519,17 +533,69 @@ export default {
     this.obtienefoliosoficios();
   },
  methods: {
-   async generarDocumentosSeleccionados() {
-      if (this.selectedProspectos.length === 0) {
-        return Swal.fire('Sin selección', 'No has seleccionado ningún prospecto para generar órdenes.', 'info');
-      }
-
-      for (const prospecto of this.selectedProspectos) {
-        await this.generarDocumento(prospecto);
+    actualizarProgreso(texto) {
+      this.progresoMensaje = texto;
+      this.progresoVisible = true;
+    },
+    async generarDocumentoUnico(item, event, tipo) {
+      this.cargando = true;
+      const resp = await this.generarDocumento(item, event, tipo);
+      this.cargando = false;
+      if (resp && resp.success) {
+        if (resp.impreso === true) {
+          Swal.fire({
+            title: "Impresión completada",
+            text: "El documento se generó y se envió a la impresora.",
+            icon: "success",
+            timer: 2500
+          });
+        } else {
+          Swal.fire({
+            title: "Generado pero no impreso",
+            text: "El documento se generó correctamente pero no se imprimió.",
+            icon: "warning"
+          });
+        }
+      } else {
+        Swal.fire("Error", "No se pudo generar el documento.", "error");
       }
     },
-   tieneOrdenGenerada(item) {
-      return this.prospectosConOrdenGenerada.has(item.id);
+    async generarDocumentosSeleccionados() {
+      if (this.selectedProspectos.length === 0) return;
+
+      let total = this.selectedProspectos.length;
+      let generados = 0;
+      let impresos = 0;
+
+      this.progresoVisible = true;
+
+      for (let i = 0; i < total; i++) {
+        const prospecto = this.selectedProspectos[i];
+
+        this.actualizarProgreso(`Generando documento ${i+1} de ${total}...`);
+
+        const resp = await this.generarDocumento(prospecto);
+
+        if (resp.success) {
+          generados++;
+          if (resp.impreso) impresos++;
+        }
+      }
+
+      this.progresoVisible = false;
+      this.selectedProspectos = [];
+
+      Swal.fire({
+        title: "Proceso completado",
+        html: `
+          <b>${generados}</b> documentos generados.<br>
+          <b>${impresos}</b> enviados a imprimir.
+        `,
+        icon: "success"
+      });
+    },
+    tieneOrdenGenerada(item) {
+        return this.prospectosConOrdenGenerada.has(item.id);
     },
     async obtenerPermisos() {
       try {
@@ -565,44 +631,40 @@ export default {
         Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
       }
     },
-    async generarDocumento(item, event) {
-      // Quita el foco del elemento que disparó el evento para evitar el error de aria-hidden
+    async generarDocumento(item, event, tipo) {
       if (event && event.target) {
         event.target.blur();
       }
-
-      if (this.foliosDisponiblesCount < 1) {
-        Swal.fire({
-          title: 'Folios no suficientes',
-          text: 'No tienes folios suficientes para generar la orden.',
-          icon: 'warning'
-        });
-        return;
-      }
-      try {
-        this.cargando = true;
-        // Llamada única al backend que se encarga de toda la lógica
-        const response = await axios.post(urlgenerar_ordenes, {
-          prospecto: item,
-          usuario_id: this.sessionData.id_usuario // Enviar el ID del usuario actual
-        // Es importante para recibir el archivo
-        });
-
-        this.cargando = false;
-        if (response.data && response.data.success) {
-          // Actualizar contadores y luego mostrar la vista previa
-          this.obtienefoliosoficios();
-          this.actualizarOrdenesCount();
-          this.vistaPrevia(item); // Llama a la vista previa si todo fue exitoso
-        } else {
-          // Muestra el error que devuelve el backend en formato JSON
-          Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
+      if (tipo === 1) {
+        this.vistaPrevia(item);
+        return { success: true, impreso: false };
+      } else {
+        if (this.foliosDisponiblesCount < 1) {
+          Swal.fire({
+            title: 'Folios no suficientes',
+            text: 'No tienes folios suficientes para generar la orden.',
+            icon: 'warning'
+          });
+          return { success: false };
         }
-      } catch (error) {
-        this.cargando = false;
-        const mensajeError = error.message || 'No se pudo generar el documento.';
-        Swal.fire('Error', mensajeError, 'error');
-        console.error("Error en el proceso de generación de documento:", error);
+        try {
+          const response = await axios.post(urlgenerar_ordenes, {
+            prospecto: item,
+            usuario_id: this.sessionData.id_usuario
+          });
+          if (response.data && response.data.success) {
+            this.obtienefoliosoficios();
+            this.actualizarOrdenesCount();
+            return response.data; // <<< 🔥 IMPORTANTE
+          } else {
+            Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
+            return { success: false, impreso: false };
+          }
+        } catch (error) {
+            this.cargando = false;
+            Swal.fire('Error', mensajeError, 'error');
+            return { success: false, impreso: false };
+          }
       }
     },
     async vistaPrevia(item) {
