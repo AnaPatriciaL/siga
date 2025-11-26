@@ -14,7 +14,7 @@
             </v-row>
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos IE'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
+              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos autorizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
                     <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
@@ -46,8 +46,8 @@
             <v-data-table v-model="selectedProspectos" :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" 
             :search="busca" show-select>
               <template v-slot:item.tipo="{ item }">
-                <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync </v-icon>
-                <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove </v-icon>
+                <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
+                <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
                 <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check </v-icon>
               </template>
               <!-- Acciones -->
@@ -149,9 +149,7 @@
                         </v-col>
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="id" >
-                          </v-select>
+                          <v-select :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="municipio_id"></v-select>
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
@@ -331,6 +329,7 @@
   var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
   var urlprogramadores = "http://10.10.120.228/siga/backend/programadores_listado.php";
   var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
+  var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
   var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
@@ -351,14 +350,16 @@ export default {
       progresoMensaje: "",
       rules: {
         dateFormat: value => {
-          // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
+          // Expresión regular para el formato DD/MM/YYYY (ej. 01/12/2024)
           const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+          
           // Verificar si el valor cumple con la longitud y el patrón
-          if (value && value.length === 8 && pattern.test(value)) {
-            // Opcional: Validar que sea una fecha real (ej. no 31/02/24)
+          if (value && value.length === 10 && pattern.test(value)) {
+            // Opcional: Validar que sea una fecha real (ej. no 31/02/2024)
             return true; 
           }
-          return 'Formato incorrecto (DD/MM/YY).'; // Mensaje de error
+          
+          return 'Formato incorrecto (DD/MM/YYYY).'; // Mensaje de error
         },
       },
       encabezados: [
@@ -444,7 +445,7 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
         oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 5,
       },
       date: (new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000)).toISOString().substr(0, 10),
       menufechaorden: false,
@@ -504,10 +505,10 @@ export default {
         });
       }
     },
-    'prospectoie.municipio_id'(newVal) {
-      if (newVal) {
-        const municipioSeleccionado = this.municipios_listado.find(m => m.id === newVal || m.nombre === newVal);
-        this.prospectoie.oficina_descripcion = null; 
+    'prospectoie.municipio_id'(id_municipio) {      
+      if (id_municipio) {
+        const municipioSeleccionado = this.municipios_listado.find(m => m.municipio_id === id_municipio);
+        this.prospectoie.oficina_descripcion = null;
         if (municipioSeleccionado) {
           this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
           const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
@@ -516,7 +517,6 @@ export default {
           }
         }
       } else {
-        // Si se deselecciona el municipio, limpiar los campos de oficina
         this.prospectoie.oficina_descripcion = null;
         this.prospectoie.oficina_id = null;
       }
@@ -529,6 +529,7 @@ export default {
     this.obtienefuentes(),
     this.obtieneimpuestos(),
     this.obtieneusuarios(),
+    this.obtieneantecedentes(),
     this.obtienemunicipios(),
     this.obtienefoliosoficios();
   },
@@ -537,11 +538,26 @@ export default {
       this.progresoMensaje = texto;
       this.progresoVisible = true;
     },
-    async generarDocumentoUnico(item, event, tipo) {
+    async generarDocumentoUnico(item, event, tipo) {      
+      const { value: numCopias } = await Swal.fire({
+        title: 'Número de Copias',
+        input: 'number',
+        inputLabel: '¿Cuántas copias desea imprimir?',
+        inputValue: 1,
+        showCancelButton: true,
+        inputValidator: (value) => {
+          if (!value || value < 1) {
+            return '¡Necesitas ingresar un número válido de copias!'
+          }
+        }
+      });
+
+      if (!numCopias) return;
+
       this.cargando = true;
-      const resp = await this.generarDocumento(item, event, tipo);
+      const resp = await this.generarDocumento(item, event, tipo, numCopias);
       this.cargando = false;
-      if (resp && resp.success) {
+      if (resp && resp.success) {        
         if (resp.impreso === true) {
           Swal.fire({
             title: "Impresión completada",
@@ -631,7 +647,7 @@ export default {
         Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
       }
     },
-    async generarDocumento(item, event, tipo) {
+    async generarDocumento(item, event, tipo, numCopias) {
       if (event && event.target) {
         event.target.blur();
       }
@@ -650,7 +666,8 @@ export default {
         try {
           const response = await axios.post(urlgenerar_ordenes, {
             prospecto: item,
-            usuario_id: this.sessionData.id_usuario
+            usuario_id: this.sessionData.id_usuario,
+            copias: numCopias
           });
           if (response.data && response.data.success) {
             this.obtienefoliosoficios();
@@ -845,7 +862,7 @@ export default {
           this.prospectoie.giro=response.data[0].giro;
           this.prospectoie.localidad=response.data[0].localidad;
           this.prospectoie.retenedor= false;
-          this.prospectoie.estatus= 1;
+          this.prospectoie.estatus= 5;
       })
       .catch(e => {
         console.log(e);
@@ -867,7 +884,7 @@ export default {
         this.prospectoie.nombre===null || this.prospectoie.nombre==="" ||
         this.prospectoie.calle===null || this.prospectoie.calle==="" ||
         this.prospectoie.num_exterior===null || this.prospectoie.num_exterior==="" ||
-        this.prospectoie.num_interior===null || this.prospectoie.num_interior==="" ||        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
+        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
         this.prospectoie.municipio_id===null || this.prospectoie.municipio_id==="" ||
         this.prospectoie.oficina_id===null || this.prospectoie.oficina_id==="" ||
         this.prospectoie.periodos===null || this.prospectoie.periodos==="" ||
@@ -875,7 +892,7 @@ export default {
         this.prospectoie.giro===null || this.prospectoie.giro==="" ||
         this.prospectoie.impuesto_id===null || this.prospectoie.impuesto_id==="" ||
         this.prospectoie.determinado===null || this.prospectoie.determinado==="" ||
-        this.prospectoie.programador_id===null
+        this.prospectoie.programador_id===null //FLA-quité num_int y colonia porque no siempre hay esos 2 campos
       ) {
         textoMostrar='Es necesario llenar toda la información';
         errores=3;
@@ -903,6 +920,7 @@ export default {
       await this.validar();
     },
     crear() {
+      console.log(this.prospectoie.periodos)
       let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
       let calle = this.prospectoie.calle != null && this.prospectoie.calle !== '' ? this.prospectoie.calle.toUpperCase() : this.prospectoie.calle;
       let num_exterior = this.prospectoie.num_exterior != null && this.prospectoie.num_exterior !== '' ? this.prospectoie.num_exterior.toUpperCase() : this.prospectoie.num_exterior;
@@ -911,36 +929,37 @@ export default {
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
-      let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
       axios.post(crud, 
             {
-              opcion:2,  
+              // Nuevo
+              opcion:2, 
               // Campos a guardar
               rfc:this.prospectoie.rfc.toUpperCase(),
-              nombre:nombre,
-              calle:calle,
-              num_exterior:num_exterior,
-              num_interior:num_interior,
-              colonia:colonia,
+              nombre:this.prospectoie.nombre != null ? this.prospectoie.nombre.toUpperCase() : null,
+              calle:this.prospectoie.calle != null ? this.prospectoie.calle.toUpperCase() : null,
+              num_exterior:this.prospectoie.num_exterior != null ? this.prospectoie.num_exterior.toUpperCase() : null,
+              num_interior:this.prospectoie.num_interior != null ? this.prospectoie.num_interior.toUpperCase() : null,
+              colonia:this.prospectoie.colonia != null ? this.prospectoie.colonia.toUpperCase() : null,
               cp:this.prospectoie.cp,
-              localidad:localidad,
+              localidad:this.prospectoie.localidad != null ? this.prospectoie.localidad.toUpperCase() : null,
               municipio_id:this.prospectoie.municipio_id,
-              giro:giro,
               oficina_id:this.prospectoie.oficina_id,
               fuente_id:this.prospectoie.fuente_id,
-              giro: this.prospectoie.giro,
-              periodos:periodos,
+              giro:this.prospectoie.giro != null ? this.prospectoie.giro.toUpperCase() : null,
+              periodos:this.prospectoie.periodos != null ? this.prospectoie.periodos.toUpperCase() : null,
               antecedente_id:this.prospectoie.antecedente_id,
               impuesto_id:this.prospectoie.impuesto_id,
               determinado:this.prospectoie.determinado,
               programador_id:this.prospectoie.programador_id,
+              representante_legal:this.prospectoie.representante_legal != null ? this.prospectoie.representante_legal.toUpperCase() : null,
               retenedor:this.prospectoie.retenedor,
-              representante_legal:representante_legal,
+              origen_id: this.prospectoie.origen_id,
               observaciones:observaciones,
               estatus:this.prospectoie.estatus
       })
       .then(response =>{
+        console.log("esto regresa al creae",response.data);
         Swal.fire({
           title: "Exito",
           text: "La información fue guardada satisfactoriamente",
@@ -953,6 +972,12 @@ export default {
           allowEscapeKey: false, // Bloquea la tecla de escape
           allowEnterKey: false // Bloquea la tecla enter
         })
+        // Asumiendo que el backend devuelve el ID del nuevo prospecto
+        if (response.data && response.data.id) {
+          this.sincronizarPeriodosDetalle(response.data.id, this.periodosParaAgregar, true);
+        }
+
+        
       })
       .catch(error => {
           Swal.fire({
@@ -986,10 +1011,11 @@ export default {
       this.prospectoie.impuesto_id = null;
       this.prospectoie.determinado = null;
       this.prospectoie.programador_id = null;
-      this.prospectoie.retenedor = null;
       this.prospectoie.representante_legal = null;
+      this.prospectoie.retenedor = 0;
+      this.prospectoie.origen_id = 0;
       this.prospectoie.observaciones = null; 
-      this.prospectoie.estatus = 1; 
+      this.prospectoie.estatus = 5; 
     },   
     editar: function () {
       let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
@@ -998,18 +1024,16 @@ export default {
       let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
       let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let municipio = this.prospectoie.municipio != null && this.prospectoie.municipio !== '' ? this.prospectoie.municipio.toUpperCase() : this.prospectoie.municipio;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
       let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
-
       axios
         .post(crud, {
             // Cambios
             opcion: 3,
             // Campos a guardar
-            // rfc:this.prospectoie.rfc,
+            rfc:this.prospectoie.rfc,
             id:this.prospectoie.id,
             nombre:nombre,
             calle:calle,
@@ -1019,18 +1043,17 @@ export default {
             cp:this.prospectoie.cp,
             localidad:localidad,
             municipio_id:this.prospectoie.municipio_id,
-            giro:giro,
             oficina_id:this.prospectoie.oficina_id,
             fuente_id:this.prospectoie.fuente_id,
-            giro: this.prospectoie.giro,
+            giro:giro,
             periodos:periodos,
             antecedente_id:this.prospectoie.antecedente_id,
             impuesto_id:this.prospectoie.impuesto_id,
             determinado:this.prospectoie.determinado,
             programador_id:this.prospectoie.programador_id,
-            determinado:this.prospectoie.determinado,
-            retenedor:this.prospectoie.retenedor,
             representante_legal:representante_legal,
+            retenedor:this.prospectoie.retenedor,
+            origen_id: this.prospectoie.origen_id,
             observaciones:observaciones,
             estatus:this.prospectoie.estatus
         })
@@ -1047,6 +1070,7 @@ export default {
             allowEscapeKey: false, // Bloquea la tecla de escape
             allowEnterKey: false // Bloquea la tecla enter
           })
+          this.sincronizarPeriodosDetalle(this.prospectoie.id, this.periodosParaAgregar, true);
         })
         .catch(error => {
           Swal.fire({
@@ -1164,21 +1188,28 @@ export default {
       this.prospectoie.colonia=null;
       this.prospectoie.cp=null;
       this.prospectoie.localidad=null;
+      this.prospectoie.municipio_id=null;
       this.prospectoie.giro=null;
       this.prospectoie.oficina_id=null;
-      this.prospectoie.fuente_id=null;
-      this.prospectoie.antecedente_id=null;
+      this.prospectoie.fuente_id = 3; // Valor por defecto para Fuente
+      this.prospectoie.antecedente_id = 1; // Valor por defecto para Antecedente
       this.prospectoie.periodos=null;
-      this.prospectoie.impuesto_id=null;
+      this.prospectoie.impuesto_id = 1; // Valor por defecto para Impuesto
       this.prospectoie.programador_id=null;
+      this.prospectoie.retenedor = 0; // Valor por defecto para Retenedor
+      this.prospectoie.origen_id = 0; // Valor por defecto para Origen
       this.prospectoie.determinado=null;
       this.prospectoie.representante_legal=null;
       this.prospectoie.observaciones=null;
     },
 
     formEditar: function (objeto) {
+      //capturamos los datos del registro seleccionado 
+      // y los mostramos en el formulario
+
       this.dialog = true;
       this.operacion = "editar";
+      
       this.prospectoie.id=objeto.id;
       this.prospectoie.fecha_captura=this.convertirFecha(objeto.fecha_captura);
       this.prospectoie.rfc=objeto.rfc;
@@ -1189,6 +1220,7 @@ export default {
       this.prospectoie.colonia=objeto.colonia;
       this.prospectoie.cp=objeto.cp;
       this.prospectoie.localidad=objeto.localidad;
+      this.prospectoie.municipio_id=objeto.municipio_id;
       this.prospectoie.giro=objeto.giro;
       this.prospectoie.oficina_id=objeto.oficina_id;
       this.prospectoie.fuente_id=objeto.fuente_id;
@@ -1197,24 +1229,34 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.origen_id=objeto.origen_id;
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
+      this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
     },
     convertirFecha(fechaCaptura) {
+    // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
+
+    // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');
     const month = String(fecha.getMonth() + 1).padStart(2, '0'); // Meses empiezan en 0
     const year = fecha.getFullYear();
+
+    // Formatear fecha en DD-MM-YYYY
     const fechaFormateada = `${day}/${month}/${year}`;
+
     return fechaFormateada;
     },
     fechaactual: function () {
       let date = new Date();
+
       let day = date.getDate();
       let month = date.getMonth() + 1;
       let year = date.getFullYear();
       let fechaactual = day + "/" + month + "/" + year;
+
       return fechaactual;
     },
     cerrarVistaPrevia() {
@@ -1227,11 +1269,13 @@ export default {
       this.periodosParaAgregar.push({ inicio: '', fin: '' });
     },
     eliminarFilaPeriodo(index) {
+      // Evita que se elimine la última fila
       if (this.periodosParaAgregar.length > 1) {
         this.periodosParaAgregar.splice(index, 1);
       }
     },
     agregarPeriodo() {
+      // Primero, valida que todos los periodos sean correctos.
       if (!this.validarTodosLosPeriodos()) {
         return; // Detiene la ejecución si hay un error de validación.
       }
@@ -1241,11 +1285,47 @@ export default {
         .map(p => `${p.inicio}-${p.fin}`); // Les da el nuevo formato
 
       if (nuevosPeriodos.length > 0) {
-        this.prospectoie.periodos = this.prospectoie.periodos
-          ? `${this.prospectoie.periodos}, ${nuevosPeriodos.join(', ')}`
-          : nuevosPeriodos.join(', ');
+        // Reemplaza los periodos existentes con los nuevos.
+        this.prospectoie.periodos = nuevosPeriodos.join(', ');
       }
-      this.cerrarDialogoPeriodo();
+      this.dialogPeriodos = false; // Solo cierra el diálogo, no resetea el array
+    },
+    async sincronizarPeriodosDetalle(prospectoId, periodsArray, limpiarDespues = false) {
+      // Valida que el parámetro sea un array y no esté vacío.
+      if (!Array.isArray(periodsArray) || periodsArray.length === 0) {
+        console.log("No hay periodos para sincronizar.");
+        return;
+      }
+      try {
+        // 1. Eliminar periodos existentes para este prospecto en la BD.
+        await axios.post(crud, {
+          opcion: 6, // Nueva opción para eliminar periodos por prospecto_id
+          prospecto_id: prospectoId
+        });
+
+        // 2. Insertar los nuevos periodos uno por uno desde el array.
+        for (const periodo of periodsArray) {
+          if (periodo.inicio && periodo.fin) {
+            await axios.post(crud, {
+              opcion: 7, // Nueva opción para insertar un periodo
+              prospecto_id: prospectoId,
+              fecha_inicial: periodo.inicio,
+              fecha_final: periodo.fin,
+              status: 1 // Asumiendo un status por defecto
+            });
+          }
+        }
+        console.log('Periodos sincronizados correctamente.');
+
+        // 3. Si se indica, limpiar el array de periodos después de una operación exitosa.
+        if (limpiarDespues) {
+          this.periodosParaAgregar = [{ inicio: '', fin: '' }];
+        }
+
+      } catch (error) {
+        Swal.fire('Error', 'Hubo un problema al sincronizar los periodos: ' + error.message, 'error');
+        console.error('Error al sincronizar periodos:', error);
+      }
     },
     cerrarDialogoPeriodo() {
       this.dialogPeriodos = false;
@@ -1255,6 +1335,7 @@ export default {
      * @param {Array<Object>} periodosArray 
      */
     establecerPeriodosDesdeArray(periodosArray) {
+      // Valida que el parámetro sea un array
       if (!Array.isArray(periodosArray)) {
         console.error("El parámetro proporcionado no es un array válido.");
         this.prospectoie.periodos = ''; // Limpia el campo en caso de error
@@ -1269,6 +1350,7 @@ export default {
     },
     manejarInputFecha(periodo, index, tipo) {
       if (tipo === 'inicio' && periodo.inicio && periodo.inicio.length === 10) {
+        // Usar $nextTick para asegurarse de que el DOM se haya actualizado
         this.$nextTick(() => { //
           const finRef = this.$refs['fechaFin' + index]; //
           if (finRef && finRef[0]) {
@@ -1279,25 +1361,49 @@ export default {
         });
       }
     },
+    enfocarBotonAgregar() {
+      this.$nextTick(() => {
+        const boton = this.$refs.botonAgregarPeriodo;
+        if (boton) {
+          boton.$el.focus();
+        }
+      });
+    },
     async validarFechaFinal(periodo, index) {
       if (periodo.inicio && periodo.fin && periodo.fin.length === 10) {
-        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
-          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+        // Primero, verificar que ambas fechas estén completas en formato DD/MM/YYYY
+        if (periodo.inicio.length !== 10 || periodo.fin.length !== 10) {
+          return; // No hacer nada si las fechas están incompletas, la máscara o el watcher las completará.
         }
 
-       const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
+        // Luego, verificar si son fechas válidas (ej. no 31/02/2024)
+        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
+          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+          return Swal.fire('Error', 'Una de las fechas ingresadas no es válida (ej. 31/02/2024).', 'error');
+        }
+
+        const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
         const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
+
         const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
         const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
         
         if (fechaFin <= fechaInicio) {
-          const result = await Swal.fire({ icon: 'error', title: 'Fecha incorrecta',
-            text: 'La fecha final debe ser mayor a la fecha inicial.', confirmButtonText: 'Corregir', confirmButtonAriaLabel: 'Corregir fecha',
-            didRender: () => { const confirmButton = Swal.getConfirmButton();
+          // Espera a que el usuario interactúe con la alerta.
+          const result = await Swal.fire({
+            icon: 'error',
+            title: 'Fecha incorrecta',
+            text: 'La fecha final debe ser mayor a la fecha inicial.',
+            confirmButtonText: 'Corregir',
+            confirmButtonAriaLabel: 'Corregir fecha',
+            // Forzar el foco en el botón de confirmación después de que la alerta se muestre.
+            didRender: () => {
+              const confirmButton = Swal.getConfirmButton();
               if (confirmButton) confirmButton.focus();
             }
           });
 
+          // Si el usuario confirma, enfoca el campo para su corrección.
           if (result.isConfirmed) {
             const finRef = this.$refs['fechaFin' + index];
             if (finRef && finRef[0]) {
@@ -1309,6 +1415,7 @@ export default {
     },
     validarTodosLosPeriodos() {
       for (const [index, periodo] of this.periodosParaAgregar.entries()) {
+        // Solo validar filas que tienen al menos una fecha ingresada
         const tieneFechaInicial = periodo.inicio && periodo.inicio.length === 10;
         const tieneFechaFinal = periodo.fin && periodo.fin.length === 10;
 
@@ -1319,19 +1426,30 @@ export default {
           }
 
           if (!tieneFechaInicial || !tieneFechaFinal) {
-            Swal.fire({ icon: 'error', title: 'Fechas incompletas',
-              text: `En la fila ${index + 1}, ambas fechas (inicial y final) deben estar completas (DD/MM/YYYY).`, confirmButtonText: 'Corregir' });
+            Swal.fire({
+              icon: 'error',
+              title: 'Fechas incompletas',
+              text: `En la fila ${index + 1}, ambas fechas (inicial y final) deben estar completas (DD/MM/YYYY).`,
+              confirmButtonText: 'Corregir'
+            });
             return false;
           }
 
+          // Convertir fechas a objetos Date para comparación
           const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
           const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
+
           const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
           const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
 
+          // 1. Validar que la fecha final sea mayor que la fecha inicial en la misma fila
           if (fechaFin <= fechaInicio) {
-            Swal.fire({ icon: 'error', title: 'Fecha incorrecta',
-              text: `En la fila ${index + 1}, la fecha final debe ser mayor que la fecha inicial.`, confirmButtonText: 'Corregir' });
+            Swal.fire({
+              icon: 'error',
+              title: 'Fecha incorrecta',
+              text: `En la fila ${index + 1}, la fecha final debe ser mayor que la fecha inicial.`,
+              confirmButtonText: 'Corregir'
+            });
             return false;
           }
 
@@ -1344,8 +1462,12 @@ export default {
               const prevFechaFin = new Date(`${prevAnioFin}-${prevMesFin}-${prevDiaFin}`);
 
               if (fechaInicio <= prevFechaFin) {
-                Swal.fire({ icon: 'error', title: 'Fechas superpuestas', 
-                text: `En la fila ${index + 1}, la fecha inicial debe ser posterior a la fecha final de la fila anterior.`, confirmButtonText: 'Corregir'});
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Fechas superpuestas',
+                  text: `En la fila ${index + 1}, la fecha inicial debe ser posterior a la fecha final de la fila anterior.`,
+                  confirmButtonText: 'Corregir'
+                });
                 return false;
               }
             }
@@ -1355,16 +1477,19 @@ export default {
       return true; // Indica que todos los periodos son válidos.
     },
     esFechaValida(fecha) {
-      if (!fecha || fecha.length !== 10) return false;
+      const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+      if (!fecha || !pattern.test(fecha)) {
+        return false;
+      }
 
       const [dia, mes, anio] = fecha.split('/');
-      if (!/^\d+$/.test(dia) || !/^\d+$/.test(mes) || !/^\d+$/.test(anio)) return false;
-
-      const d = new Date(`${anio}-${mes}-${dia}`);
-      if (isNaN(d.getTime())) return false;
-
-      if (d.getDate() != dia || (d.getMonth() + 1) != mes || d.getFullYear() != anio) return false;
-
+      const d = new Date(anio, mes - 1, dia);
+      
+      return (
+        d.getFullYear() == anio &&
+        d.getMonth() + 1 == mes &&
+        d.getDate() == dia
+      );
       return true;
 
     },

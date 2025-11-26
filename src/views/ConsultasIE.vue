@@ -135,9 +135,7 @@
                         </v-col>
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="id" >
-                          </v-select>
+                          <v-select :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="municipio_id"></v-select>
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
@@ -985,7 +983,6 @@ export default {
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
-      // this.ActualizaComboDeptos();
     },
     
     convertirFecha(fechaCaptura) {

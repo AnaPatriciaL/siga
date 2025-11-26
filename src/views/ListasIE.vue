@@ -15,7 +15,7 @@
             </v-row>
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos IE'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
+              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Listos para enviar a comite'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
                     <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
@@ -125,9 +125,7 @@
                         </v-col>
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="id" >
-                          </v-select>
+                          <v-select :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="municipio_id"></v-select>
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
@@ -317,16 +315,16 @@ export default {
       busca: "",
       rules: {
         dateFormat: value => {
-          // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
+          // Expresión regular para el formato DD/MM/YYYY (ej. 01/12/2024)
           const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
           
           // Verificar si el valor cumple con la longitud y el patrón
-          if (value && value.length === 8 && pattern.test(value)) {
-            // Opcional: Validar que sea una fecha real (ej. no 31/02/24)
+          if (value && value.length === 10 && pattern.test(value)) {
+            // Opcional: Validar que sea una fecha real (ej. no 31/02/2024)
             return true; 
           }
           
-          return 'Formato incorrecto (DD/MM/YY).'; // Mensaje de error
+          return 'Formato incorrecto (DD/MM/YYYY).'; // Mensaje de error
         },
       },
       encabezados: [
@@ -406,7 +404,7 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
         oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 3,
       },
       date: (new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000)).toISOString().substr(0, 10),
       menufechaorden: false,
@@ -624,7 +622,7 @@ export default {
           this.prospectoie.representante_legal = null;
           this.prospectoie.origen_id = 0;
           this.prospectoie.observaciones=null;
-          this.prospectoie.estatus= 1;
+          this.prospectoie.estatus= 3;
       })
       .catch(e => {
         console.log(e);
@@ -779,7 +777,7 @@ export default {
       this.prospectoie.retenedor = 0;
       this.prospectoie.origen_id = 0;
       this.prospectoie.observaciones = null; 
-      this.prospectoie.estatus = 1; 
+      this.prospectoie.estatus = 3; 
     },   
     editar: function () {
       let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
@@ -1000,7 +998,7 @@ export default {
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
     },
     
-    convertirFecha(fechaCaptura) {
+   convertirFecha(fechaCaptura) {
     // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
 
@@ -1236,7 +1234,7 @@ export default {
       }
       return true; // Indica que todos los periodos son válidos.
     },
-     esFechaValida(fecha) {
+    esFechaValida(fecha) {
       const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
       if (!fecha || !pattern.test(fecha)) {
         return false;

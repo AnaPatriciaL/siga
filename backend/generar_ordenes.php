@@ -90,9 +90,31 @@ function getImpuestoInfo($conexion, $impuesto_id) {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) return null;
     return [
-        'template_file' => $row['impuesto'] . ".docx",   // Ej: ISR.docx
-        'prefix'        => $row['impuesto'] . "_"        // Ej: ISR_
+        'template_file' => $row['impuesto'] . ".docx",
+        'prefix'        => $row['impuesto']
     ];
+}
+function getNumeroOrden(PDO $conexion, $impuesto_prefix) {
+    $prefix = "D-" . $impuesto_prefix . "-";
+
+    // Buscar el máximo consecutivo en siga_prospectosie_ordenes
+    $sql_ordenes = "SELECT MAX(CAST(SUBSTRING(num_orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_consecutivo 
+                    FROM siga_prospectosie_ordenes 
+                    WHERE num_orden LIKE ?";
+    $stmt_ordenes = $conexion->prepare($sql_ordenes);
+    $stmt_ordenes->execute([$prefix . '%']);
+    $max_ordenes = $stmt_ordenes->fetchColumn();
+    
+    // Buscar el máximo consecutivo en siga_prospectosie_emitidas
+    $sql_emitidas = "SELECT MAX(CAST(SUBSTRING(orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_consecutivo 
+                     FROM emitidas 
+                     WHERE orden LIKE ?";
+    $stmt_emitidas = $conexion->prepare($sql_emitidas);
+    $stmt_emitidas->execute([$prefix . '%']);
+    $max_emitidas = $stmt_emitidas->fetchColumn();
+    $max_consecutivo = max((int)$max_ordenes, (int)$max_emitidas);
+    
+    return $prefix . str_pad($max_consecutivo + 1, 4, '0', STR_PAD_LEFT);
 }
 
 function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_generador = null) {
@@ -103,11 +125,16 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     if ($orden_existente) {
         $stmt_folio = $conexion->prepare("SELECT * FROM siga_prospectosie_folios_oficios WHERE num_folio = ?");
         $stmt_folio->execute([$orden_existente['num_oficio']]);
-        $folio = $stmt_folio->fetch(PDO::FETCH_ASSOC);
-        return $folio ?: ['num_folio' => $orden_existente['num_oficio'], 'anio' => date('Y')];
+        $folio = $stmt_folio->fetch(PDO::FETCH_ASSOC) ?: ['num_folio' => $orden_existente['num_oficio'], 'anio' => date('Y')];
+        $folio['num_orden'] = $orden_existente['num_orden'];
+        return $folio;
     }
     if (!$create) {
-        return ['num_folio' => 'XXXX', 'anio' => date('Y')];
+        // Para la vista previa, generamos un número de orden temporal sin guardarlo
+        $impuesto_id_preview = $conexion->query("SELECT impuesto_id FROM siga_prospectosie WHERE id = $prospecto_id")->fetchColumn();
+        $impuestoInfo_preview = getImpuestoInfo($conexion, $impuesto_id_preview);
+        $numero_orden_preview = getNumeroOrden($conexion, $impuestoInfo_preview['prefix']);
+        return ['num_folio' => 'XXXX', 'anio' => date('Y'), 'num_orden' => $numero_orden_preview];
     }
     $stmt_folio_nuevo = $conexion->prepare("SELECT * FROM siga_prospectosie_folios_oficios WHERE estatus = 0 ORDER BY num_folio ASC LIMIT 1 FOR UPDATE");
     $stmt_folio_nuevo->execute();
@@ -115,7 +142,7 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     if (!$folio_oficio) {
         throw new Exception("No hay folios de oficio disponibles.");
     }
-    $stmt_prosp = $conexion->prepare("SELECT oficina_id, programador_id, retenedor FROM siga_prospectosie WHERE id = ?");
+    $stmt_prosp = $conexion->prepare("SELECT oficina_id, programador_id, retenedor, impuesto_id FROM siga_prospectosie WHERE id = ?");
     $stmt_prosp->execute([$prospecto_id]);
     $prospectoRow = $stmt_prosp->fetch(PDO::FETCH_ASSOC);
     if (!$prospectoRow) {
@@ -124,6 +151,14 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     $oficina_id = $prospectoRow['oficina_id'] ?? null;
     $programador_id = $prospectoRow['programador_id'] ?? null;
     $retenedor_id = $prospectoRow['retenedor'] ?? null; // referencia a siga_prospectosie_retenedores.id_retenedor
+    $impuesto_id = $prospectoRow['impuesto_id'] ?? null;
+
+    $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
+    if (!$impuestoInfo) {
+        throw new Exception("No se encontró información para el impuesto_id: $impuesto_id");
+    }
+    $numero_orden = getNumeroOrden($conexion, $impuestoInfo['prefix']);
+
     $oficina_grupo = null;
     $oficina_fraccion = null;
     if ($oficina_id) {
@@ -153,11 +188,13 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
         (id_prospecto, num_oficio, num_orden, grupo, fraccion, id_programador, id_generador, fecha_orden, estatus, art_retenedor, sujeto_retenedor)
         VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?)";
     $stmt_insert_orden = $conexion->prepare($insert_orden);
-    $stmt_insert_orden->execute([$prospecto_id, $folio_oficio['num_folio'], $folio_oficio['num_folio'],           // num_orden = num_folio (si esa es la regla)
+    $stmt_insert_orden->execute([$prospecto_id, $folio_oficio['num_folio'], $numero_orden,
         $oficina_grupo, $oficina_fraccion, $programador_id,                      // viene de siga_prospectosie.programador_id
         $id_generador, 1, // estatus inicial 'Generada'
         $art_retenedor, $sujeto_retenedor
     ]);
+
+    $folio_oficio['num_orden'] = $numero_orden;
     return $folio_oficio;
 }
 
@@ -172,7 +209,8 @@ function getFirmas(PDO $conexion) {
     foreach ($personal_actuante as $persona) {
         if (intval($persona['estatus']) === 1) {
             if (intval($persona['id_actuante']) === 1) {
-                $cargo = $persona['cargo'];
+                $texto_cargo = $persona['cargo'];
+                $cargo = str_replace("\\n", "</w:t><w:br/><w:t>", $texto_cargo);
                 $nombre_actuante = $persona['nombre_actuante'];
             } else {
                 $iniciales[] = $persona['iniciales'];
@@ -186,9 +224,43 @@ function getFirmas(PDO $conexion) {
     ];
 }
 
-function fillTemplateFromData(array $prospecto, array $folio, array $firmas) {
+function formatPeriodos($conexion, $id_prospecto) {
+    $conexion->exec("SET lc_time_names = 'es_ES'");
+    $consulta_periodos = "SELECT DATE_FORMAT(fecha_inicial, '%d de %M de %Y') AS fechainicial_formateada, 
+        DATE_FORMAT(fecha_final, '%d de %M de %Y') AS fechafinal_formateada
+        from siga_prospectosie_periodos where prospecto_id = ?";
+    $stmt = $conexion->prepare($consulta_periodos);
+    $stmt->execute([$id_prospecto]);
+    $periodos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($periodos)) {
+        return 'Periodo no especificado';
+    }
+
+    $periodos_formateados = [];
+    $es_primero = true;
+    foreach ($periodos as $periodo) {
+        if ($es_primero) {
+            $periodos_formateados[] = $periodo['fechainicial_formateada'] . " al " . $periodo['fechafinal_formateada'];
+            $es_primero = false;
+        } else {
+            $periodos_formateados[] = "del " . $periodo['fechainicial_formateada'] . " al " . $periodo['fechafinal_formateada'];
+        }
+    }
+
+    $total = count($periodos_formateados);
+    if ($total === 1) {
+        return $periodos_formateados[0];
+    } else {
+        $ultimo_periodo = array_pop($periodos_formateados);
+        return implode(', ', $periodos_formateados) . ', y ' . $ultimo_periodo;
+    }
+}
+
+function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, array $firmas) {
     $templateProcessor = new TemplateProcessor(__DIR__ . '/formatos/ISN.docx');
-    $templateProcessor->setValue('num_folio', $folio['num_folio'] ?? 'XXXX');
+    $templateProcessor->setValue('num_folio', $folio['num_folio'] ?? 'XXXX');   
+    $templateProcessor->setValue('orden', $folio['num_orden'] ?? 'X-XXX-XXXX');
     $templateProcessor->setValue('anio', $folio['anio'] ?? date('Y'));
     $templateProcessor->setValue('representante_legal', $prospecto['representante_legal'] ?? '');
     $templateProcessor->setValue('rfc', $prospecto['rfc'] ?? '');
@@ -196,8 +268,8 @@ function fillTemplateFromData(array $prospecto, array $folio, array $firmas) {
     $templateProcessor->setValue('domicilio_completo', $prospecto['domicilio_completo'] ?? '');
     $templateProcessor->setValue('calle_numero', $prospecto['calle_numero'] ?? '');
     $templateProcessor->setValue('colonia', $prospecto['colonia'] ?? '');
-    $templateProcessor->setValue('ciudad_estado', $prospecto['ciudad_estado'] ?? '');
-    $templateProcessor->setValue('periodos', $prospecto['periodos'] ?? '');
+    $templateProcessor->setValue('ciudad_estado', $prospecto['ciudad_estado'] ?? '');    
+    $templateProcessor->setValue('periodos', formatPeriodos($conexion, $prospecto['id'] ?? ''));
     $templateProcessor->setValue('impuesto', $prospecto['impuesto'] ?? '');
     $templateProcessor->setValue('determinado', isset($prospecto['determinado']) ? number_format($prospecto['determinado'], 2) : '0.00');
     $templateProcessor->setValue('oficina_descripcion', $prospecto['oficina_descripcion'] ?? '');
@@ -310,7 +382,7 @@ switch ($opcion) {
         }
         $folio = getFolioOrCreate($conexion, $prospecto_id, false);
         $firmas = getFirmas($conexion);
-        $templateProcessor = fillTemplateFromData($prospecto, $folio, $firmas);
+        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas);
         $savePath = __DIR__ . '/ordenes_generadas/';
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
@@ -351,12 +423,12 @@ switch ($opcion) {
             }
             $folio = getFolioOrCreate($conexion, $prospecto_id, true, $id_generador);
             $firmas = getFirmas($conexion);
-            $templateProcessor = fillTemplateFromData($prospecto, $folio, $firmas);
+            $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas);
             $savePath = __DIR__ . '/ordenes_generadas/';
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
-            $baseName = $prefix . strtoupper($prospecto['rfc']); // Ej: ISR_RFC1234
+            $baseName = $prefix . '_' . strtoupper($prospecto['rfc']); // Ej: ISN_RFC1234
             $finalDocx = $savePath . $baseName . '.docx';
             $finalPdf  = $savePath . $baseName . '.pdf';
             $templateProcessor->saveAs($finalDocx);
