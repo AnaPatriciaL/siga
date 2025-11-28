@@ -265,23 +265,6 @@
 							</v-card-text>
 						</v-card>
 					</v-dialog>
-          <!-- Componente de Diálogo para VISTA PREVIA -->
-          <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
-            <v-card>
-              <v-card-title class="pink darken-4 white--text">
-                VISTA PREVIA - {{ vistaPreviaRFC }}
-                <v-spacer></v-spacer>
-                <v-btn icon dark @click="cerrarVistaPrevia"><v-icon>mdi-close</v-icon></v-btn>
-              </v-card-title>
-              <v-card-text>
-                <div v-if="cargandoVistaPrevia" class="text-center py-5">
-                  <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
-                  <p class="mt-2">Generando vista previa...</p>
-                </div>
-                <embed v-else-if="pdfSrc" :src="pdfSrc" type="application/pdf" width="100%" height="600px" />
-              </v-card-text>
-            </v-card>
-          </v-dialog>
   </v-container>
 </template>
 
@@ -466,7 +449,7 @@ export default {
     },
     mostrar: function () {
       axios
-        .post(crud, { opcion: 1, estatus_prospecto:0 })
+        .post(crud, { opcion: 1, estatus_prospecto:6 })
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data;

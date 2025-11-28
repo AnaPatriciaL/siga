@@ -15,14 +15,12 @@
             </v-row>
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Enviados a comite'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
-                <v-tooltip top color="green darken-3">
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
-                  </template>
-                  <span>Exportar a Excel</span>
-                </v-tooltip>
-              </vue-excel-xlsx>
+              <v-tooltip top color="green darken-3" v-if="permiso">
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on" @click="exportarExcelConEstilo"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+                </template>
+                <span>Exportar a Excel</span>
+              </v-tooltip>
               <!-- Boton recargar  -->
               <v-tooltip right color="light-blue darken-4">
                 <template v-slot:activator="{ on, attrs }">
@@ -271,23 +269,6 @@
 							</v-card-text>
 						</v-card>
 					</v-dialog>
-          <!-- Componente de Diálogo para VISTA PREVIA -->
-          <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
-            <v-card>
-              <v-card-title class="pink darken-4 white--text">
-                VISTA PREVIA - {{ vistaPreviaRFC }}
-                <v-spacer></v-spacer>
-                <v-btn icon dark @click="cerrarVistaPrevia"><v-icon>mdi-close</v-icon></v-btn>
-              </v-card-title>
-              <v-card-text>
-                <div v-if="cargandoVistaPrevia" class="text-center py-5">
-                  <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
-                  <p class="mt-2">Generando vista previa...</p>
-                </div>
-                <embed v-else-if="pdfSrc" :src="pdfSrc" type="application/pdf" width="100%" height="600px" />
-              </v-card-text>
-            </v-card>
-          </v-dialog>
   </v-container>
 </template>
 
@@ -485,7 +466,13 @@ export default {
   },
  methods: {
     exportarExcelConEstilo() {      
-      // 1. Definir los estilos
+      // Filtrar los prospectos para incluir solo aquellos con estatus 4
+      const prospectosFiltrados = this.prospectosie.filter(p => Number(p.estatus) === 4);
+
+      const wb = XLSX.utils.book_new();
+
+      // --- Hoja 1: CRUCE ---
+      // 1.a. Definir los estilos para la primera hoja
       const border = {
         top: { style: 'thin', color: { rgb: "000000" } },
         bottom: { style: 'thin', color: { rgb: "000000" } },
@@ -504,9 +491,9 @@ export default {
       };
       const subHeaderStyle = {
         font: { bold: true, sz: 11 },
-        fill: { fgColor: { rgb: "D9D9D9" } }, // Gris claro (Blanco, Fondo 1, Oscuro 15%)
+        fill: { fgColor: { rgb: "D9D9D9" } },
         alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: subHeaderStyleborder
+        border: border
       };
       const dataStyleLeft = {
         font: { sz: 11 },
@@ -518,66 +505,180 @@ export default {
       };
       const dataStyleCurrency = {
         ...dataStyleCenter,
-        numFmt: "$#,##0"
+        numFmt: "$#,##0.00"
       };
 
-      // 2. Preparar los datos y encabezados
+      // 1.b. Preparar los datos y encabezados para la primera hoja
       const title = "LISTADO DE CRUCE DE ORDENES DE VISITAS DE IMPUESTOS ESTATALES";
       const headers = ["No.", "R.F.C.", "NOMBRE DEL CONTRIBUYENTE", "MÉTODO\nPROPUESTO", "PERIODO", "IMPUESTOS", "MUNICIPIO", "PRESUNTIVA", "REPRESENTANTE\nLEGAL"];
       
-      const data = this.prospectosie.map((item, index) => {
-        const row = [
+      const data = prospectosFiltrados.map((item, index) => {
+        const impuesto = item.impuesto || '';
+        const metodoPropuesto = !impuesto.startsWith('M-') ? 'VISITA' : 'CARTA';
+        return [ // Se cambia 'const row =' por 'return' para asegurar que siempre se devuelva un array
           { v: index + 1, s: dataStyleCenter },
           { v: item.rfc, s: dataStyleLeft },
           { v: item.nombre, s: dataStyleLeft },
-          { v: item.antecedente_descripcion, s: dataStyleCenter },
+          { v: metodoPropuesto, s: dataStyleCenter }, // Se usa la variable correcta
           { v: item.periodos, s: dataStyleCenter },
           { v: item.impuesto, s: dataStyleCenter },
           { v: item.municipio_descripcion || item.localidad, s: dataStyleCenter },
           { v: Number(item.determinado), t: 'n', s: dataStyleCurrency },
-          { v: item.representante_legal, s: dataStyleCenter }
+          { v: item.representante_legal, s: dataStyleLeft }
         ];
-        return row;
       });
 
-      // 3. Crear la hoja de cálculo con el título y encabezados
+      // 1.c. Crear la hoja de cálculo con el título y encabezados
       const ws_data = [
-        [{v: title, s: titleStyle}], // Fila 1 para el título con estilo
-        headers, // Fila 2 para los encabezados
-        ...data    // Resto de los datos
+        [{v: title, s: titleStyle}],
+        headers,
+        ...data
       ];
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      const ws1 = XLSX.utils.aoa_to_sheet(ws_data);
 
-      // 4. Combinar celdas para el título (Fila 1, de Columna A a I)
-      if (!ws['!merges']) ws['!merges'] = [];
-      ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } });
+      if (!ws1['!merges']) ws1['!merges'] = [];
+      ws1['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } });
 
-      // 5. Aplicar estilos
-      // Estilo a los encabezados de la fila 2
-      const range = XLSX.utils.decode_range(ws['!ref']);
+      const range = XLSX.utils.decode_range(ws1['!ref']);
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const cell_address = XLSX.utils.encode_cell({ r: 1, c: C });
-        if (ws[cell_address]) ws[cell_address].s = subHeaderStyle;
+        if (ws1[cell_address]) ws1[cell_address].s = subHeaderStyle;
       }
 
-      // 6. Ajustar el ancho de las columnas dinámicamente
       const colWidths = headers.map((header, i) => {
-        // Iniciar con el ancho del encabezado
         let max = header.length;
-        // Recorrer los datos de la columna para encontrar el valor más largo
         data.forEach(row => {
-          const cellValue = row[i].v; // Acceder al valor 'v' del objeto celda
+          const cellValue = row[i].v;
           if (cellValue != null) {
             max = Math.max(max, String(cellValue).length);
           }
         });
         return { wch: max + 2 }; // Añadir un pequeño padding
       });
-      ws['!cols'] = colWidths;
+      ws1['!cols'] = colWidths;
 
-      // 7. Crear el libro y descargar
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "CRUCE");
+      XLSX.utils.book_append_sheet(wb, ws1, "CRUCE");
+
+      // --- Hoja 2: PROSPECTOS (Agrupados) ---
+      const getProspectoGroupKey = (prospecto) => {
+        const fuente = prospecto.fuente_descripcion || '';
+        const impuesto = prospecto.impuesto || '';
+        const impuestoDesc = (prospecto.impuestos_descripcion || ' ').toUpperCase();
+        const isCarta = impuesto.startsWith('M-');
+        const isNoRegistrado = ['IMSS', 'Dario'].includes(fuente);
+        const isRegistrado = fuente === 'SII';
+
+        let tipo = isCarta ? 'CARTAS' : 'VISITAS';
+        let registro = 'No Clasificado';
+
+        if (isNoRegistrado) registro = 'No Registrados';
+        else if (isRegistrado) registro = 'Registrados';
+
+        return `${tipo.toUpperCase()} ${registro.toUpperCase()} ${impuestoDesc}`;
+      };
+
+      const prospectosAgrupados = prospectosFiltrados.reduce((acc, prospecto) => {
+        const groupKey = getProspectoGroupKey(prospecto);
+        if (!acc[groupKey]) {
+          acc[groupKey] = [];
+        }
+        acc[groupKey].push(prospecto);
+        return acc;
+      }, {});
+
+      const ws2 = XLSX.utils.aoa_to_sheet([]);
+      let currentRow = 0;
+
+      const headers2 = ["No.", "R.F.C.", "NOMBRE DEL CONTRIBUYENTE", "CALLE Y No.", "COLONIA", "C.P. Y MUNICIPIO", "PERIODO", "ANTECEDENTE", "PRESUNTIVA", "MUNICIPIO", "FUENTE", "PROGRAMADOR", "REPRESENTANTE LEGAL"];
+      // Ordenar las claves de grupo (los títulos) basándose en el impuesto_id del primer elemento de cada grupo.
+      const sortedGroupKeys = Object.keys(prospectosAgrupados).sort((keyA, keyB) => {
+        let firstItemA = undefined;
+        let firstItemB = undefined;
+
+        // Asegurarse de que el grupo existe, es un array y no está vacío antes de intentar acceder a su primer elemento
+        if (prospectosAgrupados[keyA] && Array.isArray(prospectosAgrupados[keyA]) && prospectosAgrupados[keyA].length > 0) {
+          firstItemA = prospectosAgrupados[keyA][0];
+        }
+        if (prospectosAgrupados[keyB] && Array.isArray(prospectosAgrupados[keyB]) && prospectosAgrupados[keyB].length > 0) {
+          firstItemB = prospectosAgrupados[keyB][0];
+        }
+
+        const idA = (firstItemA && firstItemA.impuesto_id !== undefined) ? Number(firstItemA.impuesto_id) : Infinity;
+        const idB = (firstItemB && firstItemB.impuesto_id !== undefined) ? Number(firstItemB.impuesto_id) : Infinity;
+
+        return idA - idB;
+      });
+
+      sortedGroupKeys.forEach(groupKey => {
+        const prospectosDelGrupo = prospectosAgrupados[groupKey];
+
+        // 1. Agregar Título del Grupo (una sola línea)
+        currentRow++;
+        const groupTitle = [{ v: groupKey, s: titleStyle }];
+        XLSX.utils.sheet_add_aoa(ws2, [groupTitle], { origin: `A${currentRow + 1}` });
+        if (!ws2['!merges']) ws2['!merges'] = [];
+        ws2['!merges'].push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: headers2.length - 1 } });
+        currentRow++;
+
+        // 2. Agregar Encabezados de la tabla
+        XLSX.utils.sheet_add_aoa(ws2, [headers2], { origin: `A${currentRow + 1}` });
+        for (let C = 0; C < headers2.length; C++) {
+          const cell_address = XLSX.utils.encode_cell({ r: currentRow, c: C });
+          if (ws2[cell_address]) ws2[cell_address].s = subHeaderStyle;
+        }
+        currentRow++;
+
+        // 3. Agregar datos del grupo
+        const dataGrupo = prospectosDelGrupo.map((item, index) => [
+          { v: index + 1, s: dataStyleCenter },
+          { v: item.rfc, s: dataStyleLeft },
+          { v: item.nombre, s: dataStyleLeft },
+          { v: `${item.calle || ''} ${item.num_exterior || ''}`.trim(), s: dataStyleLeft },
+          { v: item.colonia, s: dataStyleLeft },
+          { v: `${item.cp || ''} ${item.localidad || ''} ${item.municipio_descripcion || ''} ${'SINALOA' || ''}`.trim(), s: dataStyleCenter },
+          { v: item.periodos, s: dataStyleCenter },
+          { v: item.antecedente_descripcion, s: dataStyleLeft },
+          { v: Number(item.determinado), t: 'n', s: dataStyleCurrency },
+          { v: `${item.localidad || ''} ${item.municipio_descripcion || ''} ${'SINALOA' || ''}`.trim(), s: dataStyleLeft },
+          { v: item.fuente_descripcion, s: dataStyleLeft },
+          { v: item.fuente_descripcion, s: dataStyleLeft },
+          { v: item.programador_descripcion, s: dataStyleLeft },
+          { v: item.representante_legal, s: dataStyleLeft }
+        ]);
+
+        XLSX.utils.sheet_add_aoa(ws2, dataGrupo, { origin: `A${currentRow + 1}` });
+        currentRow += dataGrupo.length;
+        currentRow++; // Fila en blanco para separar tablas
+      });
+
+      // Lógica simplificada y corregida para calcular el ancho de las columnas
+      const colWidths2 = headers2.map((header, colIndex) => {
+        const headerWidth = (header || '').length;
+        const dataWidths = prospectosFiltrados.map(item => {
+            switch (colIndex) {
+                case 0: return 5; // No.
+                case 1: return (item.rfc || '').length;
+                case 2: return (item.nombre || '').length;
+                case 3: return (`${item.calle || ''} ${item.num_exterior || ''}`.trim()).length;
+                case 4: return (item.colonia || '').length;
+                case 5: return (`${item.cp || ''} ${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim()).length;
+                case 6: return (item.periodos || '').length;
+                case 7: return (item.antecedente_descripcion || '').length;
+                case 8: return (String(item.determinado) || '').length;
+                case 9: return (`${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim()).length;
+                case 10: return (item.fuente_descripcion || '').length;
+                case 11: return (item.programador_descripcion || '').length;
+                case 12: return (item.representante_legal || '').length;
+                default: return 0;
+            }
+        });
+        const maxWidth = Math.max(headerWidth, ...dataWidths);
+        return { wch: maxWidth + 2 };
+      });
+      ws2['!cols'] = colWidths2;
+
+      XLSX.utils.book_append_sheet(wb, ws2, "PRE-APROBADA");
+
       XLSX.writeFile(wb, "LISTADO DE CRUCE DE ORDENES DE IMPUESTOS ESTATALES.xlsx");
     },
     async obtenerPermisos() {
@@ -626,18 +727,18 @@ export default {
     },
     mostrar: function () {
       axios
-        .post(crud, { opcion: 1, estatus_prospecto:0 })
+        .post(crud, { opcion: 1, estatus_prospecto:4 })
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.prospectosie = response.data;
-
-            // Filtrar los registros con antecedente_id = 7
+            const datosOrdenados = response.data.sort((a, b) => {
+              const impuestoA = a.impuesto || '';
+              const impuestoB = b.impuesto || '';
+              return impuestoA.localeCompare(impuestoB);
+            });
+            this.prospectosie = datosOrdenados;
             this.prospectosie_no_localizados = this.prospectosie
-            .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
+            .filter(item => Number(item.antecedente_id) === 7) 
             .map(item => ({ ...item }));
-
-            // console.log("No Localizados:", this.prospectosie_no_localizados);
-
           } else if (response.data.error) {
             console.error('Error desde el servidor:', response.data.error);
             Swal.fire('Error', response.data.error, 'error');
