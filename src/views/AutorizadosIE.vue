@@ -765,6 +765,17 @@ export default {
       }
     },
     seleccionarProspecto: function (item) {
+      // Validar si el prospecto tiene una orden generada
+      if (!this.tieneOrdenGenerada(item)) {
+        Swal.fire({
+          title: 'Acción no permitida',
+          text: 'Debe generar la orden para este prospecto antes de enviarlo a emitidas.',
+          icon: 'warning',
+          confirmButtonText: 'Entendido'
+        });
+        return; // Detener la ejecución si no hay orden
+      }
+
       Swal.fire({
         title: '¿Enviar este prospecto a emitidas?',
         text: "Esta acción enviará el prospecto a emitidas.",
@@ -1012,7 +1023,6 @@ export default {
             timerProgressBar: true,
             allowOutsideClick: false, // Bloquea clics fuera del diálogo
             allowEscapeKey: false, // Bloquea la tecla de escape
-            allowEnterKey: false // Bloquea la tecla enter
           })
           this.sincronizarPeriodosDetalle(this.prospectoie.id, this.periodosParaAgregar, true);
 
@@ -1110,7 +1120,7 @@ export default {
     //Botones y formularios
     guardar() {
       if (this.operacion == "crear") {
-        this.crear();
+        //this.crear();
       }
       if (this.operacion == "editar") {
         this.editar();

@@ -379,6 +379,72 @@ if (isset($_POST['data'])) {
 $opcion = isset($data['opcion']) ? $data['opcion'] : 0;
 
 switch ($opcion) {
+    case 1: // VISTA PREVIA (no crea folio ni inserta orden)
+        $prospecto_id = $data['prospecto']['id'] ?? null;
+        $fecha_orden_vista = $data['fecha_orden'] ?? date('Y-m-d');
+        try {
+        if (!$prospecto_id) {
+            throw new Exception('No se proporcionó prospecto.id');
+        }
+        $conexion = getConexion();
+        $prospecto = getProspectoData($conexion, $prospecto_id);
+        if (!$prospecto) {
+            throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
+        }
+        $impuesto_id = $prospecto['impuesto_id'];
+        $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
+        if (!$impuestoInfo) {
+            throw new Exception("No se encontró información para el impuesto_id: $impuesto_id");
+        }
+        $prefix = $impuestoInfo['prefix'];
+
+        $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
+        $firmas = getFirmas($conexion);
+        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista);
+        $savePath = __DIR__ . '/ordenes_generadas/';
+        if (!is_dir($savePath)) {
+            mkdir($savePath, 0777, true);
+        }
+        $tmpDocx = $savePath . $prefix . '_' . strtoupper($prospecto['rfc']) . '.docx';
+        $templateProcessor->saveAs($tmpDocx);
+        if (!convertDocxToPdf($tmpDocx, $savePath)) {
+            throw new Exception("Error al convertir DOCX a PDF con LibreOffice.");
+        }
+        $pdfFilePath = $savePath . $prefix . '_' . strtoupper($prospecto['rfc']) . '.pdf';
+        sendPdfInline($pdfFilePath, 'vista_previa.pdf');
+        } catch (Exception $e) {
+            header("Content-Type: text/plain");
+            echo "Error al generar PDF:\n" . $e->getMessage() . "\n\n";
+            echo $e->getTraceAsString();
+        }
+        break;
+    case 2: // Opción para contar órdenes generadas y pendientes
+        try {
+            $prospecto_ids = isset($data['prospecto_ids']) ? $data['prospecto_ids'] : [];
+            if (empty($prospecto_ids)) {
+                echo json_encode(['ordenes_generadas_count' => 0, 'ordenes_pendientes_count' => 0]);
+                exit;
+            }
+            $conexion = getConexion();
+            $placeholders = implode(',', array_fill(0, count($prospecto_ids), '?'));
+            $consulta = "SELECT DISTINCT id_prospecto FROM siga_prospectosie_ordenes WHERE id_prospecto IN ($placeholders)";
+            $stmt = $conexion->prepare($consulta);
+            $stmt->execute($prospecto_ids);
+            $ids_con_orden = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            $ordenes_generadas_count = count($ids_con_orden);
+            $total_prospectos = count($prospecto_ids);
+            $ordenes_pendientes_count = $total_prospectos - $ordenes_generadas_count;
+            header('Content-Type: application/json');
+            echo json_encode([
+            'ordenes_generadas_count' => $ordenes_generadas_count,
+            'ordenes_pendientes_count' => $ordenes_pendientes_count,
+            'ids_con_orden' => $ids_con_orden
+            ]);
+        } catch (Exception $e) {
+            header("HTTP/1.1 500 Internal Server Error");
+            echo json_encode(['error' => 'Error al contar las órdenes: ' . $e->getMessage()]);
+        }
+        break;
     case 3:
          $prospecto = $data['prospecto'];
          $prospecto_id = $prospecto['id'];
@@ -409,34 +475,7 @@ switch ($opcion) {
              echo json_encode(['error' => 'Error al actualizar la orden: ' . $e->getMessage()]);
          }
          break;
-    case 2: // Opción para contar órdenes generadas y pendientes
-        try {
-            $prospecto_ids = isset($data['prospecto_ids']) ? $data['prospecto_ids'] : [];
-            if (empty($prospecto_ids)) {
-                echo json_encode(['ordenes_generadas_count' => 0, 'ordenes_pendientes_count' => 0]);
-                exit;
-            }
-            $conexion = getConexion();
-            $placeholders = implode(',', array_fill(0, count($prospecto_ids), '?'));
-            $consulta = "SELECT DISTINCT id_prospecto FROM siga_prospectosie_ordenes WHERE id_prospecto IN ($placeholders)";
-            $stmt = $conexion->prepare($consulta);
-            $stmt->execute($prospecto_ids);
-            $ids_con_orden = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-            $ordenes_generadas_count = count($ids_con_orden);
-            $total_prospectos = count($prospecto_ids);
-            $ordenes_pendientes_count = $total_prospectos - $ordenes_generadas_count;
-            header('Content-Type: application/json');
-            echo json_encode([
-            'ordenes_generadas_count' => $ordenes_generadas_count,
-            'ordenes_pendientes_count' => $ordenes_pendientes_count,
-            'ids_con_orden' => $ids_con_orden
-            ]);
-        } catch (Exception $e) {
-            header("HTTP/1.1 500 Internal Server Error");
-            echo json_encode(['error' => 'Error al contar las órdenes: ' . $e->getMessage()]);
-        }
-        break;
-    case 1: // VISTA PREVIA (no crea folio ni inserta orden)
+    case 4:
         $prospecto_id = $data['prospecto']['id'] ?? null;
         $fecha_orden_vista = $data['fecha_orden'] ?? date('Y-m-d');
         try {
@@ -448,6 +487,13 @@ switch ($opcion) {
         if (!$prospecto) {
             throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
         }
+        $impuesto_id = $prospecto['impuesto_id'];
+        $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
+        if (!$impuestoInfo) {
+            throw new Exception("No se encontró información para el impuesto_id: $impuesto_id");
+        }
+        $prefix = $impuestoInfo['prefix'];
+
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
         $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista);
@@ -455,12 +501,12 @@ switch ($opcion) {
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
         }
-        $tmpDocx = $savePath . 'ISN_' . strtoupper($prospecto['rfc']) . '.docx';
+        $tmpDocx = $savePath . $prefix . '_' . strtoupper($prospecto['rfc']) . '_EMITIDA' . '.docx';
         $templateProcessor->saveAs($tmpDocx);
         if (!convertDocxToPdf($tmpDocx, $savePath)) {
             throw new Exception("Error al convertir DOCX a PDF con LibreOffice.");
         }
-        $pdfFilePath = $savePath . 'ISN_' . strtoupper($prospecto['rfc']) . '.pdf';
+        $pdfFilePath = $savePath . $prefix . '_' . strtoupper($prospecto['rfc']) . '_EMITIDA' . '.pdf';
         sendPdfInline($pdfFilePath, 'vista_previa.pdf');
         } catch (Exception $e) {
             header("Content-Type: text/plain");

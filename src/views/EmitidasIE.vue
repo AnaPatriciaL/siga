@@ -44,9 +44,18 @@
               </template>
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
-                <!-- Icono Editar en el data-table -->
-                <v-icon
-                  large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
+                  </template>
+                  <span>Editar Prospecto</span>
+                </v-tooltip>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="generarDocumento(item, $event, 1)">mdi-file-eye</v-icon>
+                  </template>
+                  <span>Vista previa</span>
+                </v-tooltip>                
               </template>
             </v-data-table>
           </v-container>
@@ -265,6 +274,29 @@
 							</v-card-text>
 						</v-card>
 					</v-dialog>
+          <!-- Componente de Diálogo para VISTA PREVIA -->
+          <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
+            <v-card>
+              <v-card-title class="pink darken-4 white--text">
+                VISTA PREVIA - {{ vistaPreviaRFC }}
+                <v-spacer></v-spacer>
+                <v-btn icon dark @click="cerrarVistaPrevia"><v-icon>mdi-close</v-icon></v-btn>
+              </v-card-title>
+              <v-card-text>
+                <div v-if="cargandoVistaPrevia" class="text-center py-5">
+                  <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
+                  <p class="mt-2">Generando vista previa...</p>
+                </div>
+                <embed v-else-if="pdfSrc" :src="pdfSrc" type="application/pdf" width="100%" height="600px" />
+              </v-card-text>
+            </v-card>
+          </v-dialog>
+          <v-dialog v-model="progresoVisible" persistent max-width="400">
+            <v-card class="pa-4" style="text-align: center;">
+              <v-progress-circular indeterminate size="50"></v-progress-circular>
+              <div class="mt-3">{{ progresoMensaje }}</div>
+            </v-card>
+          </v-dialog>
   </v-container>
 </template>
 
@@ -282,6 +314,7 @@
   var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
+  var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
 
 export default {
   name: "EmitidasIE",
@@ -289,6 +322,8 @@ export default {
     return {
       cargando:false,
       busca: "",
+      progresoVisible: false,
+      progresoMensaje: "",
       rules: {
         dateFormat: value => {
           // Expresión regular para el formato DD/MM/YYYY (ej. 01/12/2024)
@@ -393,6 +428,10 @@ export default {
       permiso:false,
       dialogPeriodos: false,
       periodosParaAgregar: [{ inicio: '', fin: '' }],
+      dialogVistaPrevia: false,
+      cargandoVistaPrevia: false, 
+      pdfSrc: '',
+      vistaPreviaRFC: '',
     };
   },
   computed: {
@@ -433,6 +472,132 @@ export default {
     this.obtienemunicipios()
   },
  methods: {
+  actualizarProgreso(texto) {
+      this.progresoMensaje = texto;
+      this.progresoVisible = true;
+    },
+  async generarDocumento(item, event, tipo, numCopias) {
+    if (event && event.target) {
+      event.target.blur();
+    }
+    if (tipo === 1) {
+      this.vistaPrevia(item);
+      return { success: true, impreso: false };
+    } else {
+      if (this.foliosDisponiblesCount < 1) {
+        Swal.fire({
+          title: 'Folios no suficientes',
+          text: 'No tienes folios suficientes para generar la orden.',
+          icon: 'warning'
+        });
+        return { success: false };
+      }
+      try {
+        const response = await axios.post(urlgenerar_ordenes, {
+          prospecto: item,
+          usuario_id: this.sessionData.id_usuario,            
+          fecha_orden: this.fechaOrden,
+          copias: numCopias
+        });
+        if (response.data && response.data.success) {
+          this.obtienefoliosoficios();
+          this.actualizarOrdenesCount();
+          return response.data; // <<< 🔥 IMPORTANTE
+        } else {
+          Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
+          return { success: false, impreso: false };
+        }
+      } catch (error) {
+          this.cargando = false;
+          Swal.fire('Error', mensajeError, 'error');
+          return { success: false, impreso: false };
+        }
+    }
+  },
+  async actualizarOrdenesCount() {
+      this.ordenesGeneradasCount = 0;
+      this.ordenesPendientesCount = 0;
+      if (this.prospectosie.length === 0) {
+        return;
+      }
+      const prospectoIds = this.prospectosie.map(p => p.id);
+
+      try {
+        const response = await axios.post(urlgenerar_ordenes, {
+          opcion: 2, // Opción para obtener conteos de órdenes
+          prospecto_ids: prospectoIds
+        });
+
+        if (response.data && !response.data.error) {
+          this.ordenesGeneradasCount = response.data.ordenes_generadas_count || 0;
+          this.ordenesPendientesCount = response.data.ordenes_pendientes_count || 0;
+          this.prospectosConOrdenGenerada = new Set(response.data.ids_con_orden || []);
+          if (this.ordenesPendientesCount > 0 && this.foliosDisponiblesCount < this.ordenesPendientesCount) {
+            Swal.fire({
+              title: 'Folios no suficientes',
+              text: 'No tienes folios suficientes para generar todas las órdenes pendientes.',
+              icon: 'warning'
+            });
+          }
+        } else {
+          console.error('Error al obtener conteo de órdenes:', response.data.error);
+        }
+      } catch (error) {
+        console.error('Error en la solicitud para conteo de órdenes:', error);
+      }
+    },
+  async obtienefoliosoficios() {
+      try {
+        const response = await axios.post(urlfolios_oficios, { opcion: 1 });
+        if (Array.isArray(response.data)) {
+          this.folios_oficios = response.data;
+          const foliosConEstatusDisponible = this.folios_oficios.filter(item => Number(item.estatus) === 0);
+          if (foliosConEstatusDisponible.length > 0) {
+            this.siguientefolio = foliosConEstatusDisponible[0];
+          }
+          this.foliosDisponiblesCount = foliosConEstatusDisponible.length;
+          await this.actualizarOrdenesCount();
+        } else if (response.data.error) {
+          console.error('Error desde el servidor:', response.data.error);
+          Swal.fire('Error', response.data.error, 'error');
+        } else {
+          console.warn('Respuesta inesperada:', response.data);
+        }
+      } catch (error) {
+        console.error('Error en la solicitud de folios:', error);
+        Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
+      }
+    },
+  async vistaPrevia(item) {
+      this.cargandoVistaPrevia = true;
+      this.pdfSrc = '';
+      this.vistaPreviaRFC = item.rfc;
+      this.dialogVistaPrevia = true;
+
+      try {
+        const response = await axios.post(urlgenerar_ordenes, {
+          opcion: 4, // Opción para VISTA PREVIA
+          prospecto: item,
+          usuario_id: this.sessionData.id_usuario
+        }, {
+          responseType: 'blob'
+        });
+
+        if (response.data.size > 0) {
+          const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+          this.pdfSrc = url;
+        } else {
+          Swal.fire('Error', 'El documento de vista previa está vacío.', 'error');
+          this.dialogVistaPrevia = false;
+        }
+      } catch (error) {
+        Swal.fire('Error', 'No se pudo generar la vista previa del documento.', 'error');
+        this.dialogVistaPrevia = false;
+        console.error("Error al generar la vista previa:", error);
+      } finally {
+        this.cargandoVistaPrevia = false;
+      }
+    },
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
@@ -600,80 +765,6 @@ export default {
       this.prospectoie.estatus = 2;
       await this.validar();
     },
-    crear() {
-      console.log(this.prospectoie.periodos)
-      let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
-      let calle = this.prospectoie.calle != null && this.prospectoie.calle !== '' ? this.prospectoie.calle.toUpperCase() : this.prospectoie.calle;
-      let num_exterior = this.prospectoie.num_exterior != null && this.prospectoie.num_exterior !== '' ? this.prospectoie.num_exterior.toUpperCase() : this.prospectoie.num_exterior;
-      let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
-      let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
-      let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
-      let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
-      let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
-      axios.post(crud, 
-            {
-              // Nuevo
-              opcion:2, 
-              // Campos a guardar
-              rfc:this.prospectoie.rfc.toUpperCase(),
-              nombre:this.prospectoie.nombre != null ? this.prospectoie.nombre.toUpperCase() : null,
-              calle:this.prospectoie.calle != null ? this.prospectoie.calle.toUpperCase() : null,
-              num_exterior:this.prospectoie.num_exterior != null ? this.prospectoie.num_exterior.toUpperCase() : null,
-              num_interior:this.prospectoie.num_interior != null ? this.prospectoie.num_interior.toUpperCase() : null,
-              colonia:this.prospectoie.colonia != null ? this.prospectoie.colonia.toUpperCase() : null,
-              cp:this.prospectoie.cp,
-              localidad:this.prospectoie.localidad != null ? this.prospectoie.localidad.toUpperCase() : null,
-              municipio_id:this.prospectoie.municipio_id,
-              oficina_id:this.prospectoie.oficina_id,
-              fuente_id:this.prospectoie.fuente_id,
-              giro:this.prospectoie.giro != null ? this.prospectoie.giro.toUpperCase() : null,
-              periodos:this.prospectoie.periodos != null ? this.prospectoie.periodos.toUpperCase() : null,
-              antecedente_id:this.prospectoie.antecedente_id,
-              impuesto_id:this.prospectoie.impuesto_id,
-              determinado:this.prospectoie.determinado,
-              programador_id:this.prospectoie.programador_id,
-              representante_legal:this.prospectoie.representante_legal != null ? this.prospectoie.representante_legal.toUpperCase() : null,
-              retenedor:this.prospectoie.retenedor,
-              origen_id: this.prospectoie.origen_id,
-              observaciones:observaciones,
-              estatus:this.prospectoie.estatus
-      })
-      .then(response =>{
-        console.log("esto regresa al creae",response.data);
-        Swal.fire({
-          title: "Exito",
-          text: "La información fue guardada satisfactoriamente",
-          icon: 'success',
-          showCancelButton: false,
-          showConfirmButton:false,
-          timer:2000,
-          timerProgressBar: true,
-          allowOutsideClick: false, // Bloquea clics fuera del diálogo
-          allowEscapeKey: false, // Bloquea la tecla de escape
-          allowEnterKey: false // Bloquea la tecla enter
-        })
-        // Asumiendo que el backend devuelve el ID del nuevo prospecto
-        if (response.data && response.data.id) {
-          this.sincronizarPeriodosDetalle(response.data.id, this.periodosParaAgregar, true);
-        }
-
-        
-      })
-      .catch(error => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Hubo un error al guardar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
-          });
-      })
-      .finally(() => {
-        this.mostrar();
-        this.limpiar();
-      })
-    },
     limpiar: function(){
       this.prospectoie.rfc = null;
       this.prospectoie.nombre = null;
@@ -840,7 +931,7 @@ export default {
     //Botones y formularios
     guardar() {
       if (this.operacion == "crear") {
-        this.crear();
+        //this.crear();
       }
       if (this.operacion == "editar") {
         this.editar();
@@ -855,33 +946,6 @@ export default {
         this.editar();
       }
       this.dialog = false;
-    },
-
-    formNuevo: function () {
-      this.dialog = true;
-      this.operacion = "crear";
-      this.prospectoie.fecha_captura=this.fechaactual();
-      this.prospectoie.rfc=null;
-      this.prospectoie.nombre=null;
-      this.prospectoie.calle=null;
-      this.prospectoie.num_exterior=null;
-      this.prospectoie.num_interior=null;
-      this.prospectoie.colonia=null;
-      this.prospectoie.cp=null;
-      this.prospectoie.localidad=null;
-      this.prospectoie.municipio_id=null;
-      this.prospectoie.giro=null;
-      this.prospectoie.oficina_id=null;
-      this.prospectoie.fuente_id = 3; // Valor por defecto para Fuente
-      this.prospectoie.antecedente_id = 1; // Valor por defecto para Antecedente
-      this.prospectoie.periodos=null;
-      this.prospectoie.impuesto_id = 1; // Valor por defecto para Impuesto
-      this.prospectoie.programador_id=null;
-      this.prospectoie.retenedor = 0; // Valor por defecto para Retenedor
-      this.prospectoie.origen_id = 0; // Valor por defecto para Origen
-      this.prospectoie.determinado=null;
-      this.prospectoie.representante_legal=null;
-      this.prospectoie.observaciones=null;
     },
 
     formEditar: function (objeto) {
@@ -930,6 +994,12 @@ export default {
     const fechaFormateada = `${day}/${month}/${year}`;
 
     return fechaFormateada;
+    },
+    cerrarVistaPrevia() {
+      this.dialogVistaPrevia = false;
+      if (this.pdfSrc) {
+        window.URL.revokeObjectURL(this.pdfSrc);
+      }
     },
     fechaactual: function () {
       let date = new Date();
