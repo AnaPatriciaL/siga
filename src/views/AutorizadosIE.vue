@@ -1,7 +1,6 @@
 <template>
   <v-container>
     <v-container class="my-2">
-
             <!-- Botón Crear y Exportar -->
             <v-row class="center">
               <v-spacer></v-spacer>
@@ -10,26 +9,15 @@
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
-                  <v-btn color="pink darken-4" dark @click="salir()">
-                    <v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir
-                  </v-btn>
+                  <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
               </v-col>
             </v-row>
-
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso"
-                :data="prospectosie"
-                :columns="columnas"
-                :file-name="'Prospectos IE'"
-                :file-type="'xlsx'"
-                :sheet-name="'ProspectosIE'"
-                >
+              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos autorizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
-                      <v-icon large>mdi-microsoft-excel</v-icon>
-                    </v-btn>
+                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
                   </template>
                   <span>Exportar a Excel</span>
                 </v-tooltip>
@@ -37,534 +25,257 @@
               <!-- Boton recargar  -->
               <v-tooltip right color="light-blue darken-4">
                 <template v-slot:activator="{ on, attrs }">
-                  <v-btn class="mt-2 ml-3"
-                    color="light-blue darken-4" fab dark @click="mostrar()"
-                    v-bind="attrs"
-                    v-on="on"
-                  >
-                    <v-icon large>mdi-refresh</v-icon>
-                  </v-btn>
+                  <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
                 </template>
                 <span>Recargar información</span>
               </v-tooltip>              
               <v-spacer></v-spacer>
               <v-col COL="6">
-                <v-text-field
-                  v-model="busca"
-                  append-icon="mdi-magnify"
-                  label="Buscar"
-                  single-line
-                  hide-details
-                ></v-text-field>
+                <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
               </v-col>
             </v-row>
-
             <!-- Contador de folios y órdenes -->
-            <v-row>
-              <v-col cols="12" class="text-right">
+            <v-row align="center" class="mb-2">
+              <v-spacer></v-spacer>
+              <v-col cols="auto" class="text-right">
                 <span class="mr-4 font-weight-bold">Órdenes Generadas: {{ ordenesGeneradasCount }}</span>
                 <span class="mr-4 font-weight-bold">Órdenes Pendientes: {{ ordenesPendientesCount }}</span>
                 <span class="mr-4 font-weight-bold">Folios Disponibles: {{ foliosDisponiblesCount }}</span>
               </v-col>
+              <v-col cols="auto">
+                 <v-menu v-model="menuFechaOrden" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto">
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-text-field
+                      v-model="fechaOrdenFormateada" label="Fecha de la Orden" prepend-icon="mdi-calendar" readonly
+                      v-bind="attrs" v-on="on" dense outlined hide-details style="width: 200px;"></v-text-field>
+                  </template>
+                  <v-date-picker v-model="fechaOrden" @input="menuFechaOrden = false" no-title locale="es-es"></v-date-picker>
+                </v-menu>
+              </v-col>
             </v-row>
             <!-- Tabla y formulario -->
-            <v-data-table
-              :headers="encabezados"
-              :items="prospectosie"
-              item-key="id"
-              class="elevation-1"
-              :search="busca"
-            >
+            <v-data-table v-model="selectedProspectos" :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" 
+            :search="busca" show-select>
               <template v-slot:item.tipo="{ item }">
-                <v-icon v-if="item.antecedente_id==6"
-                  large
-                  class="mr-2"
-                  color="blue-grey darken-2"
-                  dark
-                  dense
-                >
-                  mdi-cog-sync
-                </v-icon>
-                <v-icon v-if="item.antecedente_id==7"
-                  large
-                  class="mr-2"
-                  color="pink accent-3"
-                  dark
-                  dense
-                >
-                  mdi-map-marker-remove
-                </v-icon>
-                <v-icon v-else
-                  large
-                  class="mr-2"
-                  color="teal accent-4"
-                  dark
-                  dense
-                >
-                  mdi-progress-check
-                </v-icon>
+                <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
+                <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
+                <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check </v-icon>
               </template>
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
-                <!-- Icono Editar en el data-table -->
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">
-                      mdi-pencil
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
                   </template>
                   <span>Editar Prospecto</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumento(item)">
-                      mdi-file-word
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="generarDocumento(item, $event, 1)">mdi-file-eye</v-icon>
                   </template>
-                  <span>{{ tieneOrdenGenerada(item) ? 'Ver Orden' : 'Generar Orden' }}</span>
+                  <span>Vista previa</span>
                 </v-tooltip>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">
-                      mdi-check-circle
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumentoUnico(item, $event, 0)">mdi-file-word</v-icon>
+                  </template>
+                  <span>Generar/imprimir Orden</span>
+                </v-tooltip>
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">mdi-check-circle </v-icon>
                   </template>
                   <span>Enviar a Emitidas</span>
                 </v-tooltip>
-                <!--<v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">
-                      mdi-printer-eye
-                    </v-icon>
-                  </template>
-                  <span>Vista previa</span>
-                </v-tooltip>-->
               </template>
-
             </v-data-table>
+            <v-row class="mt-4">
+              <v-col class="text-right">
+                <v-btn color="blue-grey" dark @click="generarDocumentosSeleccionados" :disabled="selectedProspectos.length === 0">Generar Órdenes Seleccionadas ({{ selectedProspectos.length }})</v-btn>
+              </v-col>
+            </v-row>
           </v-container>
-
           <!-- Componente de Diálogo para CREAR y EDITAR -->
           <v-dialog v-model="dialog" max-width="1100px" persistent >
               <v-card>
                 <v-form>
                   <v-card-title class="pink darken-4 white--text py-2"
-                    >PROSPECTO DE IMPUESTOS ESTATALES</v-card-title
-                  >
+                    >PROSPECTO DE IMPUESTOS ESTATALES</v-card-title>
                   <v-card-text class="mb-2 py-0">
                     <v-container>
                       <v-row class="my-2 pt-4">
-                       
                         <!-- RFC -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-text-field
-                            maxlength="13"
-														minlength="12"
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.rfc"
-                            label="RFC"
-                            outlined
-                            :readonly="operacion=='editar'"
-                            dense
-														ref="rfc"
-                            >
-                            <!-- autocapitalize="words" -->
+                            maxlength="13" minlength="12" class="my-0 py-0 mayusculas" v-model="prospectoie.rfc" label="RFC" outlined :readonly="operacion=='editar'" dense ref="rfc">
                             {{prospectoie.rfc}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Boton buscar -->
                         <v-col class="my-0 py-0" cols="12" md="1">
-                          <v-btn 
-                            dense 
-                            color="orange" 
-                            dark
-                            @click="datos_contribuyentes">
-                            <v-icon>
-                              mdi-database-search-outline
-                            </v-icon>
+                          <v-btn dense color="orange" dark @click="datos_contribuyentes"><v-icon>mdi-database-search-outline </v-icon>
                           </v-btn>
-                         
                         </v-col>
-
                         <!-- Nombre -->
                         <v-col class="my-0 py-0" cols="12" md="8">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.nombre"
-                            label="Nombre"
-                            outlined
-                            maxlength="300"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" label="Nombre" outlined maxlength="300" dense>
                             {{prospectoie.nombre}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Calle -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.calle"
-                            label="Calle/Avenida/Vialidad"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense>
                             {{prospectoie.calle}}
                           </v-text-field>
                         </v-col>
                         <!-- Numero exterior -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.num_exterior"
-                            label="No. exterior"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_exterior" label="No. exterior" maxlength="250" outlined dense>
                             {{prospectoie.num_exterior}}
                           </v-text-field>
                         </v-col>
                         <!-- Numero interior -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.num_interior"
-                            label="No. interior"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" label="No. interior" maxlength="250" outlined dense>
                             {{prospectoie.num_interior}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Colonia -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.colonia"
-                            label="Colonia"
-                            maxlength="150"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" label="Colonia" maxlength="150" outlined dense>
                             {{prospectoie.colonia}}
                           </v-text-field>
                         </v-col>
-
                         <!-- CP -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0"
-                            v-model="prospectoie.cp"
-                            label="C.P."
-                            outlined
-                            maxlength="5"
-                            minlength="5"
-                            dense
-                            type="number"
-                          >
+                          <v-text-field class="my-0 py-0" v-model="prospectoie.cp" label="C.P." outlined maxlength="5" minlength="5" dense type="number">
                             {{prospectoie.cp}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Localidad -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.localidad"
-                            label="Localidad"
-                            maxlength="100"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" label="Localidad" maxlength="100" outlined dense>
                             {{prospectoie.localidad}}
                           </v-text-field>
                         </v-col>
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="municipios_listado"
-                            v-model="prospectoie.municipio_id"
-                            label="Municipio"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
-                          </v-select>
+                          <v-select :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="municipio_id"></v-select>
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field 
-                            v-model="prospectoie.oficina_descripcion" 
-                            label="Oficina" 
-                            outlined 
-                            dense 
-                            disabled 
-                            readonly
-                          ></v-text-field>
+                          <v-text-field v-model="prospectoie.oficina_descripcion" label="Oficina" outlined dense disabled readonly></v-text-field>
                         </v-col>
                         <!-- Giro -->
                         <v-col class="my-0 py-0" cols="12" md="6">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.giro"
-                            label="Giro/Actividad"
-                            item-text=""
-                            outlined
-                            maxlength="250"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.giro" label="Giro/Actividad" item-text="" outlined maxlength="250" dense>
                             {{prospectoie.giro}}
                           </v-text-field>
                         </v-col>
                         <v-col class="my-0 py-0" cols="12" md="1">
                           <v-tooltip top>
                             <template v-slot:activator="{ on, attrs }">
-                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true">
-                                <v-icon large >mdi-plus-circle</v-icon>
-                              </v-btn>
+                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true"><v-icon large >mdi-plus-circle</v-icon></v-btn>
                             </template>
                             <span>Agregar Periodo</span>
                           </v-tooltip>
                         </v-col>
                         <v-col class="my-0 py-0" cols="12" md="5" >
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.periodos"
-                            label="Periodos"
-                            outlined
-                            dense
-                            readonly
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" label="Periodos" outlined dense readonly>
                             {{prospectoie.periodos}}
                           </v-text-field>
                         </v-col>
                         <!-- Antecedentes -->
                         <v-col class="my-0 py-0" cols="12" md="6">
                           <v-select
-                            :items="antecedentes_listado"
-                            v-model="prospectoie.antecedente_id"
-                            label="Antecedente"
-                            outlined
-                            dense
-                            required
-                            item-text="descripcion"
-                            item-value="id"
-                          >
+                            :items="antecedentes_listado" v-model="prospectoie.antecedente_id" label="Antecedente" outlined dense required item-text="descripcion" item-value="id">
                           </v-select> 
                         </v-col>
                         <!-- Impuesto -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="impuestos_listado"
-                            v-model="prospectoie.impuesto_id"
-                            label="Impuesto"
-                            outlined
-                            dense
-                            required
-                            item-text="impuesto"
-                            item-value="id"
-                          >
+                            :items="impuestos_listado" v-model="prospectoie.impuesto_id" label="Impuesto" outlined dense required item-text="impuesto" item-value="id">
                           </v-select> 
                         </v-col>
-
                         <!-- Presuntiva -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-text-field
-                            class="my-0 py-0"
-                            label="Presuntiva/Determinado"
-                            v-model="prospectoie.determinado"
-                            item-text=""
-                            outlined
-                            hide-spin-buttons
-                            suffix="$"
-                            maxlength="12"
-                            reverse
-                            type="number"
-                            dense
-                          >
+                            class="my-0 py-0" label="Presuntiva/Determinado" v-model="prospectoie.determinado" item-text="" outlined hide-spin-buttons suffix="$" maxlength="12" reverse type="number" dense>
                             {{prospectoie.determinado}}
                           </v-text-field>
                         </v-col>
                         <!-- Fecha -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            reverse
-                            readonly
-                            disabled
-                            dense
-                            outlined
-                            maxlength="10"
-                            v-model="prospectoie.fecha_captura"
-                            label="Fecha captura"
-                          ></v-text-field>
+                          <v-text-field reverse readonly disabled dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
                         </v-col>
-
                         <!-- Usuario -->
                         <v-col class="my-0 py-0" cols="12" md="4">
                           <v-select
-                            :items="programadores_listado"
-                            v-model="prospectoie.programador_id"
-                            label="Programador"
-                            outlined
-                            dense
-                            required
-                            item-text="usuario"
-                            item-value="id"
-                            ref="programador"
-                          >
+                            :items="programadores_listado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
                           </v-select>
                         </v-col>
                         <!-- Fuente -->
                         <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="fuentes_listado"
-                            v-model="prospectoie.fuente_id"
-                            label="Fuente"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
+                            :items="fuentes_listado" v-model="prospectoie.fuente_id" label="Fuente" outlined dense required item-text="nombre" item-value="id">
                           </v-select> 
                         </v-col>
                         <!-- Retenedor -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.retenedor"
-                            inset
-                            label="Retenedor">
+                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor">
                             {{prospectoie.retenedor}}
                           </v-switch>
                         </v-col>
                         <!-- Representante Legal -->
                         <v-col class="my-0 py-0" cols="12" md="10">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.representante_legal"
-                            label="Representante Legal"
-                            item-text=""
-                            outlined
-                            maxlength="200"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" label="Representante Legal" item-text="" outlined maxlengt>
                             {{prospectoie.representante_legal}}
                           </v-text-field>
                         </v-col>
                         <!-- Origen -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.origen"
-                            inset
-                            :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
-                             {{prospectoie.origen}}
-                          ></v-switch>
+                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen" inset :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
+                             {{prospectoie.origen}}>
+                          </v-switch>
                         </v-col>
                         <!-- Observaciones -->
                         <v-col class="my-0 py-0" cols="12" md="10">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.observaciones"
-                            label="Observaciones"
-                            item-text=""
-                            outlined
-                            maxlength="200"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" label="Observaciones" item-text="" outlined  maxlength="200"dense>
                             {{prospectoie.observaciones}}
                           </v-text-field>
                         </v-col>
-
                       </v-row>
                     </v-container>
                   </v-card-text>
                   <v-divider></v-divider>
                   <v-card-actions class="grey lighten-2 py-2">
                     <v-spacer></v-spacer>
-                    <v-btn
-                      class="my-1 ma-2 py-1"
-                      color="blue-grey"
-                      @click="validar_supervisor()"
-                      dark
-                      >
-                      <!-- type="submit" -->
-                      Enviar a supervisor
-                      <v-icon dark right> mdi-account-tie-hat</v-icon>
-                    </v-btn>
-                    <v-btn
-                      class="my-1 ma-2 py-1"
-                      color="success"
-                      @click="validar()"
-                      dark
-                      >
-                      Guardar
-                      <v-icon dark right> mdi-checkbox-marked-circle </v-icon>
-                    </v-btn>
-                    <v-btn class="ma-2" dark @click="dialog=false">
-                      Cancelar
-                      <v-icon dark left> mdi-cancel </v-icon>
-                    </v-btn>
+                    <v-btn class="my-1 ma-2 py-1" color="success" @click="validar()" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
+                    <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
                   </v-card-actions>
                 </v-form>
-                <!-- </v-container> -->
               </v-card>
-
           </v-dialog>
-					<!-- Cargando -->
           <!-- Componente de Diálogo para PERIODOS -->
           <v-dialog v-model="dialogPeriodos" max-width="600px" persistent>
             <v-card>
-              <v-card-title class="pink darken-4 white--text py-2">
-                Agregar Periodo
-              </v-card-title>
+              <v-card-title class="pink darken-4 white--text py-2">Agregar Periodo</v-card-title>
               <v-card-text>
                 <v-container>
                   <v-row v-for="(periodo, index) in periodosParaAgregar" :key="index" class="mt-2 align-center no-gutters">
                       <v-col cols="12" sm="5">
                         <v-text-field
-                        class="mr-4"
-                          v-model="periodo.inicio"
-                          :ref="'fechaInicio' + index"
-                          v-maska="'##/##/####'"
-                          :rules="[rules.dateFormat]"
-                          label="Fecha Inicial"
-                          outlined
-                          dense
-                          @input="manejarInputFecha(periodo, index, 'inicio')"
-                          @keydown="soloNumeros"
-                          maxlength="10"
-                          placeholder="DD/MM/YYYY"
-                        ></v-text-field>
+                        class="mr-4" v-model="periodo.inicio" :ref="'fechaInicio' + index" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Inicial" 
+                        outlined dense @input="manejarInputFecha(periodo, index, 'inicio')"@keydown="soloNumeros"maxlength="10"placeholder="DD/MM/YYYY">
+                        </v-text-field>
                       </v-col>
                       <v-col cols="12" sm="5">
-                        <v-text-field
-                          v-model="periodo.fin"
-                          v-maska="'##/##/####'"
-                          :rules="[rules.dateFormat]"
-                          label="Fecha Final"
-                          :ref="'fechaFin' + index"
-                          @input="validarFechaFinal(periodo, index)"
-                          @keydown.enter.prevent="enfocarBotonAgregar"
-                          @keydown="soloNumeros"
-                          outlined
-                          dense
-                          maxlength="10"
-                          placeholder="DD/MM/YYYY"
-                        ></v-text-field>
+                        <v-text-field v-model="periodo.fin" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Final" :ref="'fechaFin' + index" 
+                        @input="validarFechaFinal(periodo, index)" @keydown.enter.prevent="enfocarBotonAgregar" @keydown="soloNumeros" outlined dense maxlength="10"placeholder="DD/MM/YYYY">
+                        </v-text-field>
                       </v-col>
                       <v-col cols="12" sm="2" class="text-center">
-                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)">
-                          <v-icon>mdi-delete</v-icon>
-                        </v-btn>
+                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)"><v-icon>mdi-delete</v-icon></v-btn>
                       </v-col>
                     </v-row>
                 </v-container>
@@ -573,9 +284,7 @@
                 <v-spacer></v-spacer>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on">
-                      <v-icon large >mdi-plus-circle</v-icon>
-                    </v-btn>
+                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on"><v-icon large >mdi-plus-circle</v-icon></v-btn>
                   </template>
                   <span>Agregar un periodo extra</span>
                 </v-tooltip>
@@ -585,52 +294,35 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
-
 					<v-dialog v-model="cargando" 	max-width="290" persistent  >
-
-						<v-card
-							color="pink darken-4"
-							dark
-						>
+						<v-card color="pink darken-4" dark>
 							<v-card-text class="pt-3">
 								Buscando información
-								<v-progress-linear
-									indeterminate
-									color="white"
-									class="my-3"
-								></v-progress-linear>
+								<v-progress-linear indeterminate color="white" class="my-3"></v-progress-linear>
 							</v-card-text>
 						</v-card>
 					</v-dialog>
-
           <!-- Componente de Diálogo para VISTA PREVIA -->
-          <v-dialog
-            v-model="dialogVistaPrevia"
-            max-width="1000"
-            transition="dialog-top-transition"
-            persistent
-          >
+          <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
             <v-card>
               <v-card-title class="pink darken-4 white--text">
                 VISTA PREVIA - {{ vistaPreviaRFC }}
                 <v-spacer></v-spacer>
-                <v-btn icon dark @click="cerrarVistaPrevia">
-                  <v-icon>mdi-close</v-icon>
-                </v-btn>
+                <v-btn icon dark @click="cerrarVistaPrevia"><v-icon>mdi-close</v-icon></v-btn>
               </v-card-title>
               <v-card-text>
                 <div v-if="cargandoVistaPrevia" class="text-center py-5">
                   <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
                   <p class="mt-2">Generando vista previa...</p>
                 </div>
-                <embed
-                  v-else-if="pdfSrc"
-                  :src="pdfSrc"
-                  type="application/pdf"
-                  width="100%"
-                  height="600px"
-                />
+                <embed v-else-if="pdfSrc" :src="pdfSrc" type="application/pdf" width="100%" height="600px" />
               </v-card-text>
+            </v-card>
+          </v-dialog>
+          <v-dialog v-model="progresoVisible" persistent max-width="400">
+            <v-card class="pa-4" style="text-align: center;">
+              <v-progress-circular indeterminate size="50"></v-progress-circular>
+              <div class="mt-3">{{ progresoMensaje }}</div>
             </v-card>
           </v-dialog>
   </v-container>
@@ -641,7 +333,7 @@
   import axios from 'axios';
   import VueExcelXlsx from "vue-excel-xlsx";
 
-  // var crud = "./backend/crud_prospectosie.php";
+
   var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
   var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
   var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
@@ -661,23 +353,32 @@ export default {
       ordenesGeneradasCount: 0,
       ordenesPendientesCount: 0,
       prospectosConOrdenGenerada: new Set(),
+      selectedProspectos: [],
       foliosDisponiblesCount: 0,
       busca: "",
+      progresoVisible: false,
+      progresoMensaje: "",
       rules: {
         dateFormat: value => {
-          // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
+          // Expresión regular para el formato DD/MM/YYYY (ej. 01/12/2024)
           const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
           
           // Verificar si el valor cumple con la longitud y el patrón
-          if (value && value.length === 8 && pattern.test(value)) {
-            // Opcional: Validar que sea una fecha real (ej. no 31/02/24)
+          if (value && value.length === 10 && pattern.test(value)) {
+            // Opcional: Validar que sea una fecha real (ej. no 31/02/2024)
             return true; 
           }
           
-          return 'Formato incorrecto (DD/MM/YY).'; // Mensaje de error
+          return 'Formato incorrecto (DD/MM/YYYY).'; // Mensaje de error
         },
       },
       encabezados: [
+        {
+          text: "", // El texto del encabezado del checkbox puede ser vacío
+          value: "data-table-select", // Valor especial para la columna de selección
+          class: "pink darken-4 white--text elevation-1 center-header", // Aplica las mismas clases de estilo
+          width: "20" // Ajusta el ancho según sea necesario
+        },
         {
           text: "RFC",
           value: "rfc",
@@ -751,29 +452,10 @@ export default {
       prospectosie_no_localizados: [],
       dialog: false,
       operacion: "",
-      prospectoie: {
-        id: null,
-        fecha_captura: null,
-        rfc: null,
-        nombre: null,
-        calle: null,
-        num_exterior: null,
-        num_interior: null,
-        colonia: null,
-        cp: null,
-        localidad: null,
-        municipio_id:null,
-        oficina_id: null,
-        fuente_id:null,
-        giro: null,
-        periodos: null,
-        impuesto_id: null,
-        antecedente_id:null,
-        determinado: 0,
-        programador_id: null,
-        retenedor:0,
-        representante_legal: null,
-        estatus: 1,
+      prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
+        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 5,
       },
       date: (new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000)).toISOString().substr(0, 10),
       menufechaorden: false,
@@ -791,19 +473,23 @@ export default {
       pdfSrc: '', // Contendrá la URL del PDF para el embed
       vistaPreviaRFC: '', // Para mostrar el RFC en el título del diálogo de vista previa
       foliosDisponibles: 0,
-            // }
+      fechaOrden: new Date().toISOString().substr(0, 10),
+      menuFechaOrden: false,
     };
   },
   computed: {
-    // Propiedad computada que observa cambios en fechaInicio y fechaFin
-    // y actualiza prospectoie.periodos
     periodoCompleto() {
       // Concatenar los valores con " AL " en medio si ambos campos tienen datos
       if (this.fechaInicio && this.fechaFin) {
         return `${this.fechaInicio} AL ${this.fechaFin}`;
       }
       return ''; // O maneja el caso donde uno o ambos están vacíos
-    }
+    },
+    fechaOrdenFormateada() {
+      if (!this.fechaOrden) return null;
+      const [year, month, day] = this.fechaOrden.split('-');
+      return `${day}/${month}/${year}`;
+    },
   },
   watch: {
     'periodosParaAgregar': {
@@ -836,52 +522,123 @@ export default {
         });
       }
     },
-    'prospectoie.municipio_id'(newVal) {
-      if (newVal) {
-        // Buscar por ID o por nombre para asegurar que funcione en todos los casos
-        const municipioSeleccionado = this.municipios_listado.find(m => m.id === newVal || m.nombre === newVal);
-        this.prospectoie.oficina_descripcion = null; // Limpiar la descripción antes de la nueva asignación
+    'prospectoie.municipio_id'(id_municipio) {      
+      if (id_municipio) {
+        const municipioSeleccionado = this.municipios_listado.find(m => m.municipio_id === id_municipio);
+        this.prospectoie.oficina_descripcion = null;
         if (municipioSeleccionado) {
           this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
-          // Buscar la descripción de la oficina en oficinas_listado
           const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
           if (oficina) {
             this.prospectoie.oficina_descripcion = oficina.nombre;
           }
         }
       } else {
-        // Si se deselecciona el municipio, limpiar los campos de oficina
         this.prospectoie.oficina_descripcion = null;
         this.prospectoie.oficina_id = null;
       }
     },
   },
   created() {
-    this.obtenerPermisos();
+    this.obtenerPermisos(),
     this.mostrar(),
     this.obtieneoficinas(),
     this.obtienefuentes(),
     this.obtieneimpuestos(),
     this.obtieneusuarios(),
-    this.obtieneantecedentes()
-    this.obtienemunicipios()
+    this.obtieneantecedentes(),
+    this.obtienemunicipios(),
     this.obtienefoliosoficios();
   },
  methods: {
-   tieneOrdenGenerada(item) {
-      return this.prospectosConOrdenGenerada.has(item.id);
+    actualizarProgreso(texto) {
+      this.progresoMensaje = texto;
+      this.progresoVisible = true;
+    },
+    async generarDocumentoUnico(item, event, tipo) {      
+      const { value: numCopias } = await Swal.fire({
+        title: 'Número de Copias',
+        input: 'number',
+        inputLabel: '¿Cuántas copias desea imprimir?',
+        inputValue: 1,
+        showCancelButton: true,
+        inputValidator: (value) => {
+          if (!value || value < 1) {
+            return '¡Necesitas ingresar un número válido de copias!'
+          }
+        }
+      });
+
+      if (!numCopias) return;
+
+      this.cargando = true;
+      const resp = await this.generarDocumento(item, event, tipo, numCopias);
+      this.cargando = false;
+      if (resp && resp.success) {        
+        if (resp.impreso === true) {
+          Swal.fire({
+            title: "Impresión completada",
+            text: "El documento se generó y se envió a la impresora.",
+            icon: "success",
+            timer: 2500
+          });
+        } else {
+          Swal.fire({
+            title: "Generado pero no impreso",
+            text: "El documento se generó correctamente pero no se imprimió.",
+            icon: "warning"
+          });
+        }
+      } else {
+        Swal.fire("Error", "No se pudo generar el documento.", "error");
+      }
+    },
+    async generarDocumentosSeleccionados() {
+      if (this.selectedProspectos.length === 0) return;
+
+      let total = this.selectedProspectos.length;
+      let generados = 0;
+      let impresos = 0;
+
+      this.progresoVisible = true;
+
+      for (let i = 0; i < total; i++) {
+        const prospecto = this.selectedProspectos[i];
+
+        this.actualizarProgreso(`Generando documento ${i+1} de ${total}...`);
+
+        const resp = await this.generarDocumento(prospecto);
+
+        if (resp.success) {
+          generados++;
+          if (resp.impreso) impresos++;
+        }
+      }
+
+      this.progresoVisible = false;
+      this.selectedProspectos = [];
+
+      Swal.fire({
+        title: "Proceso completado",
+        html: `
+          <b>${generados}</b> documentos generados.<br>
+          <b>${impresos}</b> enviados a imprimir.
+        `,
+        icon: "success"
+      });
+    },
+    tieneOrdenGenerada(item) {
+        return this.prospectosConOrdenGenerada.has(item.id);
     },
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
         const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
-        // Asignar la respuesta a sessionData
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso
         const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente
         this.permiso = [0, 2].includes(nivel); // Validar si está en los valores permitidos
       } catch (error) {
-        // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
       }
     },
@@ -895,7 +652,6 @@ export default {
             this.siguientefolio = foliosConEstatusDisponible[0];
           }
           this.foliosDisponiblesCount = foliosConEstatusDisponible.length;
-          // Esperamos a que los contadores de órdenes se actualicen antes de continuar
           await this.actualizarOrdenesCount();
         } else if (response.data.error) {
           console.error('Error desde el servidor:', response.data.error);
@@ -908,76 +664,57 @@ export default {
         Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
       }
     },
-    async generarDocumento(item) {
-      if (this.foliosDisponiblesCount < 1) {
-        Swal.fire({
-          title: 'Folios no suficientes',
-          text: 'No tienes folios suficientes para generar la orden.',
-          icon: 'warning'
-        });
-        return;
+    async generarDocumento(item, event, tipo, numCopias) {
+      if (event && event.target) {
+        event.target.blur();
       }
-
-      try {
-        this.cargando = true;
-
-        // Llamada única al backend que se encarga de toda la lógica
-        const docResponse = await axios.post(urlgenerar_ordenes, {
-          prospecto: item,
-          usuario_id: this.sessionData.id_usuario // Enviar el ID del usuario actual
-        }, {
-          responseType: 'blob' // Es importante para recibir el archivo
-        });
-
-        this.cargando = false;
-
-        const url = window.URL.createObjectURL(new Blob([docResponse.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        
-        const contentDisposition = docResponse.headers['content-disposition'];
-        let fileName = 'ISN_' + item.rfc.toUpperCase() + '.docx'; // Nombre de respaldo
-
-        if (contentDisposition) {
-          const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
-          if (fileNameMatch && fileNameMatch[1]) {
-            fileName = fileNameMatch[1];
-          }
+      if (tipo === 1) {
+        this.vistaPrevia(item);
+        return { success: true, impreso: false };
+      } else {
+        if (this.foliosDisponiblesCount < 1) {
+          Swal.fire({
+            title: 'Folios no suficientes',
+            text: 'No tienes folios suficientes para generar la orden.',
+            icon: 'warning'
+          });
+          return { success: false };
         }
-
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-
-        // Actualizar el contador de folios disponibles en la vista
-        this.obtienefoliosoficios();
-        this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
-
-
-      } catch (error) {
-        this.cargando = false;
-        const mensajeError = error.message || 'No se pudo generar el documento.';
-        Swal.fire('Error', mensajeError, 'error');
-        console.error("Error en el proceso de generación de documento:", error);
+        try {
+          const response = await axios.post(urlgenerar_ordenes, {
+            prospecto: item,
+            usuario_id: this.sessionData.id_usuario,            
+            fecha_orden: this.fechaOrden,
+            copias: numCopias
+          });
+          if (response.data && response.data.success) {
+            this.obtienefoliosoficios();
+            this.actualizarOrdenesCount();
+            return response.data; // <<< 🔥 IMPORTANTE
+          } else {
+            Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
+            return { success: false, impreso: false };
+          }
+        } catch (error) {
+            this.cargando = false;
+            Swal.fire('Error', mensajeError, 'error');
+            return { success: false, impreso: false };
+          }
       }
     },
     async vistaPrevia(item) {
       this.cargandoVistaPrevia = true;
-      this.pdfSrc = ''; // Limpiar el PDF anterior
-      this.vistaPreviaRFC = item.rfc; // Establecer el RFC para el título del diálogo
-      this.dialogVistaPrevia = true; // Abrir el diálogo con el estado de carga
-
-      const payload = {
-        opcion: 5, // Opción para VISTA PREVIA
-        prospecto: item,
-        usuario_id: this.sessionData.id_usuario
-      };
+      this.pdfSrc = '';
+      this.vistaPreviaRFC = item.rfc;
+      this.dialogVistaPrevia = true;
 
       try {
-        const response = await axios.post(urlgenerar_ordenes, payload, {
-          responseType: 'blob' // Es importante para recibir el archivo binario (PDF)
+        const response = await axios.post(urlgenerar_ordenes, {
+          opcion: 1, // Opción para VISTA PREVIA
+          prospecto: item,
+          usuario_id: this.sessionData.id_usuario
+        }, {
+          responseType: 'blob'
         });
 
         if (response.data.size > 0) {
@@ -985,12 +722,12 @@ export default {
           this.pdfSrc = url;
         } else {
           Swal.fire('Error', 'El documento de vista previa está vacío.', 'error');
-          this.dialogVistaPrevia = false; // Cerrar diálogo si no hay contenido
+          this.dialogVistaPrevia = false;
         }
       } catch (error) {
-        console.error("Error en el proceso de vista previa:", error);
         Swal.fire('Error', 'No se pudo generar la vista previa del documento.', 'error');
-        this.dialogVistaPrevia = false; // Cerrar diálogo en caso de error
+        this.dialogVistaPrevia = false;
+        console.error("Error al generar la vista previa:", error);
       } finally {
         this.cargandoVistaPrevia = false;
       }
@@ -998,16 +735,14 @@ export default {
     async actualizarOrdenesCount() {
       this.ordenesGeneradasCount = 0;
       this.ordenesPendientesCount = 0;
-
       if (this.prospectosie.length === 0) {
         return;
       }
-
       const prospectoIds = this.prospectosie.map(p => p.id);
 
       try {
         const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 4, // Opción para obtener conteos de órdenes
+          opcion: 2, // Opción para obtener conteos de órdenes
           prospecto_ids: prospectoIds
         });
 
@@ -1015,8 +750,6 @@ export default {
           this.ordenesGeneradasCount = response.data.ordenes_generadas_count || 0;
           this.ordenesPendientesCount = response.data.ordenes_pendientes_count || 0;
           this.prospectosConOrdenGenerada = new Set(response.data.ids_con_orden || []);
-
-          // Mover la validación aquí para asegurar que se ejecuta después de tener los datos.
           if (this.ordenesPendientesCount > 0 && this.foliosDisponiblesCount < this.ordenesPendientesCount) {
             Swal.fire({
               title: 'Folios no suficientes',
@@ -1032,6 +765,17 @@ export default {
       }
     },
     seleccionarProspecto: function (item) {
+      // Validar si el prospecto tiene una orden generada
+      if (!this.tieneOrdenGenerada(item)) {
+        Swal.fire({
+          title: 'Acción no permitida',
+          text: 'Debe generar la orden para este prospecto antes de enviarlo a emitidas.',
+          icon: 'warning',
+          confirmButtonText: 'Entendido'
+        });
+        return; // Detener la ejecución si no hay orden
+      }
+
       Swal.fire({
         title: '¿Enviar este prospecto a emitidas?',
         text: "Esta acción enviará el prospecto a emitidas.",
@@ -1069,15 +813,10 @@ export default {
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data;
-
-            // Filtrar los registros con antecedente_id = 7
             this.prospectosie_no_localizados = this.prospectosie
             .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
             .map(item => ({ ...item }));
-
             this.actualizarOrdenesCount(); // Llamar al método para actualizar los conteos de órdenes
-
-
           } else if (response.data.error) {
             console.error('Error desde el servidor:', response.data.error);
             Swal.fire('Error', response.data.error, 'error');
@@ -1091,14 +830,13 @@ export default {
         });
     },
     datos_contribuyentes: function () {
-      // Validaciones
       if (this.prospectoie.rfc===null || this.prospectoie.rfc==="") {
         Swal.fire({  
           position: 'center',  
           icon: 'error',  
           titleText: 'Oops...',
           text:'El RFC no debe estar vacio',
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
+          allowOutsideClick: false, 
           showConfirmButton: false,  
           timerProgressBar: true,
           timer: 1800})
@@ -1111,7 +849,7 @@ export default {
           icon: 'error',  
           titleText:'Oops...',
           text: 'El RFC debe tener 12 digitos minimo y maximo 13',
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
+          allowOutsideClick: false, 
           showConfirmButton: false,  
           timerProgressBar: true,
           timer: 1800})
@@ -1119,7 +857,6 @@ export default {
          return
       }
       this.cargando=true;
-      
       axios.post( urlpadron, { rfc: this.prospectoie.rfc })
         .then((response) => {
           this.cargando=false;
@@ -1154,17 +891,15 @@ export default {
           this.prospectoie.giro=response.data[0].giro;
           this.prospectoie.localidad=response.data[0].localidad;
           this.prospectoie.retenedor= false;
-          this.prospectoie.estatus= 1;
+          this.prospectoie.estatus= 5;
       })
       .catch(e => {
         console.log(e);
-        // Capturamos los errores
       });
     },
     async validar() {
       var errores=0;
       var textoMostrar='';
-      // Validaciones
       if (this.prospectoie.rfc===null || this.prospectoie.rfc==="") {
         textoMostrar='El RFC no debe estar vacio';
         errores=1;
@@ -1178,7 +913,7 @@ export default {
         this.prospectoie.nombre===null || this.prospectoie.nombre==="" ||
         this.prospectoie.calle===null || this.prospectoie.calle==="" ||
         this.prospectoie.num_exterior===null || this.prospectoie.num_exterior==="" ||
-        this.prospectoie.num_interior===null || this.prospectoie.num_interior==="" ||        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
+        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
         this.prospectoie.municipio_id===null || this.prospectoie.municipio_id==="" ||
         this.prospectoie.oficina_id===null || this.prospectoie.oficina_id==="" ||
         this.prospectoie.periodos===null || this.prospectoie.periodos==="" ||
@@ -1186,7 +921,7 @@ export default {
         this.prospectoie.giro===null || this.prospectoie.giro==="" ||
         this.prospectoie.impuesto_id===null || this.prospectoie.impuesto_id==="" ||
         this.prospectoie.determinado===null || this.prospectoie.determinado==="" ||
-        this.prospectoie.programador_id===null
+        this.prospectoie.programador_id===null //FLA-quité num_int y colonia porque no siempre hay esos 2 campos
       ) {
         textoMostrar='Es necesario llenar toda la información';
         errores=3;
@@ -1213,75 +948,6 @@ export default {
       this.prospectoie.estatus = 2;
       await this.validar();
     },
-    crear() {
-      let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
-      let calle = this.prospectoie.calle != null && this.prospectoie.calle !== '' ? this.prospectoie.calle.toUpperCase() : this.prospectoie.calle;
-      let num_exterior = this.prospectoie.num_exterior != null && this.prospectoie.num_exterior !== '' ? this.prospectoie.num_exterior.toUpperCase() : this.prospectoie.num_exterior;
-      let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
-      let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
-      let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
-      let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
-      let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
-      let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
-      axios.post(crud, 
-            {
-              // Nuevo
-              opcion:2,  
-              // Campos a guardar
-              rfc:this.prospectoie.rfc.toUpperCase(),
-              nombre:nombre,
-              calle:calle,
-              num_exterior:num_exterior,
-              num_interior:num_interior,
-              colonia:colonia,
-              cp:this.prospectoie.cp,
-              localidad:localidad,
-              municipio_id:this.prospectoie.municipio_id,
-              giro:giro,
-              oficina_id:this.prospectoie.oficina_id,
-              fuente_id:this.prospectoie.fuente_id,
-              giro: this.prospectoie.giro,
-              periodos:periodos,
-              antecedente_id:this.prospectoie.antecedente_id,
-              impuesto_id:this.prospectoie.impuesto_id,
-              determinado:this.prospectoie.determinado,
-              programador_id:this.prospectoie.programador_id,
-              retenedor:this.prospectoie.retenedor,
-              representante_legal:representante_legal,
-              observaciones:observaciones,
-              estatus:this.prospectoie.estatus
-      })
-      .then(response =>{
-        Swal.fire({
-          title: "Exito",
-          text: "La información fue guardada satisfactoriamente",
-          icon: 'success',
-          showCancelButton: false,
-          showConfirmButton:false,
-          timer:2000,
-          timerProgressBar: true,
-          allowOutsideClick: false, // Bloquea clics fuera del diálogo
-          allowEscapeKey: false, // Bloquea la tecla de escape
-          allowEnterKey: false // Bloquea la tecla enter
-        })
-
-        
-      })
-      .catch(error => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Hubo un error al guardar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
-          });
-      })
-      .finally(() => {
-        this.mostrar();
-        this.limpiar();
-      })
-    },
     limpiar: function(){
       this.prospectoie.rfc = null;
       this.prospectoie.nombre = null;
@@ -1300,10 +966,11 @@ export default {
       this.prospectoie.impuesto_id = null;
       this.prospectoie.determinado = null;
       this.prospectoie.programador_id = null;
-      this.prospectoie.retenedor = null;
       this.prospectoie.representante_legal = null;
+      this.prospectoie.retenedor = 0;
+      this.prospectoie.origen_id = 0;
       this.prospectoie.observaciones = null; 
-      this.prospectoie.estatus = 1; 
+      this.prospectoie.estatus = 5; 
     },   
     editar: function () {
       let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
@@ -1312,18 +979,16 @@ export default {
       let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
       let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
       let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let municipio = this.prospectoie.municipio != null && this.prospectoie.municipio !== '' ? this.prospectoie.municipio.toUpperCase() : this.prospectoie.municipio;
       let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
       let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
       let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
       let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
-
       axios
         .post(crud, {
             // Cambios
             opcion: 3,
             // Campos a guardar
-            // rfc:this.prospectoie.rfc,
+            rfc:this.prospectoie.rfc,
             id:this.prospectoie.id,
             nombre:nombre,
             calle:calle,
@@ -1333,18 +998,17 @@ export default {
             cp:this.prospectoie.cp,
             localidad:localidad,
             municipio_id:this.prospectoie.municipio_id,
-            giro:giro,
             oficina_id:this.prospectoie.oficina_id,
             fuente_id:this.prospectoie.fuente_id,
-            giro: this.prospectoie.giro,
+            giro:giro,
             periodos:periodos,
             antecedente_id:this.prospectoie.antecedente_id,
             impuesto_id:this.prospectoie.impuesto_id,
             determinado:this.prospectoie.determinado,
             programador_id:this.prospectoie.programador_id,
-            determinado:this.prospectoie.determinado,
-            retenedor:this.prospectoie.retenedor,
             representante_legal:representante_legal,
+            retenedor:this.prospectoie.retenedor,
+            origen_id: this.prospectoie.origen_id,
             observaciones:observaciones,
             estatus:this.prospectoie.estatus
         })
@@ -1359,8 +1023,15 @@ export default {
             timerProgressBar: true,
             allowOutsideClick: false, // Bloquea clics fuera del diálogo
             allowEscapeKey: false, // Bloquea la tecla de escape
-            allowEnterKey: false // Bloquea la tecla enter
           })
+          this.sincronizarPeriodosDetalle(this.prospectoie.id, this.periodosParaAgregar, true);
+
+          // Adicionalmente, enviar a generar_ordenes.php para actualizar
+          axios.post(urlgenerar_ordenes, {
+            opcion: 3, // Opción para actualizar datos en tabla de órdenes
+            prospecto: this.prospectoie
+          });
+
         })
         .catch(error => {
           Swal.fire({
@@ -1449,7 +1120,7 @@ export default {
     //Botones y formularios
     guardar() {
       if (this.operacion == "crear") {
-        this.crear();
+        //this.crear();
       }
       if (this.operacion == "editar") {
         this.editar();
@@ -1466,37 +1137,9 @@ export default {
       this.dialog = false;
     },
 
-    formNuevo: function () {
-      this.dialog = true;
-      this.operacion = "crear";
-      this.prospectoie.fecha_captura=this.fechaactual();
-      this.prospectoie.rfc=null;
-      this.prospectoie.nombre=null;
-      this.prospectoie.calle=null;
-      this.prospectoie.num_exterior=null;
-      this.prospectoie.num_interior=null;
-      this.prospectoie.colonia=null;
-      this.prospectoie.cp=null;
-      this.prospectoie.localidad=null;
-      this.prospectoie.giro=null;
-      this.prospectoie.oficina_id=null;
-      this.prospectoie.fuente_id=null;
-      this.prospectoie.antecedente_id=null;
-      this.prospectoie.periodos=null;
-      this.prospectoie.impuesto_id=null;
-      this.prospectoie.programador_id=null;
-      this.prospectoie.determinado=null;
-      this.prospectoie.representante_legal=null;
-      this.prospectoie.observaciones=null;
-    },
-
     formEditar: function (objeto) {
-      //capturamos los datos del registro seleccionado 
-      // y los mostramos en el formulario
-
       this.dialog = true;
       this.operacion = "editar";
-      
       this.prospectoie.id=objeto.id;
       this.prospectoie.fecha_captura=this.convertirFecha(objeto.fecha_captura);
       this.prospectoie.rfc=objeto.rfc;
@@ -1507,6 +1150,7 @@ export default {
       this.prospectoie.colonia=objeto.colonia;
       this.prospectoie.cp=objeto.cp;
       this.prospectoie.localidad=objeto.localidad;
+      this.prospectoie.municipio_id=objeto.municipio_id;
       this.prospectoie.giro=objeto.giro;
       this.prospectoie.oficina_id=objeto.oficina_id;
       this.prospectoie.fuente_id=objeto.fuente_id;
@@ -1515,30 +1159,23 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.origen_id=objeto.origen_id;
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
-      // this.ActualizaComboDeptos();
+      this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
     },
-    
-    
     convertirFecha(fechaCaptura) {
-    // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
-
-    // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');
     const month = String(fecha.getMonth() + 1).padStart(2, '0'); // Meses empiezan en 0
     const year = fecha.getFullYear();
-
-    // Formatear fecha en DD-MM-YYYY
     const fechaFormateada = `${day}/${month}/${year}`;
 
     return fechaFormateada;
     },
     fechaactual: function () {
       let date = new Date();
-
       let day = date.getDate();
       let month = date.getMonth() + 1;
       let year = date.getFullYear();
@@ -1548,7 +1185,6 @@ export default {
     },
     cerrarVistaPrevia() {
       this.dialogVistaPrevia = false;
-      // Revocar la URL del objeto para liberar memoria
       if (this.pdfSrc) {
         window.URL.revokeObjectURL(this.pdfSrc);
       }
@@ -1557,13 +1193,11 @@ export default {
       this.periodosParaAgregar.push({ inicio: '', fin: '' });
     },
     eliminarFilaPeriodo(index) {
-      // Evita que se elimine la última fila
       if (this.periodosParaAgregar.length > 1) {
         this.periodosParaAgregar.splice(index, 1);
       }
     },
     agregarPeriodo() {
-      // Primero, valida que todos los periodos sean correctos.
       if (!this.validarTodosLosPeriodos()) {
         return; // Detiene la ejecución si hay un error de validación.
       }
@@ -1573,21 +1207,50 @@ export default {
         .map(p => `${p.inicio}-${p.fin}`); // Les da el nuevo formato
 
       if (nuevosPeriodos.length > 0) {
-        // Si ya hay periodos, los concatena. Si no, los asigna.
-        this.prospectoie.periodos = this.prospectoie.periodos
-          ? `${this.prospectoie.periodos}, ${nuevosPeriodos.join(', ')}`
-          : nuevosPeriodos.join(', ');
+        this.prospectoie.periodos = nuevosPeriodos.join(', ');
       }
-      this.cerrarDialogoPeriodo();
+      this.dialogPeriodos = false; // Solo cierra el diálogo, no resetea el array
+    },
+    async sincronizarPeriodosDetalle(prospectoId, periodsArray, limpiarDespues = false) {
+      // Valida que el parámetro sea un array y no esté vacío.
+      if (!Array.isArray(periodsArray) || periodsArray.length === 0) {
+        console.log("No hay periodos para sincronizar.");
+        return;
+      }
+      try {
+        await axios.post(crud, {
+          opcion: 6, // Nueva opción para eliminar periodos por prospecto_id
+          prospecto_id: prospectoId
+        });
+        for (const periodo of periodsArray) {
+          if (periodo.inicio && periodo.fin) {
+            await axios.post(crud, {
+              opcion: 7, // Nueva opción para insertar un periodo
+              prospecto_id: prospectoId,
+              fecha_inicial: periodo.inicio,
+              fecha_final: periodo.fin,
+              status: 1 // Asumiendo un status por defecto
+            });
+          }
+        }
+        console.log('Periodos sincronizados correctamente.');
+
+        // 3. Si se indica, limpiar el array de periodos después de una operación exitosa.
+        if (limpiarDespues) {
+          this.periodosParaAgregar = [{ inicio: '', fin: '' }];
+        }
+
+      } catch (error) {
+        Swal.fire('Error', 'Hubo un problema al sincronizar los periodos: ' + error.message, 'error');
+        console.error('Error al sincronizar periodos:', error);
+      }
     },
     cerrarDialogoPeriodo() {
       this.dialogPeriodos = false;
       this.periodosParaAgregar = [{ inicio: '', fin: '' }]; // Resetea el array
     },
     /**
-     * Establece el campo de periodos a partir de un array de objetos.
-     * @param {Array<Object>} periodosArray - Un array de objetos, donde cada objeto tiene las propiedades 'inicio' y 'fin'.
-     * Ejemplo: [{ inicio: '01/01/2024', fin: '31/01/2024' }]
+     * @param {Array<Object>} periodosArray 
      */
     establecerPeriodosDesdeArray(periodosArray) {
       // Valida que el parámetro sea un array
@@ -1596,11 +1259,9 @@ export default {
         this.prospectoie.periodos = ''; // Limpia el campo en caso de error
         return;
       }
-
       const nuevosPeriodos = periodosArray
         .filter(p => p.inicio && p.fin) // Filtra los periodos que están completos
         .map(p => `${p.inicio}-${p.fin}`); // Les da el formato 'inicio-fin'
-
       this.prospectoie.periodos = nuevosPeriodos.join(', '); // Asigna el string final
     },
     manejarInputFecha(periodo, index, tipo) {
@@ -1616,15 +1277,26 @@ export default {
         });
       }
     },
+    enfocarBotonAgregar() {
+      this.$nextTick(() => {
+        const boton = this.$refs.botonAgregarPeriodo;
+        if (boton) {
+          boton.$el.focus();
+        }
+      });
+    },
     async validarFechaFinal(periodo, index) {
       if (periodo.inicio && periodo.fin && periodo.fin.length === 10) {
-        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
-          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+        if (periodo.inicio.length !== 10 || periodo.fin.length !== 10) {
+          return; // No hacer nada si las fechas están incompletas, la máscara o el watcher las completará.
         }
 
-       const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
+        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
+          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
+          return Swal.fire('Error', 'Una de las fechas ingresadas no es válida (ej. 31/02/2024).', 'error');
+        }
+        const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
         const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
-
         const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
         const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
         
@@ -1636,14 +1308,12 @@ export default {
             text: 'La fecha final debe ser mayor a la fecha inicial.',
             confirmButtonText: 'Corregir',
             confirmButtonAriaLabel: 'Corregir fecha',
-            // Forzar el foco en el botón de confirmación después de que la alerta se muestre.
             didRender: () => {
               const confirmButton = Swal.getConfirmButton();
               if (confirmButton) confirmButton.focus();
             }
           });
 
-          // Si el usuario confirma, enfoca el campo para su corrección.
           if (result.isConfirmed) {
             const finRef = this.$refs['fechaFin' + index];
             if (finRef && finRef[0]) {
@@ -1655,7 +1325,6 @@ export default {
     },
     validarTodosLosPeriodos() {
       for (const [index, periodo] of this.periodosParaAgregar.entries()) {
-        // Solo validar filas que tienen al menos una fecha ingresada
         const tieneFechaInicial = periodo.inicio && periodo.inicio.length === 10;
         const tieneFechaFinal = periodo.fin && periodo.fin.length === 10;
 
@@ -1664,7 +1333,6 @@ export default {
             Swal.fire('Error', 'Una de las fechas no es válida', 'error');
             return false;
           }
-
           if (!tieneFechaInicial || !tieneFechaFinal) {
             Swal.fire({
               icon: 'error',
@@ -1674,15 +1342,10 @@ export default {
             });
             return false;
           }
-
-          // Convertir fechas a objetos Date para comparación
           const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
           const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
-
           const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
           const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
-
-          // 1. Validar que la fecha final sea mayor que la fecha inicial en la misma fila
           if (fechaFin <= fechaInicio) {
             Swal.fire({
               icon: 'error',
@@ -1692,11 +1355,8 @@ export default {
             });
             return false;
           }
-
-          // 2. Validar que la fecha inicial de la fila actual sea mayor que la fecha final de la fila anterior
           if (index > 0) {
             const periodoAnterior = this.periodosParaAgregar[index - 1];
-            // Asegurarse de que el período anterior también esté completo para la comparación
             if (periodoAnterior.fin && periodoAnterior.fin.length === 10) {
               const [prevDiaFin, prevMesFin, prevAnioFin] = periodoAnterior.fin.split('/');
               const prevFechaFin = new Date(`${prevAnioFin}-${prevMesFin}-${prevDiaFin}`);
@@ -1717,32 +1377,27 @@ export default {
       return true; // Indica que todos los periodos son válidos.
     },
     esFechaValida(fecha) {
-      if (!fecha || fecha.length !== 10) return false;
-
+      const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+      if (!fecha || !pattern.test(fecha)) {
+        return false;
+      }
       const [dia, mes, anio] = fecha.split('/');
-      if (!/^\d+$/.test(dia) || !/^\d+$/.test(mes) || !/^\d+$/.test(anio)) return false;
-
-      const d = new Date(`${anio}-${mes}-${dia}`);
-      if (isNaN(d.getTime())) return false;
-
-      if (d.getDate() != dia || (d.getMonth() + 1) != mes || d.getFullYear() != anio) return false;
-
+      const d = new Date(anio, mes - 1, dia);
+      return (
+        d.getFullYear() == anio &&
+        d.getMonth() + 1 == mes &&
+        d.getDate() == dia
+      );
       return true;
-
     },
     soloNumeros(event) {
-      // Permite teclas de control como backspace, delete, tab, escape, enter, y las flechas.
       const controlKeys = [8, 9, 13, 27, 37, 38, 39, 40, 46];
       if (controlKeys.includes(event.keyCode)) {
         return;
       }
-
-      // Permite combinaciones como Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
       if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
         return;
       }
-
-      // Si la tecla presionada no es un número, previene la acción.
       if (!/^\d$/.test(event.key)) {
         event.preventDefault();
       }

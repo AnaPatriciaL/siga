@@ -2,7 +2,7 @@
   <v-container>
     <v-container class="my-2">
 
-            <!-- Botón Crear y Exportar -->
+             <!-- Botón Crear y Exportar -->
             <v-row class="center">
               <v-spacer></v-spacer>
               <v-col cols="8"  class="text-center">
@@ -10,26 +10,15 @@
               </v-col>
               <v-spacer></v-spacer>
               <v-col cols="1" class="text-right">
-                  <v-btn color="pink darken-4" dark @click="salir()">
-                    <v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir
-                  </v-btn>
+                  <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
               </v-col>
             </v-row>
-
             <v-row class="mb-4">
               <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso"
-                :data="prospectosie"
-                :columns="columnas"
-                :file-name="'ProspectosSeleccionados'"
-                :file-type="'xlsx'"
-                :sheet-name="'ProspectosSeleccionados'"
-                >
+              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Listos para enviar a comite'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
                 <v-tooltip top color="green darken-3">
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on">
-                      <v-icon large>mdi-microsoft-excel</v-icon>
-                    </v-btn>
+                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
                   </template>
                   <span>Exportar a Excel</span>
                 </v-tooltip>
@@ -37,523 +26,225 @@
               <!-- Boton recargar  -->
               <v-tooltip right color="light-blue darken-4">
                 <template v-slot:activator="{ on, attrs }">
-                  <v-btn class="mt-2 ml-3"
-                    color="light-blue darken-4" fab dark @click="mostrar()"
-                    v-bind="attrs"
-                    v-on="on"
-                  >
-                    <v-icon large>mdi-refresh</v-icon>
-                  </v-btn>
+                  <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
                 </template>
                 <span>Recargar información</span>
               </v-tooltip>              
               <v-spacer></v-spacer>
               <v-col COL="6">
-                <v-text-field
-                  v-model="busca"
-                  append-icon="mdi-magnify"
-                  label="Buscar"
-                  single-line
-                  hide-details
-                ></v-text-field>
+                <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
               </v-col>
             </v-row>
-
             <!-- Tabla y formulario -->
-            <v-data-table
-              :headers="encabezados"
-              :items="prospectosie"
-              item-key="id"
-              class="elevation-1"
-              :search="busca"
-            >
+            <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
               <template v-slot:item.tipo="{ item }">
-                <v-icon v-if="item.antecedente_id==6"
-                  large
-                  class="mr-2"
-                  color="blue-grey darken-2"
-                  dark
-                  dense
-                >
-                  mdi-cog-sync
-                </v-icon>
-                <v-icon v-if="item.antecedente_id==7"
-                  large
-                  class="mr-2"
-                  color="pink accent-3"
-                  dark
-                  dense
-                >
-                  mdi-map-marker-remove
-                </v-icon>
-                <v-icon v-else
-                  large
-                  class="mr-2"
-                  color="teal accent-4"
-                  dark
-                  dense
-                >
-                  mdi-progress-check
-                </v-icon>
+                <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
+                <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
+                <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check</v-icon>
               </template>
               <!-- Acciones -->
               <template v-slot:item.actions="{ item }">
                 <!-- Icono Editar en el data-table -->
+                <v-icon
+                  large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="mr-2" color="amber" dark dense @click="formEditar(item)">
-                      mdi-pencil
-                    </v-icon>
-                  </template>
-                  <span>Editar Prospecto</span>
-                </v-tooltip>
-                <v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">
-                      mdi-send-circle
-                    </v-icon>
+                    <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">mdi-send-circle</v-icon>
                   </template>
                   <span>Enviar a Comité</span>
                 </v-tooltip>
-                
               </template>
-
             </v-data-table>
           </v-container>
-
           <!-- Componente de Diálogo para CREAR y EDITAR -->
           <v-dialog v-model="dialog" max-width="1100px" persistent >
               <v-card>
                 <v-form>
-                  <v-card-title class="pink darken-4 white--text py-2"
-                    >PROSPECTO DE IMPUESTOS ESTATALES
+                  <v-card-title class="pink darken-4 white--text py-2">PROSPECTO DE IMPUESTOS ESTATALES
                     <v-spacer></v-spacer>
                     <span class="text-h6">
-                      <template v-if="operacion === 'editar'">
-                        EDITAR (<span class="yellow--text">Estatus: {{ prospectoie.estatus_descripcion }}</span>)
+                      <template v-if="operacion === 'editar'">EDITAR (<span class="yellow--text">Estatus: {{ prospectoie.estatus_descripcion }}</span>)
                       </template>
-                      <template v-else>
-                        {{ operacion.toUpperCase() }}
-                      </template>
+                      <template v-else>{{ operacion.toUpperCase() }}</template>
                     </span>
-                  </v-card-title
-                  >
+                  </v-card-title>
                   <v-card-text class="mb-2 py-0">
                     <v-container>
                       <v-row class="my-2 pt-4">
-                       
                         <!-- RFC -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field
-                            maxlength="13"
-														minlength="12"
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.rfc"
-                            label="RFC"
-                            outlined
-                            :readonly="operacion=='editar'"
-                            dense
-														ref="rfc"
-                            >
-                            <!-- autocapitalize="words" -->
-                            {{prospectoie.rfc}}
-                          </v-text-field>
+                          <v-text-field maxlength="13" minlength="12" class="my-0 py-0 mayusculas" v-model="prospectoie.rfc"
+                            label="RFC" outlined :readonly="operacion=='editar'" dense ref="rfc">{{prospectoie.rfc}}</v-text-field>
                         </v-col>
-
                         <!-- Boton buscar -->
                         <v-col class="my-0 py-0" cols="12" md="1">
-                          <v-btn 
-                            dense 
-                            color="orange" 
-                            dark
-                            @click="datos_contribuyentes">
-                            <v-icon>
-                              mdi-database-search-outline
-                            </v-icon>
+                          <v-btn dense color="orange" dark @click="datos_contribuyentes"><v-icon>mdi-database-search-outline </v-icon>
                           </v-btn>
-                         
                         </v-col>
-
                         <!-- Nombre -->
                         <v-col class="my-0 py-0" cols="12" md="8">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.nombre"
-                            label="Nombre"
-                            outlined
-                            maxlength="300"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" label="Nombre" outlined maxlength="300" dense>
                             {{prospectoie.nombre}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Calle -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.calle"
-                            label="Calle/Avenida/Vialidad"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense>
                             {{prospectoie.calle}}
                           </v-text-field>
                         </v-col>
                         <!-- Numero exterior -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.num_exterior"
-                            label="No. exterior"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_exterior" label="No. exterior" maxlength="250" outlined dense>
                             {{prospectoie.num_exterior}}
                           </v-text-field>
                         </v-col>
                         <!-- Numero interior -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.num_interior"
-                            label="No. interior"
-                            maxlength="250"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" label="No. interior" maxlength="250" outlined dense>
                             {{prospectoie.num_interior}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Colonia -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.colonia"
-                            label="Colonia"
-                            maxlength="150"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" label="Colonia" maxlength="150" outlined dense>
                             {{prospectoie.colonia}}
                           </v-text-field>
                         </v-col>
-
                         <!-- CP -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            class="my-0 py-0"
-                            v-model="prospectoie.cp"
-                            label="C.P."
-                            outlined
-                            maxlength="5"
-                            minlength="5"
-                            dense
-                            type="number"
-                          >
+                          <v-text-field class="my-0 py-0" v-model="prospectoie.cp" label="C.P." outlined maxlength="5" minlength="5" dense type="number">
                             {{prospectoie.cp}}
                           </v-text-field>
                         </v-col>
-
                         <!-- Localidad -->
                         <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.localidad"
-                            label="Localidad"
-                            maxlength="100"
-                            outlined
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" label="Localidad" maxlength="100" outlined dense>
                             {{prospectoie.localidad}}
                           </v-text-field>
                         </v-col>
                         <!-- Municipio -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="municipios_listado"
-                            v-model="prospectoie.municipio_id"
-                            label="Municipio"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="municipio_id"
-                          >
-                          </v-select>
+                          <v-select :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="municipio_id"></v-select>
                         </v-col>
                         <!-- Oficina -->
                         <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field 
-                            v-model="prospectoie.oficina_descripcion" 
-                            label="Oficina" 
-                            outlined 
-                            dense 
-                            disabled 
-                            readonly
-                          ></v-text-field>
+                          <v-text-field v-model="prospectoie.oficina_descripcion" label="Oficina" outlined dense disabled readonly></v-text-field>
                         </v-col>
                         <!-- Giro -->
                         <v-col class="my-0 py-0" cols="12" md="6">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.giro"
-                            label="Giro/Actividad"
-                            item-text=""
-                            outlined
-                            maxlength="250"
-                            dense
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.giro" label="Giro/Actividad" item-text="" outlined maxlength="250" dense>
                             {{prospectoie.giro}}
                           </v-text-field>
                         </v-col>
-                        <v-col class="my-0 py-0" cols="12" md="1">
+                       <v-col class="my-0 py-0" cols="12" md="1">
                           <v-tooltip top>
                             <template v-slot:activator="{ on, attrs }">
-                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true">
-                                <v-icon large >mdi-plus-circle</v-icon>
-                              </v-btn>
+                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true"><v-icon large >mdi-plus-circle</v-icon></v-btn>
                             </template>
                             <span>Agregar Periodo</span>
                           </v-tooltip>
                         </v-col>
                         <v-col class="my-0 py-0" cols="12" md="5" >
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.periodos"
-                            label="Periodos"
-                            outlined
-                            dense
-                            readonly
-                          >
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" label="Periodos" outlined dense readonly>
                             {{prospectoie.periodos}}
                           </v-text-field>
                         </v-col>
                         <!-- Antecedentes -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
+                        <v-col class="my-0 py-0" cols="12" md="6">
                           <v-select
-                            :items="antecedentes_listado"
-                            v-model="prospectoie.antecedente_id"
-                            label="Antecedente"
-                            outlined
-                            dense
-                            required
-                            item-text="descripcion"
-                            item-value="id"
-                          >
+                            :items="antecedentes_listado" v-model="prospectoie.antecedente_id" label="Antecedente" outlined dense required item-text="descripcion" item-value="id">
                           </v-select> 
                         </v-col>
                         <!-- Impuesto -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
+                        <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="impuestos_listado"
-                            v-model="prospectoie.impuesto_id"
-                            label="Impuesto"
-                            outlined
-                            dense
-                            required
-                            item-text="impuesto"
-                            item-value="id"
-                          >
+                            :items="impuestos_listado" v-model="prospectoie.impuesto_id" label="Impuesto" outlined dense required item-text="impuesto" item-value="id">
                           </v-select> 
                         </v-col>
-
                         <!-- Presuntiva -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
+                        <v-col class="my-0 py-0" cols="12" md="3">
                           <v-text-field
-                            class="my-0 py-0"
-                            label="Presuntiva/Determinado"
-                            v-model="prospectoie.determinado"
-                            item-text=""
-                            outlined
-                            hide-spin-buttons
-                            suffix="$"
-                            maxlength="12"
-                            reverse
-                            type="number"
-                            dense
-                          >
+                            class="my-0 py-0" label="Presuntiva/Determinado" v-model="prospectoie.determinado" item-text="" outlined hide-spin-buttons suffix="$" maxlength="12" reverse type="number" dense>
                             {{prospectoie.determinado}}
                           </v-text-field>
                         </v-col>
+                        <!-- Fecha -->
+                        <v-col class="my-0 py-0" cols="12" md="2">
+                          <v-text-field reverse readonly disabled dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
+                        </v-col>
                         <!-- Usuario -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
+                        <v-col class="my-0 py-0" cols="12" md="4">
                           <v-select
-                            :items="programadores_listado"
-                            v-model="prospectoie.programador_id"
-                            label="Programador"
-                            outlined
-                            dense
-                            required
-                            item-text="usuario"
-                            item-value="id"
-                            ref="programador"
-                          >
+                            :items="programadores_listado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
                           </v-select>
                         </v-col>
-                                                <!-- Fuente -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
+                        <!-- Fuente -->
+                        <v-col class="my-0 py-0" cols="12" md="3">
                           <v-select
-                            :items="fuentes_listado"
-                            v-model="prospectoie.fuente_id"
-                            label="Fuente"
-                            outlined
-                            dense
-                            required
-                            item-text="nombre"
-                            item-value="id"
-                          >
+                            :items="fuentes_listado" v-model="prospectoie.fuente_id" label="Fuente" outlined dense required item-text="nombre" item-value="id">
                           </v-select> 
                         </v-col>
                         <!-- Retenedor -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.retenedor"
-                            inset
-                            label="Retenedor"
-                            :true-value="1"
-                            :false-value="0">
+                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor">
+                            {{prospectoie.retenedor}}
                           </v-switch>
                         </v-col>
-
                         <!-- Representante Legal -->
-                        <v-col v-if="prospectoie.rfc && prospectoie.rfc.length === 12" class="my-0 py-0" cols="12" md="10">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.representante_legal"
-                            label="Representante Legal"
-                            item-text=""
-                            outlined
-                            maxlength="200"
-                            dense
-                          >
+                        <v-col class="my-0 py-0" cols="12" md="10">
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" label="Representante Legal" item-text="" outlined maxlengt>
                             {{prospectoie.representante_legal}}
                           </v-text-field>
                         </v-col>
                         <!-- Origen -->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.origen_id"
-                            inset
-                            :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"
-                            :true-value="1"
-                            :false-value="0">
-                          ></v-switch>
+                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen" inset :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
+                             {{prospectoie.origen}}>
+                          </v-switch>
                         </v-col>
                         <!-- Observaciones -->
-                        <v-col class="my-0 py-0" cols="12" md="8">
-                          <v-text-field
-                            class="my-0 py-0 mayusculas"
-                            v-model="prospectoie.observaciones"
-                            label="Observaciones"
-                            item-text=""
-                            outlined
-                            maxlength="200"
-                            dense
-                          >
+                        <v-col class="my-0 py-0" cols="12" md="10">
+                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" label="Observaciones" item-text="" outlined  maxlength="200"dense>
                             {{prospectoie.observaciones}}
                           </v-text-field>
                         </v-col>
                         <!-- Fecha captura-->
                         <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field
-                            reverse
-                            readonly
-                            disabled
-                            dense
-                            outlined
-                            maxlength="10"
-                            v-model="prospectoie.fecha_captura"
-                            label="Fecha captura"
-                          ></v-text-field>
+                          <v-text-field reverse readonly disabled dense outlined 
+                            maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
                         </v-col>
-
                       </v-row>
                     </v-container>
                   </v-card-text>
                   <v-divider></v-divider>
                   <v-card-actions class="grey lighten-2 py-2">
                     <v-spacer></v-spacer>
-                    <v-btn
-                      class="my-1 ma-2 py-1"
-                      color="primary"
-                      @click="validar_supervisor()"
-                      dark
-                      >
-                      <!-- type="submit" -->
-                      Enviar a supervisor
-                      <v-icon right color="yellow"> mdi-account-tie-hat</v-icon>
-                    </v-btn>
-                    <v-btn
-                      class="my-1 ma-2 py-1"
-                      color="success"
-                      @click="validar()"
-                      dark
-                      >
-                      Guardar
-                      <v-icon dark right> mdi-checkbox-marked-circle </v-icon>
-                    </v-btn>
-                    <v-btn class="ma-2" dark @click="dialog=false">
-                      Cancelar
-                      <v-icon dark left> mdi-cancel </v-icon>
-                    </v-btn>
+                    <v-btn class="my-1 ma-2 py-1" color="success" @click="validar()" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
+                    <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
                   </v-card-actions>
                 </v-form>
-                <!-- </v-container> -->
               </v-card>
-
           </v-dialog>
-					<!-- Cargando -->
-          <!-- Componente de Diálogo para PERIODOS -->
-          <v-dialog v-model="dialogPeriodos" max-width="600px" persistent>
+           <v-dialog v-model="dialogPeriodos" max-width="600px" persistent>
             <v-card>
-              <v-card-title class="pink darken-4 white--text py-2">
-                Agregar Periodo
-              </v-card-title>
+              <v-card-title class="pink darken-4 white--text py-2">Agregar Periodo</v-card-title>
               <v-card-text>
                 <v-container>
                   <v-row v-for="(periodo, index) in periodosParaAgregar" :key="index" class="mt-2 align-center no-gutters">
                       <v-col cols="12" sm="5">
                         <v-text-field
-                        class="mr-4"
-                          v-model="periodo.inicio"
-                          :ref="'fechaInicio' + index"
-                          v-maska="'##/##/####'"
-                          :rules="[rules.dateFormat]"
-                          label="Fecha Inicial"
-                          outlined
-                          dense
-                          @input="manejarInputFecha(periodo, index, 'inicio')"
-                          @keydown="soloNumeros"
-                          maxlength="10"
-                          placeholder="DD/MM/YYYY"
-                        ></v-text-field>
+                        class="mr-4" v-model="periodo.inicio" :ref="'fechaInicio' + index" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Inicial" 
+                        outlined dense @input="manejarInputFecha(periodo, index, 'inicio')"@keydown="soloNumeros"maxlength="10"placeholder="DD/MM/YYYY">
+                        </v-text-field>
                       </v-col>
                       <v-col cols="12" sm="5">
-                        <v-text-field
-                          v-model="periodo.fin"
-                          v-maska="'##/##/####'"
-                          :rules="[rules.dateFormat]"
-                          label="Fecha Final"
-                          :ref="'fechaFin' + index"
-                          @input="validarFechaFinal(periodo, index)"
-                          @keydown.enter.prevent="enfocarBotonAgregar"
-                          @keydown="soloNumeros"
-                          outlined
-                          dense
-                          maxlength="10"
-                          placeholder="DD/MM/YYYY"
-                        ></v-text-field>
+                        <v-text-field v-model="periodo.fin" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Final" :ref="'fechaFin' + index" 
+                        @input="validarFechaFinal(periodo, index)" @keydown.enter.prevent="enfocarBotonAgregar" @keydown="soloNumeros" outlined dense maxlength="10"placeholder="DD/MM/YYYY">
+                        </v-text-field>
                       </v-col>
                       <v-col cols="12" sm="2" class="text-center">
-                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)">
-                          <v-icon>mdi-delete</v-icon>
-                        </v-btn>
+                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)"><v-icon>mdi-delete</v-icon></v-btn>
                       </v-col>
                     </v-row>
                 </v-container>
@@ -562,9 +253,7 @@
                 <v-spacer></v-spacer>
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on">
-                      <v-icon large >mdi-plus-circle</v-icon>
-                    </v-btn>
+                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on"><v-icon large >mdi-plus-circle</v-icon></v-btn>
                   </template>
                   <span>Agregar un periodo extra</span>
                 </v-tooltip>
@@ -574,20 +263,11 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
-
 					<v-dialog v-model="cargando" 	max-width="290" persistent  >
-
-						<v-card
-							color="pink darken-4"
-							dark
-						>
+						<v-card color="pink darken-4" dark>
 							<v-card-text class="pt-3">
 								Buscando información
-								<v-progress-linear
-									indeterminate
-									color="white"
-									class="my-3"
-								></v-progress-linear>
+								<v-progress-linear indeterminate color="white" class="my-3"></v-progress-linear>
 							</v-card-text>
 						</v-card>
 					</v-dialog>
@@ -617,16 +297,16 @@ export default {
       busca: "",
       rules: {
         dateFormat: value => {
-          // Expresión regular para el formato DD/MM/YY (ej. 01/12/24)
+          // Expresión regular para el formato DD/MM/YYYY (ej. 01/12/2024)
           const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
           
           // Verificar si el valor cumple con la longitud y el patrón
-          if (value && value.length === 8 && pattern.test(value)) {
-            // Opcional: Validar que sea una fecha real (ej. no 31/02/24)
+          if (value && value.length === 10 && pattern.test(value)) {
+            // Opcional: Validar que sea una fecha real (ej. no 31/02/2024)
             return true; 
           }
           
-          return 'Formato incorrecto (DD/MM/YY).'; // Mensaje de error
+          return 'Formato incorrecto (DD/MM/YYYY).'; // Mensaje de error
         },
       },
       encabezados: [
@@ -703,32 +383,10 @@ export default {
       prospectosie_no_localizados: [],
       dialog: false,
       operacion: "",
-      prospectoie: {
-        id: null,
-        fecha_captura: null,
-        rfc: null,
-        nombre: null,
-        calle: null,
-        num_exterior: null,
-        num_interior: null,
-        colonia: null,
-        cp: null,
-        localidad: null,
-        municipio_id:null,
-        municipio: null,
-        oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
-        oficina_id: null,
-        fuente_id:null,
-        giro: null,
-        periodos: null,
-        impuesto_id: null,
-        antecedente_id:null,
-        determinado: 0,
-        programador_id: null,
-        retenedor:null,
-        origen_id:null,
-        representante_legal: null,
-        estatus: 1,
+      prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
+        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 3,
       },
       date: (new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000)).toISOString().substr(0, 10),
       menufechaorden: false,
@@ -854,7 +512,7 @@ export default {
     },
     mostrar: function () {
       axios
-        .post(crud, { opcion: 1, estatus_prospecto:0 })
+        .post(crud, { opcion: 1, estatus_prospecto:3 })
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data;
@@ -946,7 +604,7 @@ export default {
           this.prospectoie.representante_legal = null;
           this.prospectoie.origen_id = 0;
           this.prospectoie.observaciones=null;
-          this.prospectoie.estatus= 1;
+          this.prospectoie.estatus= 3;
       })
       .catch(e => {
         console.log(e);
@@ -1101,7 +759,7 @@ export default {
       this.prospectoie.retenedor = 0;
       this.prospectoie.origen_id = 0;
       this.prospectoie.observaciones = null; 
-      this.prospectoie.estatus = 1; 
+      this.prospectoie.estatus = 3; 
     },   
     editar: function () {
       let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
@@ -1322,7 +980,7 @@ export default {
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
     },
     
-    convertirFecha(fechaCaptura) {
+   convertirFecha(fechaCaptura) {
     // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
 
@@ -1558,7 +1216,7 @@ export default {
       }
       return true; // Indica que todos los periodos son válidos.
     },
-     esFechaValida(fecha) {
+    esFechaValida(fecha) {
       const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
       if (!fecha || !pattern.test(fecha)) {
         return false;
