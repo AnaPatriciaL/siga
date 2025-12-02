@@ -99,9 +99,18 @@
                 </v-col>
                 <!-- Usuario -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-select
-                    :items="programadoresListado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
-                  </v-select>
+                  <template v-if="esUsuarioNivel1()">
+                    <v-text-field
+                      v-model="prospectoie.programador_descripcion"
+                      label="Programador"
+                      outlined dense readonly disabled
+                    ></v-text-field>
+                  </template>
+                  <template v-else>
+                    <v-select
+                      :items="programadoresListado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
+                    </v-select>
+                  </template>
                 </v-col>
                 <!-- Fuente -->
                 <v-col class="my-0 py-0" cols="12" md="3">
@@ -255,8 +264,15 @@ export default {
     // Cuando el diálogo se abre, copia los datos del prop al estado local.
     dialog(val) {
       if (val) {
-        // Usamos una copia profunda para no mutar el prop directamente
-        this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));
+        this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));        
+        const usuarioId = Number(localStorage.getItem('id'));
+        if (usuarioId && this.programadoresListado) {
+          const usuarioActual = this.programadoresListado.find(u => u.id === usuarioId);
+          if (usuarioActual && usuarioActual.nivel === 1) {
+            this.prospectoie.programador_id = usuarioActual.id;
+            this.prospectoie.programador_descripcion = usuarioActual.usuario;
+          }
+        }
       }
     },
     dialogPeriodos(val) {
@@ -296,6 +312,15 @@ export default {
     
   },
   methods: {
+    esUsuarioNivel1() {
+      const usuarioId = Number(localStorage.getItem('id'));
+      if (usuarioId && this.programadoresListado) {
+        const usuarioActual = this.programadoresListado.find(u => u.id === usuarioId);
+        if (usuarioActual && usuarioActual.nivel === 1) {
+          return true; // Deshabilitar si el nivel es 1
+        }
+      }
+    },
     // Lógica para buscar datos del contribuyente
     datos_contribuyentes() {
       if (!this.prospectoie.rfc || this.prospectoie.rfc.length < 12) {

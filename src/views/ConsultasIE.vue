@@ -20,7 +20,7 @@
           </template>
           <span>Generar Nuevo Prospecto</span>
         </v-tooltip>
-        <!-- Boton exportar Excel -->
+       <!-- Boton exportar Excel -->
         <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
           <v-tooltip top color="green darken-3">
             <template v-slot:activator="{ on, attrs }">
@@ -67,19 +67,19 @@
     </v-container>
     <!-- Componente de Diálogo para CREAR y EDITAR (extraído) -->
     <form-crear-editar
-                v-model="dialog"
-                :operacion="operacion"                      
-                :prospectoie-data="prospectoie"
-                :municipios-listado="municipios_listado"
-                :antecedentes-listado="antecedentes_listado"
-                :impuestos-listado="impuestos_listado"
-                :programadores-listado="programadores_listado"
-                :fuentes-listado="fuentes_listado"
-                :oficinas-listado="oficinas_listado"
-                :cargando-prop="cargando"
-                @cerrar="dialog = false"                      
-                @guardar="handleGuardar"
-                @update:prospectoieData="updateProspectoie">
+      v-model="dialog"
+      :operacion="operacion"                      
+      :prospectoie-data="prospectoie"
+      :municipios-listado="municipios_listado"
+      :antecedentes-listado="antecedentes_listado"
+      :impuestos-listado="impuestos_listado"
+      :programadores-listado="programadores_listado"
+      :fuentes-listado="fuentes_listado"
+      :oficinas-listado="oficinas_listado"
+      :cargando-prop="cargando"      
+      @cerrar="dialog = false"                      
+      @guardar="handleGuardar"
+      @update:prospectoieData="updateProspectoie">
       </form-crear-editar>
   </v-container>
 </template>
@@ -200,28 +200,18 @@ export default {
   },
   created() {
     this.obtenerPermisos();
-    this.mostrar(),
-    this.obtieneoficinas(),
-    this.obtienefuentes(),
-    this.obtieneimpuestos(),
-    this.obtieneusuarios(),
-    this.obtieneantecedentes()
-    this.obtienemunicipios()
+    this.mostrar();
+    this.obtieneoficinas();
+    this.obtienefuentes();
+    this.obtieneimpuestos();
+    this.obtieneusuarios();
+    this.obtieneantecedentes();
+    this.obtienemunicipios();
   },
   methods: {
-    async obtenerPermisos() {
-      try {
-        // Hacer la solicitud al endpoint PHP
-        const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
-        // Asignar la respuesta a sessionData
-        this.sessionData = response.data;
-        // Verificar la propiedad 'nivel' para establecer el permiso
-        const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente
-        this.permiso = [0, 2].includes(nivel); // Validar si está en los valores permitidos
-      } catch (error) {
-        // Manejar errores en la solicitud
-        console.error('Error al obtener los datos de la sesión:', error);
-      }
+    obtenerPermisos() {
+      const nivel = Number(localStorage.getItem('nivel'));
+      this.permiso = [0, 2].includes(nivel);
     },
 
     mostrar33: function () {
@@ -459,7 +449,8 @@ export default {
     },
 
     obtieneusuarios: function () {
-      axios.post(urlprogramadores, { opcion: 1 }).then((response) => {
+      const usuarioId = localStorage.getItem('id');
+      axios.post(urlprogramadores, {  opcion: 2, id: usuarioId  }).then((response) => {
         this.programadores_listado = response.data;
       });
     },
@@ -512,6 +503,8 @@ export default {
       this.prospectoie.representante_legal=null;
       this.prospectoie.observaciones=null;
       this.prospectoie.estatus_descripcion = 'NUEVO';
+      this.limpiar(); 
+      this.prospectoie.fecha_captura = this.fechaactual();
     },
 
     formEditar: function (objeto) {
