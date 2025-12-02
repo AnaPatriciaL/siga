@@ -66,230 +66,32 @@
               </template>
             </v-data-table>
           </v-container>
-          <!-- Componente de Diálogo para CREAR y EDITAR -->
-          <v-dialog v-model="dialog" max-width="1100px" persistent >
-              <v-card>
-                <v-form>
-                  <v-card-title class="pink darken-4 white--text py-2">PROSPECTO DE IMPUESTOS ESTATALES
-                    <v-spacer></v-spacer>
-                    <span class="text-h6">
-                      <template v-if="operacion === 'editar'">EDITAR (<span class="yellow--text">Estatus: {{ prospectoie.estatus_descripcion }}</span>)
-                      </template>
-                      <template v-else>{{ operacion.toUpperCase() }}</template>
-                    </span>
-                  </v-card-title>
-                  <v-card-text class="mb-2 py-0">
-                    <v-container>
-                      <v-row class="my-2 pt-4">
-                        <!-- RFC -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field maxlength="13" minlength="12" class="my-0 py-0 mayusculas" v-model="prospectoie.rfc"
-                            label="RFC" outlined :readonly="operacion=='editar'" dense ref="rfc">{{prospectoie.rfc}}</v-text-field>
-                        </v-col>
-                        <!-- Boton buscar -->
-                        <v-col class="my-0 py-0" cols="12" md="1">
-                          <v-btn dense color="orange" dark @click="datos_contribuyentes"><v-icon>mdi-database-search-outline </v-icon>
-                          </v-btn>
-                        </v-col>
-                        <!-- Nombre -->
-                        <v-col class="my-0 py-0" cols="12" md="8">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" label="Nombre" outlined maxlength="300" dense>
-                            {{prospectoie.nombre}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Calle -->
-                        <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense>
-                            {{prospectoie.calle}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Numero exterior -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_exterior" label="No. exterior" maxlength="250" outlined dense>
-                            {{prospectoie.num_exterior}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Numero interior -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" label="No. interior" maxlength="250" outlined dense>
-                            {{prospectoie.num_interior}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Colonia -->
-                        <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" label="Colonia" maxlength="150" outlined dense>
-                            {{prospectoie.colonia}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- CP -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field class="my-0 py-0" v-model="prospectoie.cp" label="C.P." outlined maxlength="5" minlength="5" dense type="number">
-                            {{prospectoie.cp}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Localidad -->
-                        <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" label="Localidad" maxlength="100" outlined dense>
-                            {{prospectoie.localidad}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Municipio -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select :items="municipios_listado" v-model="prospectoie.municipio_id" label="Municipio" outlined dense required item-text="nombre" item-value="municipio_id"></v-select>
-                        </v-col>
-                        <!-- Oficina -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field v-model="prospectoie.oficina_descripcion" label="Oficina" outlined dense disabled readonly></v-text-field>
-                        </v-col>
-                        <!-- Giro -->
-                        <v-col class="my-0 py-0" cols="12" md="6">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.giro" label="Giro/Actividad" item-text="" outlined maxlength="250" dense>
-                            {{prospectoie.giro}}
-                          </v-text-field>
-                        </v-col>
-                       <v-col class="my-0 py-0" cols="12" md="1">
-                          <v-tooltip top>
-                            <template v-slot:activator="{ on, attrs }">
-                              <v-btn icon color="pink darken-4" v-bind="attrs" v-on="on" @click="dialogPeriodos = true"><v-icon large >mdi-plus-circle</v-icon></v-btn>
-                            </template>
-                            <span>Agregar Periodo</span>
-                          </v-tooltip>
-                        </v-col>
-                        <v-col class="my-0 py-0" cols="12" md="5" >
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" label="Periodos" outlined dense readonly>
-                            {{prospectoie.periodos}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Antecedentes -->
-                        <v-col class="my-0 py-0" cols="12" md="6">
-                          <v-select
-                            :items="antecedentes_listado" v-model="prospectoie.antecedente_id" label="Antecedente" outlined dense required item-text="descripcion" item-value="id">
-                          </v-select> 
-                        </v-col>
-                        <!-- Impuesto -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="impuestos_listado" v-model="prospectoie.impuesto_id" label="Impuesto" outlined dense required item-text="impuesto" item-value="id">
-                          </v-select> 
-                        </v-col>
-                        <!-- Presuntiva -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-text-field
-                            class="my-0 py-0" label="Presuntiva/Determinado" v-model="prospectoie.determinado" item-text="" outlined hide-spin-buttons suffix="$" maxlength="12" reverse type="number" dense>
-                            {{prospectoie.determinado}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Fecha -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field reverse readonly disabled dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
-                        </v-col>
-                        <!-- Usuario -->
-                        <v-col class="my-0 py-0" cols="12" md="4">
-                          <v-select
-                            :items="programadores_listado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
-                          </v-select>
-                        </v-col>
-                        <!-- Fuente -->
-                        <v-col class="my-0 py-0" cols="12" md="3">
-                          <v-select
-                            :items="fuentes_listado" v-model="prospectoie.fuente_id" label="Fuente" outlined dense required item-text="nombre" item-value="id">
-                          </v-select> 
-                        </v-col>
-                        <!-- Retenedor -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor">
-                            {{prospectoie.retenedor}}
-                          </v-switch>
-                        </v-col>
-                        <!-- Representante Legal -->
-                        <v-col class="my-0 py-0" cols="12" md="10">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" label="Representante Legal" item-text="" outlined maxlengt>
-                            {{prospectoie.representante_legal}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Origen -->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen" inset :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'">
-                             {{prospectoie.origen}}>
-                          </v-switch>
-                        </v-col>
-                        <!-- Observaciones -->
-                        <v-col class="my-0 py-0" cols="12" md="10">
-                          <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" label="Observaciones" item-text="" outlined  maxlength="200"dense>
-                            {{prospectoie.observaciones}}
-                          </v-text-field>
-                        </v-col>
-                        <!-- Fecha captura-->
-                        <v-col class="my-0 py-0" cols="12" md="2">
-                          <v-text-field reverse readonly disabled dense outlined 
-                            maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
-                        </v-col>
-                      </v-row>
-                    </v-container>
-                  </v-card-text>
-                  <v-divider></v-divider>
-                  <v-card-actions class="grey lighten-2 py-2">
-                    <v-spacer></v-spacer>
-                    <v-btn class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor()" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
-                    <v-btn class="my-1 ma-2 py-1" color="success" @click="validar()" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
-                    <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
-                  </v-card-actions>
-                </v-form>
-              </v-card>
-          </v-dialog>
-          <!-- Componente de Diálogo para PERIODOS -->
-          <v-dialog v-model="dialogPeriodos" max-width="600px" persistent>
-            <v-card>
-              <v-card-title class="pink darken-4 white--text py-2">Agregar Periodo</v-card-title>
-              <v-card-text>
-                <v-container>
-                  <v-row v-for="(periodo, index) in periodosParaAgregar" :key="index" class="mt-2 align-center no-gutters">
-                      <v-col cols="12" sm="5">
-                        <v-text-field
-                        class="mr-4" v-model="periodo.inicio" :ref="'fechaInicio' + index" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Inicial" 
-                        outlined dense @input="manejarInputFecha(periodo, index, 'inicio')"@keydown="soloNumeros"maxlength="10"placeholder="DD/MM/YYYY">
-                        </v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="5">
-                        <v-text-field v-model="periodo.fin" v-maska="'##/##/####'" :rules="[rules.dateFormat]" label="Fecha Final" :ref="'fechaFin' + index" 
-                        @input="validarFechaFinal(periodo, index)" @keydown.enter.prevent="enfocarBotonAgregar" @keydown="soloNumeros" outlined dense maxlength="10"placeholder="DD/MM/YYYY">
-                        </v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="2" class="text-center">
-                        <v-btn icon color="red" @click="eliminarFilaPeriodo(index)"><v-icon>mdi-delete</v-icon></v-btn>
-                      </v-col>
-                    </v-row>
-                </v-container>
-              </v-card-text>
-              <v-card-actions class="grey lighten-2 py-2">
-                <v-spacer></v-spacer>
-                <v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon color="pink darken-4" @click="agregarFilaPeriodo" v-bind="attrs" v-on="on"><v-icon large >mdi-plus-circle</v-icon></v-btn>
-                  </template>
-                  <span>Agregar un periodo extra</span>
-                </v-tooltip>
-                <v-btn ref="botonAgregarPeriodo" color="success" dark @click="agregarPeriodo">Agregar</v-btn>
-                <v-btn color="blue-grey" dark @click="cerrarDialogoPeriodo">Cerrar</v-btn>
-                <v-spacer></v-spacer>
-              </v-card-actions>
-            </v-card>
-          </v-dialog>
-					<v-dialog v-model="cargando" 	max-width="290" persistent  >
-						<v-card color="pink darken-4" dark>
-							<v-card-text class="pt-3">
-								Buscando información
-								<v-progress-linear indeterminate color="white" class="my-3"></v-progress-linear>
-							</v-card-text>
-						</v-card>
-					</v-dialog>
-  </v-container>
+          <!-- Componente de Diálogo para CREAR y EDITAR (extraído) -->
+          <form-crear-editar
+                      v-model="dialog"
+                      :operacion="operacion"
+                      :prospectoie-data="prospectoie"
+                      :municipios-listado="municipios_listado"
+                      :antecedentes-listado="antecedentes_listado"
+                      :impuestos-listado="impuestos_listado"
+                      :programadores-listado="programadores_listado"
+                      :fuentes-listado="fuentes_listado"
+                      :oficinas-listado="oficinas_listado"
+                      :cargando-prop="cargando"
+                      @cerrar="dialog = false"
+                      @guardar="handleGuardar"
+                      @update:prospectoieData="updateProspectoie"
+                    ></form-crear-editar>
+            </v-container>
 </template>
 
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
   import VueExcelXlsx from "vue-excel-xlsx";
+  import FormCrearEditar from '@/components/form_crear_editar.vue';
+import { component } from 'vue/types/umd';
+
 
   // var crud = "./backend/crud_prospectosie.php";
   var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
@@ -306,22 +108,7 @@ export default {
   name: "ConsultasIE",
   data() {
     return {
-      cargando:false,
       busca: "",
-      rules: {
-        dateFormat: value => {
-          // Expresión regular para el formato DD/MM/YYYY (ej. 01/12/2024)
-          const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-          
-          // Verificar si el valor cumple con la longitud y el patrón
-          if (value && value.length === 10 && pattern.test(value)) {
-            // Opcional: Validar que sea una fecha real (ej. no 31/02/2024)
-            return true; 
-          }
-          
-          return 'Formato incorrecto (DD/MM/YYYY).'; // Mensaje de error
-        },
-      },
       encabezados: [
         {
           text: "RFC",
@@ -395,14 +182,13 @@ export default {
       prospectosie: [],
       prospectosie_no_localizados: [],
       dialog: false,
+      cargando: false,
       operacion: "",
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
         oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
         programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
       },
-      date: (new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000)).toISOString().substr(0, 10),
-      menufechaorden: false,
       impuestos_listado: [],
       antecedentes_listado:[],
       programadores_listado: [],
@@ -410,63 +196,10 @@ export default {
       municipios_listado:[],
       fuentes_listado:[],
       permiso:false,
-      dialogPeriodos: false,
-      periodosParaAgregar: [{ inicio: '', fin: '' }],
     };
   },
-  computed: {
-    periodoCompleto() {
-      // Concatenar los valores con " AL " en medio si ambos campos tienen datos
-      if (this.fechaInicio && this.fechaFin) {
-        return `${this.fechaInicio} AL ${this.fechaFin}`;
-      }
-      return ''; // O maneja el caso donde uno o ambos están vacíos
-    }
-  },
-  watch: {
-    'periodosParaAgregar': {
-      handler(newVal) {
-        newVal.forEach(periodo => {
-          // Lógica para añadir la diagonal después del día
-          if (periodo.inicio && periodo.inicio.length === 2 && !periodo.inicio.includes('/')) periodo.inicio += '/';
-          // Lógica para añadir la diagonal después del mes
-          if (periodo.inicio && periodo.inicio.length === 5 && periodo.inicio.split('/').length - 1 < 2) periodo.inicio += '/';
-
-          // Repite para la fecha final
-          if (periodo.fin && periodo.fin.length === 2 && !periodo.fin.includes('/')) {
-            periodo.fin += '/';
-          }
-          if (periodo.fin && periodo.fin.length === 5 && periodo.fin.split('/').length - 1 < 2) periodo.fin += '/';
-        });
-      },
-      deep: true
-    },
-    dialogPeriodos(val) {
-      if (val) {
-        this.$nextTick(() => {
-          const ref = this.$refs.fechaInicio0;
-          if (ref && ref[0]) {
-            ref[0].focus();
-          }
-        });
-      }
-    },
-    'prospectoie.municipio_id'(id_municipio) {      
-      if (id_municipio) {
-        const municipioSeleccionado = this.municipios_listado.find(m => m.municipio_id === id_municipio);
-        this.prospectoie.oficina_descripcion = null;
-        if (municipioSeleccionado) {
-          this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
-          const oficina = this.oficinas_listado.find(o => o.id === this.prospectoie.oficina_id);
-          if (oficina) {
-            this.prospectoie.oficina_descripcion = oficina.nombre;
-          }
-        }
-      } else {
-        this.prospectoie.oficina_descripcion = null;
-        this.prospectoie.oficina_id = null;
-      }
-    },
+  components:{
+    FormCrearEditar,
   },
   created() {
     this.obtenerPermisos();
@@ -525,171 +258,44 @@ export default {
           Swal.fire('Error de conexión', 'No se pudo obtener la información', 'error');
         });
     },
-    datos_contribuyentes: function () {
-      // Validaciones
-      if (this.prospectoie.rfc===null || this.prospectoie.rfc==="") {
-        Swal.fire({  
-          position: 'center',  
-          icon: 'error',  
-          titleText: 'Oops...',
-          text:'El RFC no debe estar vacio',
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
-          showConfirmButton: false,  
-          timerProgressBar: true,
-          timer: 1800})
-          this.$refs.rfc.focus();
-        return
-      }
-      if (this.prospectoie.rfc.length<12 || this.prospectoie.rfc.length>13) {
-        Swal.fire({  
-          position: 'center',  
-          icon: 'error',  
-          titleText:'Oops...',
-          text: 'El RFC debe tener 12 digitos minimo y maximo 13',
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
-          showConfirmButton: false,  
-          timerProgressBar: true,
-          timer: 1800})
-          this.$refs.rfc.focus();
-         return
-      }
-      this.cargando=true;
-      
-      axios.post( urlpadron, { rfc: this.prospectoie.rfc })
-        .then((response) => {
-          this.cargando=false;
-          if (response.data.length==0) {
-              Swal.fire({  
-                position: 'center',  
-                icon: 'info',  
-                text: 'No se encontro información del RFC: '+this.prospectoie.rfc,
-                titleText:'',
-                showConfirmButton: false,  
-                timerProgressBar: true,
-                timer: 1800})
-                this.$refs.rfc.focus();
-              return 
-          }
-          // limpiamos los campos a llenar
-          this.prospectoie.nombre=null;
-          this.prospectoie.calle=null;
-          this.prospectoie.num_exterior=null;
-          this.prospectoie.num_interior=null;
-          this.prospectoie.colonia=null;
-          this.prospectoie.cp=null;
-          this.prospectoie.localidad=null;
-          this.prospectoie.municipio = null;
-          this.prospectoie.giro=null;
-          this.prospectoie.nombre=response.data[0].nombre;
-          this.prospectoie.calle=response.data[0].calle;
-          this.prospectoie.num_interior=null; // Limpiar num_interior también
-          this.prospectoie.num_exterior=response.data[0].num_exterior;
-          this.prospectoie.num_interior=response.data[0].num_interior;
-          this.prospectoie.colonia=response.data[0].colonia;
-          this.prospectoie.cp=response.data[0].cp;
-          this.prospectoie.giro=response.data[0].giro;
-          this.prospectoie.localidad=response.data[0].localidad;
-          this.prospectoie.retenedor= 0;
-          this.prospectoie.representante_legal = null;
-          this.prospectoie.origen_id = 0;
-          this.prospectoie.observaciones=null;
-          this.prospectoie.estatus= 1;
-      })
-      .catch(e => {
-        console.log(e);
-        // Capturamos los errores
-      });
-    },
-    async validar() {
-      var errores=0;
-      var textoMostrar='';
-      // Validaciones
-      if (this.prospectoie.rfc===null || this.prospectoie.rfc==="") {
-        textoMostrar='El RFC no debe estar vacio';
-        errores=1;
-      }
-      if (this.prospectoie && this.prospectoie.rfc && (this.prospectoie.rfc.length < 12 || this.prospectoie.rfc.length > 13)) {
-          textoMostrar = 'El RFC debe tener entre 12 y 13 caracteres';
-          errores = 2;
-      }
-      if ((this.prospectoie.fuente_id===null || this.prospectoie.fuente_id==="") || 
-        this.prospectoie.rfc.length===12 && (this.prospectoie.representante_legal===null || this.prospectoie.representante_legal==="") ||
-        this.prospectoie.nombre===null || this.prospectoie.nombre==="" ||
-        this.prospectoie.calle===null || this.prospectoie.calle==="" ||
-        this.prospectoie.num_exterior===null || this.prospectoie.num_exterior==="" ||
-        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
-        this.prospectoie.municipio_id===null || this.prospectoie.municipio_id==="" ||
-        this.prospectoie.oficina_id===null || this.prospectoie.oficina_id==="" ||
-        this.prospectoie.periodos===null || this.prospectoie.periodos==="" ||
-        this.prospectoie.antecedente_id===null || this.prospectoie.antecedente_id==="" ||
-        this.prospectoie.giro===null || this.prospectoie.giro==="" ||
-        this.prospectoie.impuesto_id===null || this.prospectoie.impuesto_id==="" ||
-        this.prospectoie.determinado===null || this.prospectoie.determinado==="" ||
-        this.prospectoie.programador_id===null //FLA-quité num_int y colonia porque no siempre hay esos 2 campos
-      ) {
-        textoMostrar='Es necesario llenar toda la información';
-        errores=3;
-      }
-      if (errores>0) {
-        await Swal.fire({  
-          position: 'center',  
-          icon: 'warning',  
-          titleText: 'Datos incompletos',
-          text: textoMostrar,
-          allowOutsideClick: false, // Evita que el usuario cierre el cuadro de diálogo haciendo clic fuera de él
-          showConfirmButton: true,
-          confirmButtonText: 'Entendido',
-          confirmButtonAriaLabel: 'Entendido, cerrar alerta'
-        })
-          this.$refs.rfc.focus();
-          return;
-      }else{
-        this.guardar();
-      }
-    },
-   async validar_supervisor() {
-      
-      this.prospectoie.estatus = 2;
-      await this.validar();
-    },
-    crear() {
-      console.log(this.prospectoie.periodos)
-      let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
-      let calle = this.prospectoie.calle != null && this.prospectoie.calle !== '' ? this.prospectoie.calle.toUpperCase() : this.prospectoie.calle;
-      let num_exterior = this.prospectoie.num_exterior != null && this.prospectoie.num_exterior !== '' ? this.prospectoie.num_exterior.toUpperCase() : this.prospectoie.num_exterior;
-      let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
-      let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
-      let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
-      let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
-      let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
+    
+    async crear(prospectoieData, periodosParaAgregar) {
+      let nombre = prospectoieData.nombre != null && prospectoieData.nombre !== '' ? prospectoieData.nombre.toUpperCase() : prospectoieData.nombre;
+      let calle = prospectoieData.calle != null && prospectoieData.calle !== '' ? prospectoieData.calle.toUpperCase() : prospectoieData.calle;
+      let num_exterior = prospectoieData.num_exterior != null && prospectoieData.num_exterior !== '' ? prospectoieData.num_exterior.toUpperCase() : prospectoieData.num_exterior;
+      let num_interior = prospectoieData.num_interior != null && prospectoieData.num_interior !== '' ? prospectoieData.num_interior.toUpperCase() : prospectoieData.num_interior;
+      let colonia = prospectoieData.colonia != null && prospectoieData.colonia !== '' ? prospectoieData.colonia.toUpperCase() : prospectoieData.colonia;
+      let localidad = prospectoieData.localidad != null && prospectoieData.localidad !== '' ? prospectoieData.localidad.toUpperCase() : prospectoieData.localidad;
+      let giro = prospectoieData.giro != null && prospectoieData.giro !== '' ? prospectoieData.giro.toUpperCase() : prospectoieData.giro;
+      let periodos = prospectoieData.periodos != null && prospectoieData.periodos !== '' ? prospectoieData.periodos.toUpperCase() : prospectoieData.periodos;
+      let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios.post(crud, 
             {
               // Nuevo
               opcion:2, 
               // Campos a guardar
-              rfc:this.prospectoie.rfc.toUpperCase(),
-              nombre:this.prospectoie.nombre != null ? this.prospectoie.nombre.toUpperCase() : null,
-              calle:this.prospectoie.calle != null ? this.prospectoie.calle.toUpperCase() : null,
-              num_exterior:this.prospectoie.num_exterior != null ? this.prospectoie.num_exterior.toUpperCase() : null,
-              num_interior:this.prospectoie.num_interior != null ? this.prospectoie.num_interior.toUpperCase() : null,
-              colonia:this.prospectoie.colonia != null ? this.prospectoie.colonia.toUpperCase() : null,
-              cp:this.prospectoie.cp,
-              localidad:this.prospectoie.localidad != null ? this.prospectoie.localidad.toUpperCase() : null,
-              municipio_id:this.prospectoie.municipio_id,
-              oficina_id:this.prospectoie.oficina_id,
-              fuente_id:this.prospectoie.fuente_id,
-              giro:this.prospectoie.giro != null ? this.prospectoie.giro.toUpperCase() : null,
-              periodos:this.prospectoie.periodos != null ? this.prospectoie.periodos.toUpperCase() : null,
-              antecedente_id:this.prospectoie.antecedente_id,
-              impuesto_id:this.prospectoie.impuesto_id,
-              determinado:this.prospectoie.determinado,
-              programador_id:this.prospectoie.programador_id,
-              representante_legal:this.prospectoie.representante_legal != null ? this.prospectoie.representante_legal.toUpperCase() : null,
-              retenedor:this.prospectoie.retenedor,
-              origen_id: this.prospectoie.origen_id,
+              rfc:prospectoieData.rfc.toUpperCase(),
+              nombre:prospectoieData.nombre != null ? prospectoieData.nombre.toUpperCase() : null,
+              calle:prospectoieData.calle != null ? prospectoieData.calle.toUpperCase() : null,
+              num_exterior:prospectoieData.num_exterior != null ? prospectoieData.num_exterior.toUpperCase() : null,
+              num_interior:prospectoieData.num_interior != null ? prospectoieData.num_interior.toUpperCase() : null,
+              colonia:prospectoieData.colonia != null ? prospectoieData.colonia.toUpperCase() : null,
+              cp:prospectoieData.cp,
+              localidad:prospectoieData.localidad != null ? prospectoieData.localidad.toUpperCase() : null,
+              municipio_id:prospectoieData.municipio_id,
+              oficina_id:prospectoieData.oficina_id,
+              fuente_id:prospectoieData.fuente_id,
+              giro:prospectoieData.giro != null ? prospectoieData.giro.toUpperCase() : null,
+              periodos:prospectoieData.periodos != null ? prospectoieData.periodos.toUpperCase() : null,
+              antecedente_id:prospectoieData.antecedente_id,
+              impuesto_id:prospectoieData.impuesto_id,
+              determinado:prospectoieData.determinado,
+              programador_id:prospectoieData.programador_id,
+              representante_legal:prospectoieData.representante_legal != null ? prospectoieData.representante_legal.toUpperCase() : null,
+              retenedor:prospectoieData.retenedor,
+              origen_id: prospectoieData.origen_id,
               observaciones:observaciones,
-              estatus:this.prospectoie.estatus
+              estatus:prospectoieData.estatus
       })
       .then(response =>{
         console.log("esto regresa al creae",response.data);
@@ -706,11 +312,9 @@ export default {
           allowEnterKey: false // Bloquea la tecla enter
         })
         // Asumiendo que el backend devuelve el ID del nuevo prospecto
-        if (response.data && response.data.id) {
-          this.sincronizarPeriodosDetalle(response.data.id, this.periodosParaAgregar, true);
-        }
-
-        
+        if (response.data && response.data.id && periodosParaAgregar) {
+          this.sincronizarPeriodosDetalle(response.data.id, periodosParaAgregar);
+        }        
       })
       .catch(error => {
           Swal.fire({
@@ -727,68 +331,51 @@ export default {
       })
     },
     limpiar: function(){
-      this.prospectoie.rfc = null;
-      this.prospectoie.nombre = null;
-      this.prospectoie.calle = null;
-      this.prospectoie.num_exterior = null;
-      this.prospectoie.num_interior = null;
-      this.prospectoie.colonia = null;
-      this.prospectoie.cp = null;
-      this.prospectoie.localidad = null;
-      this.prospectoie.municipio_id = null;
-      this.prospectoie.giro = null;
-      this.prospectoie.oficina_id = null;
-      this.prospectoie.fuente_id = null;
-      this.prospectoie.periodos = null;
-      this.prospectoie.antecedente_id = null;
-      this.prospectoie.impuesto_id = null;
-      this.prospectoie.determinado = null;
-      this.prospectoie.programador_id = null;
-      this.prospectoie.representante_legal = null;
-      this.prospectoie.retenedor = 0;
-      this.prospectoie.origen_id = 0;
-      this.prospectoie.observaciones = null; 
-      this.prospectoie.estatus = 1; 
+      this.prospectoie = { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null,
+        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
+      };
     },   
-    editar: function () {
-      let nombre = this.prospectoie.nombre != null && this.prospectoie.nombre !== '' ? this.prospectoie.nombre.toUpperCase() : this.prospectoie.nombre;
-      let calle = this.prospectoie.calle != null && this.prospectoie.calle !== '' ? this.prospectoie.calle.toUpperCase() : this.prospectoie.calle;
-      let num_exterior = this.prospectoie.num_exterior != null && this.prospectoie.num_exterior !== '' ? this.prospectoie.num_exterior.toUpperCase() : this.prospectoie.num_exterior;
-      let num_interior = this.prospectoie.num_interior != null && this.prospectoie.num_interior !== '' ? this.prospectoie.num_interior.toUpperCase() : this.prospectoie.num_interior;
-      let colonia = this.prospectoie.colonia != null && this.prospectoie.colonia !== '' ? this.prospectoie.colonia.toUpperCase() : this.prospectoie.colonia;
-      let localidad = this.prospectoie.localidad != null && this.prospectoie.localidad !== '' ? this.prospectoie.localidad.toUpperCase() : this.prospectoie.localidad;
-      let giro = this.prospectoie.giro != null && this.prospectoie.giro !== '' ? this.prospectoie.giro.toUpperCase() : this.prospectoie.giro;
-      let periodos = this.prospectoie.periodos != null && this.prospectoie.periodos !== '' ? this.prospectoie.periodos.toUpperCase() : this.prospectoie.periodos;
-      let representante_legal = this.prospectoie.representante_legal != null && this.prospectoie.representante_legal !== '' ? this.prospectoie.representante_legal.toUpperCase() : this.prospectoie.representante_legal;
-      let observaciones = this.prospectoie.observaciones != null && this.prospectoie.observaciones !== '' ? this.prospectoie.observaciones.toUpperCase() : this.prospectoie.observaciones;
+    async editar(prospectoieData, periodosParaAgregar) {
+      let nombre = prospectoieData.nombre != null && prospectoieData.nombre !== '' ? prospectoieData.nombre.toUpperCase() : prospectoieData.nombre;
+      let calle = prospectoieData.calle != null && prospectoieData.calle !== '' ? prospectoieData.calle.toUpperCase() : prospectoieData.calle;
+      let num_exterior = prospectoieData.num_exterior != null && prospectoieData.num_exterior !== '' ? prospectoieData.num_exterior.toUpperCase() : prospectoieData.num_exterior;
+      let num_interior = prospectoieData.num_interior != null && prospectoieData.num_interior !== '' ? prospectoieData.num_interior.toUpperCase() : prospectoieData.num_interior;
+      let colonia = prospectoieData.colonia != null && prospectoieData.colonia !== '' ? prospectoieData.colonia.toUpperCase() : prospectoieData.colonia;
+      let localidad = prospectoieData.localidad != null && prospectoieData.localidad !== '' ? prospectoieData.localidad.toUpperCase() : prospectoieData.localidad;
+      let giro = prospectoieData.giro != null && prospectoieData.giro !== '' ? prospectoieData.giro.toUpperCase() : prospectoieData.giro;
+      let periodos = prospectoieData.periodos != null && prospectoieData.periodos !== '' ? prospectoieData.periodos.toUpperCase() : prospectoieData.periodos;
+      let representante_legal = prospectoieData.representante_legal != null && prospectoieData.representante_legal !== '' ? prospectoieData.representante_legal.toUpperCase() : prospectoieData.representante_legal;
+      let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios
         .post(crud, {
             // Cambios
             opcion: 3,
             // Campos a guardar
-            rfc:this.prospectoie.rfc,
-            id:this.prospectoie.id,
+            rfc:prospectoieData.rfc,
+            id:prospectoieData.id,
             nombre:nombre,
             calle:calle,
             num_exterior:num_exterior,
             num_interior:num_interior,
-            colonia:colonia,
-            cp:this.prospectoie.cp,
+            colonia:prospectoieData.colonia,
+            cp:prospectoieData.cp,
             localidad:localidad,
-            municipio_id:this.prospectoie.municipio_id,
-            oficina_id:this.prospectoie.oficina_id,
-            fuente_id:this.prospectoie.fuente_id,
+            municipio_id:prospectoieData.municipio_id,
+            oficina_id:prospectoieData.oficina_id,
+            fuente_id:prospectoieData.fuente_id,
             giro:giro,
             periodos:periodos,
-            antecedente_id:this.prospectoie.antecedente_id,
-            impuesto_id:this.prospectoie.impuesto_id,
-            determinado:this.prospectoie.determinado,
-            programador_id:this.prospectoie.programador_id,
+            antecedente_id:prospectoieData.antecedente_id,
+            impuesto_id:prospectoieData.impuesto_id,
+            determinado:prospectoieData.determinado,
+            programador_id:prospectoieData.programador_id,
             representante_legal:representante_legal,
-            retenedor:this.prospectoie.retenedor,
-            origen_id: this.prospectoie.origen_id,
+            retenedor:prospectoieData.retenedor,
+            origen_id: prospectoieData.origen_id,
             observaciones:observaciones,
-            estatus:this.prospectoie.estatus
+            estatus:prospectoieData.estatus
         })
         .then(response =>{
           Swal.fire({
@@ -803,7 +390,7 @@ export default {
             allowEscapeKey: false, // Bloquea la tecla de escape
             allowEnterKey: false // Bloquea la tecla enter
           })
-          this.sincronizarPeriodosDetalle(this.prospectoie.id, this.periodosParaAgregar, true);
+          this.sincronizarPeriodosDetalle(prospectoieData.id, periodosParaAgregar);
         })
         .catch(error => {
           Swal.fire({
@@ -889,23 +476,16 @@ export default {
       window.location.href = "logout.php";
     },
     //Botones y formularios
-    guardar() {
-      if (this.operacion == "crear") {
-        this.crear();
+    async handleGuardar(prospectoieData, periodosParaAgregar) {
+      if (this.operacion === "crear") {
+        await this.crear(prospectoieData, periodosParaAgregar);
+      } else if (this.operacion === "editar") {
+        await this.editar(prospectoieData, periodosParaAgregar);
       }
-      if (this.operacion == "editar") {
-        this.editar();
-      }
-      this.dialog = false;
     },
-    guardar_supervisor() {
-      if (this.operacion == "crear") {
-        this.enviar_supervisor();
-      }
-      if (this.operacion == "editar") {
-        this.editar();
-      }
-      this.dialog = false;
+    updateProspectoie(updatedProspectoie) {
+      // This method updates the parent's prospectoie data when the child emits changes
+      this.prospectoie = { ...this.prospectoie, ...updatedProspectoie };
     },
 
     formNuevo: function () {
@@ -933,6 +513,7 @@ export default {
       this.prospectoie.determinado=null;
       this.prospectoie.representante_legal=null;
       this.prospectoie.observaciones=null;
+      this.prospectoie.estatus_descripcion = 'NUEVO';
     },
 
     formEditar: function (objeto) {
@@ -941,7 +522,6 @@ export default {
 
       this.dialog = true;
       this.operacion = "editar";
-      
       this.prospectoie.id=objeto.id;
       this.prospectoie.fecha_captura=this.convertirFecha(objeto.fecha_captura);
       this.prospectoie.rfc=objeto.rfc;
@@ -969,8 +549,7 @@ export default {
     },
     
     convertirFecha(fechaCaptura) {
-    // Convertir a objeto Date
-    const fecha = new Date(fechaCaptura);
+      const fecha = new Date(fechaCaptura + 'T00:00:00'); // Add T00:00:00 to avoid timezone issues
 
     // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');
@@ -983,41 +562,13 @@ export default {
     return fechaFormateada;
     },
     fechaactual: function () {
-      let date = new Date();
-
-      let day = date.getDate();
-      let month = date.getMonth() + 1;
-      let year = date.getFullYear();
-      let fechaactual = day + "/" + month + "/" + year;
-
-      return fechaactual;
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      return `${day}/${month}/${year}`;
     },
-    agregarFilaPeriodo() {
-      this.periodosParaAgregar.push({ inicio: '', fin: '' });
-    },
-    eliminarFilaPeriodo(index) {
-      // Evita que se elimine la última fila
-      if (this.periodosParaAgregar.length > 1) {
-        this.periodosParaAgregar.splice(index, 1);
-      }
-    },
-    agregarPeriodo() {
-      // Primero, valida que todos los periodos sean correctos.
-      if (!this.validarTodosLosPeriodos()) {
-        return; // Detiene la ejecución si hay un error de validación.
-      }
-
-      const nuevosPeriodos = this.periodosParaAgregar
-        .filter(p => p.inicio && p.fin) // Filtra los que están completos
-        .map(p => `${p.inicio}-${p.fin}`); // Les da el nuevo formato
-
-      if (nuevosPeriodos.length > 0) {
-        // Reemplaza los periodos existentes con los nuevos.
-        this.prospectoie.periodos = nuevosPeriodos.join(', ');
-      }
-      this.dialogPeriodos = false; // Solo cierra el diálogo, no resetea el array
-    },
-    async sincronizarPeriodosDetalle(prospectoId, periodsArray, limpiarDespues = false) {
+    async sincronizarPeriodosDetalle(prospectoId, periodsArray) {
       // Valida que el parámetro sea un array y no esté vacío.
       if (!Array.isArray(periodsArray) || periodsArray.length === 0) {
         console.log("No hay periodos para sincronizar.");
@@ -1043,199 +594,9 @@ export default {
           }
         }
         console.log('Periodos sincronizados correctamente.');
-
-        // 3. Si se indica, limpiar el array de periodos después de una operación exitosa.
-        if (limpiarDespues) {
-          this.periodosParaAgregar = [{ inicio: '', fin: '' }];
-        }
-
       } catch (error) {
         Swal.fire('Error', 'Hubo un problema al sincronizar los periodos: ' + error.message, 'error');
         console.error('Error al sincronizar periodos:', error);
-      }
-    },
-    cerrarDialogoPeriodo() {
-      this.dialogPeriodos = false; // Ahora solo cierra el diálogo
-    },
-    /**
-     * Establece el campo de periodos a partir de un array de objetos.
-     * @param {Array<Object>} periodosArray - Un array de objetos, donde cada objeto tiene las propiedades 'inicio' y 'fin'.
-     * Ejemplo: [{ inicio: '01/01/2024', fin: '31/01/2024' }]
-     */
-    establecerPeriodosDesdeArray(periodosArray) {
-      // Valida que el parámetro sea un array
-      if (!Array.isArray(periodosArray)) {
-        console.error("El parámetro proporcionado no es un array válido.");
-        this.prospectoie.periodos = ''; // Limpia el campo en caso de error
-        return;
-      }
-
-      const nuevosPeriodos = periodosArray
-        .filter(p => p.inicio && p.fin) // Filtra los periodos que están completos
-        .map(p => `${p.inicio}-${p.fin}`); // Les da el formato 'inicio-fin'
-
-      this.prospectoie.periodos = nuevosPeriodos.join(', '); // Asigna el string final
-    },
-    manejarInputFecha(periodo, index, tipo) {
-      if (tipo === 'inicio' && periodo.inicio && periodo.inicio.length === 10) {
-        // Usar $nextTick para asegurarse de que el DOM se haya actualizado
-        this.$nextTick(() => { //
-          const finRef = this.$refs['fechaFin' + index]; //
-          if (finRef && finRef[0]) {
-            const inputElement = finRef[0].$el.querySelector('input');
-            inputElement.focus();
-            inputElement.select();
-          }
-        });
-      }
-    },
-    enfocarBotonAgregar() {
-      this.$nextTick(() => {
-        const boton = this.$refs.botonAgregarPeriodo;
-        if (boton) {
-          boton.$el.focus();
-        }
-      });
-    },
-    async validarFechaFinal(periodo, index) {
-      if (periodo.inicio && periodo.fin && periodo.fin.length === 10) {
-        // Primero, verificar que ambas fechas estén completas en formato DD/MM/YYYY
-        if (periodo.inicio.length !== 10 || periodo.fin.length !== 10) {
-          return; // No hacer nada si las fechas están incompletas, la máscara o el watcher las completará.
-        }
-
-        // Luego, verificar si son fechas válidas (ej. no 31/02/2024)
-        if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
-          return Swal.fire('Error', 'Una de las fechas no es válida', 'error');
-          return Swal.fire('Error', 'Una de las fechas ingresadas no es válida (ej. 31/02/2024).', 'error');
-        }
-
-        const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
-        const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
-
-        const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
-        const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
-        
-        if (fechaFin <= fechaInicio) {
-          // Espera a que el usuario interactúe con la alerta.
-          const result = await Swal.fire({
-            icon: 'error',
-            title: 'Fecha incorrecta',
-            text: 'La fecha final debe ser mayor a la fecha inicial.',
-            confirmButtonText: 'Corregir',
-            confirmButtonAriaLabel: 'Corregir fecha',
-            // Forzar el foco en el botón de confirmación después de que la alerta se muestre.
-            didRender: () => {
-              const confirmButton = Swal.getConfirmButton();
-              if (confirmButton) confirmButton.focus();
-            }
-          });
-
-          // Si el usuario confirma, enfoca el campo para su corrección.
-          if (result.isConfirmed) {
-            const finRef = this.$refs['fechaFin' + index];
-            if (finRef && finRef[0]) {
-              finRef[0].$el.querySelector('input').select();
-            }
-          }
-        }
-      }
-    },
-    validarTodosLosPeriodos() {
-      for (const [index, periodo] of this.periodosParaAgregar.entries()) {
-        // Solo validar filas que tienen al menos una fecha ingresada
-        const tieneFechaInicial = periodo.inicio && periodo.inicio.length === 10;
-        const tieneFechaFinal = periodo.fin && periodo.fin.length === 10;
-
-        if (periodo.inicio || periodo.fin) { // Si hay algún intento de ingresar fechas en esta fila
-          if (!this.esFechaValida(periodo.inicio) || !this.esFechaValida(periodo.fin)) {
-            Swal.fire('Error', 'Una de las fechas no es válida', 'error');
-            return false;
-          }
-
-          if (!tieneFechaInicial || !tieneFechaFinal) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Fechas incompletas',
-              text: `En la fila ${index + 1}, ambas fechas (inicial y final) deben estar completas (DD/MM/YYYY).`,
-              confirmButtonText: 'Corregir'
-            });
-            return false;
-          }
-
-          // Convertir fechas a objetos Date para comparación
-          const [diaInicio, mesInicio, anioInicio] = periodo.inicio.split('/');
-          const fechaInicio = new Date(`${anioInicio}-${mesInicio}-${diaInicio}`);
-
-          const [diaFin, mesFin, anioFin] = periodo.fin.split('/');
-          const fechaFin = new Date(`${anioFin}-${mesFin}-${diaFin}`);
-
-          // 1. Validar que la fecha final sea mayor que la fecha inicial en la misma fila
-          if (fechaFin <= fechaInicio) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Fecha incorrecta',
-              text: `En la fila ${index + 1}, la fecha final debe ser mayor que la fecha inicial.`,
-              confirmButtonText: 'Corregir'
-            });
-            return false;
-          }
-
-          // 2. Validar que la fecha inicial de la fila actual sea mayor que la fecha final de la fila anterior
-          if (index > 0) {
-            const periodoAnterior = this.periodosParaAgregar[index - 1];
-            // Asegurarse de que el período anterior también esté completo para la comparación
-            if (periodoAnterior.fin && periodoAnterior.fin.length === 10) {
-              const [prevDiaFin, prevMesFin, prevAnioFin] = periodoAnterior.fin.split('/');
-              const prevFechaFin = new Date(`${prevAnioFin}-${prevMesFin}-${prevDiaFin}`);
-
-              if (fechaInicio <= prevFechaFin) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Fechas superpuestas',
-                  text: `En la fila ${index + 1}, la fecha inicial debe ser posterior a la fecha final de la fila anterior.`,
-                  confirmButtonText: 'Corregir'
-                });
-                return false;
-              }
-            }
-          }
-        }
-      }
-      return true; // Indica que todos los periodos son válidos.
-    },
-    esFechaValida(fecha) {
-      const pattern = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-      if (!fecha || !pattern.test(fecha)) {
-        return false;
-      }
-
-      const [dia, mes, anio] = fecha.split('/');
-      const d = new Date(anio, mes - 1, dia);
-      
-      return (
-        d.getFullYear() == anio &&
-        d.getMonth() + 1 == mes &&
-        d.getDate() == dia
-      );
-      return true;
-
-    },
-    soloNumeros(event) {
-      // Permite teclas de control como backspace, delete, tab, escape, enter, y las flechas.
-      const controlKeys = [8, 9, 13, 27, 37, 38, 39, 40, 46];
-      if (controlKeys.includes(event.keyCode)) {
-        return;
-      }
-
-      // Permite combinaciones como Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-      if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
-        return;
-      }
-
-      // Si la tecla presionada no es un número, previene la acción.
-      if (!/^\d$/.test(event.key)) {
-        event.preventDefault();
       }
     }
   },
