@@ -1,97 +1,94 @@
 <template>
   <v-container>
     <v-container class="my-2">
-
-            <!-- Botón Crear y Exportar -->
-            <v-row class="center">
-              <v-spacer></v-spacer>
-              <v-col cols="8"  class="text-center">
-                <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>
-              </v-col>
-              <v-spacer></v-spacer>
-              <v-col cols="1" class="text-right">
-                  <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
-              </v-col>
-            </v-row>
-            <v-row class="mb-4">
-              <!-- Boton Nuevo -->
-              <v-tooltip top color="pink darken-4">
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn class="mt-2" color="pink darken-4" fab dark @click="formNuevo()" v-bind="attrs" v-on="on"><v-icon large>mdi-plus-thick</v-icon></v-btn>
-                </template>
-                <span>Generar Nuevo Prospecto</span>
-              </v-tooltip>
-              <!-- Boton exportar Excel -->
-              <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
-                <v-tooltip top color="green darken-3">
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
-                  </template>
-                  <span>Exportar a Excel</span>
-                </v-tooltip>
-              </vue-excel-xlsx>
-              <!-- Boton recargar  -->
-              <v-tooltip right color="light-blue darken-4">
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
-                </template>
-                <span>Recargar información</span>
-              </v-tooltip>
-              <!-- Boton exportar No localizados -->
-              <vue-excel-xlsx v-if="permiso" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
-                <v-tooltip top color="pink accent-3">
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn fab class="pink accent-3 ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-map-marker-remove</v-icon></v-btn>
-                  </template>
-                  <span>Exportar a Excel No Localizados</span>
-                </v-tooltip>
-              </vue-excel-xlsx>
-              <v-spacer></v-spacer>
-              <v-col COL="6">
-                <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
-              </v-col>
-            </v-row>
-            <!-- Tabla y formulario -->
-            <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
-              <template v-slot:item.tipo="{ item }">
-                <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
-                <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
-                <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check</v-icon>
-              </template>
-              <!-- Acciones -->
-              <template v-slot:item.actions="{ item }">
-                <!-- Icono Editar en el data-table -->
-                <v-icon
-                  large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
-              </template>
-            </v-data-table>
-          </v-container>
-          <!-- Componente de Diálogo para CREAR y EDITAR (extraído) -->
-          <form-crear-editar
-                      v-model="dialog"
-                      :operacion="operacion"
-                      :prospectoie-data="prospectoie"
-                      :municipios-listado="municipios_listado"
-                      :antecedentes-listado="antecedentes_listado"
-                      :impuestos-listado="impuestos_listado"
-                      :programadores-listado="programadores_listado"
-                      :fuentes-listado="fuentes_listado"
-                      :oficinas-listado="oficinas_listado"
-                      :cargando-prop="cargando"
-                      @cerrar="dialog = false"
-                      @guardar="handleGuardar"
-                      @update:prospectoieData="updateProspectoie"
-                    ></form-crear-editar>
-            </v-container>
+      <!-- Botón Crear y Exportar -->
+      <v-row class="center">
+        <v-spacer></v-spacer>
+        <v-col cols="8"  class="text-center">
+          <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>
+        </v-col>
+        <v-spacer></v-spacer>
+        <v-col cols="1" class="text-right">
+            <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
+        </v-col>
+      </v-row>
+      <v-row class="mb-4">
+        <!-- Boton Nuevo -->
+        <v-tooltip top color="pink darken-4">
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn class="mt-2" color="pink darken-4" fab dark @click="formNuevo()" v-bind="attrs" v-on="on"><v-icon large>mdi-plus-thick</v-icon></v-btn>
+          </template>
+          <span>Generar Nuevo Prospecto</span>
+        </v-tooltip>
+        <!-- Boton exportar Excel -->
+        <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
+          <v-tooltip top color="green darken-3">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+            </template>
+            <span>Exportar a Excel</span>
+          </v-tooltip>
+        </vue-excel-xlsx>
+        <!-- Boton recargar  -->
+        <v-tooltip right color="light-blue darken-4">
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
+          </template>
+          <span>Recargar información</span>
+        </v-tooltip>
+        <!-- Boton exportar No localizados -->
+        <vue-excel-xlsx v-if="permiso" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
+          <v-tooltip top color="pink accent-3">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab class="pink accent-3 ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-map-marker-remove</v-icon></v-btn>
+            </template>
+            <span>Exportar a Excel No Localizados</span>
+          </v-tooltip>
+        </vue-excel-xlsx>
+        <v-spacer></v-spacer>
+        <v-col COL="6">
+          <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
+        </v-col>
+      </v-row>
+      <!-- Tabla y formulario -->
+      <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
+        <template v-slot:item.tipo="{ item }">
+          <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
+          <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
+          <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check</v-icon>
+        </template>
+        <!-- Acciones -->
+        <template v-slot:item.actions="{ item }">
+          <!-- Icono Editar en el data-table -->
+          <v-icon
+            large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
+        </template>
+      </v-data-table>
+    </v-container>
+    <!-- Componente de Diálogo para CREAR y EDITAR (extraído) -->
+    <form-crear-editar
+                v-model="dialog"
+                :operacion="operacion"                      
+                :prospectoie-data="prospectoie"
+                :municipios-listado="municipios_listado"
+                :antecedentes-listado="antecedentes_listado"
+                :impuestos-listado="impuestos_listado"
+                :programadores-listado="programadores_listado"
+                :fuentes-listado="fuentes_listado"
+                :oficinas-listado="oficinas_listado"
+                :cargando-prop="cargando"
+                @cerrar="dialog = false"                      
+                @guardar="handleGuardar"
+                @update:prospectoieData="updateProspectoie">
+      </form-crear-editar>
+  </v-container>
 </template>
 
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
   import VueExcelXlsx from "vue-excel-xlsx";
-  import FormCrearEditar from '@/components/form_crear_editar.vue';
-import { component } from 'vue/types/umd';
-
+  import FormCrearEditar from '@/components/formCrearEditar.vue';
 
   // var crud = "./backend/crud_prospectosie.php";
   var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
@@ -269,7 +266,7 @@ export default {
       let giro = prospectoieData.giro != null && prospectoieData.giro !== '' ? prospectoieData.giro.toUpperCase() : prospectoieData.giro;
       let periodos = prospectoieData.periodos != null && prospectoieData.periodos !== '' ? prospectoieData.periodos.toUpperCase() : prospectoieData.periodos;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
-      axios.post(crud, 
+      axios.post(crud,
             {
               // Nuevo
               opcion:2, 
@@ -349,7 +346,7 @@ export default {
       let representante_legal = prospectoieData.representante_legal != null && prospectoieData.representante_legal !== '' ? prospectoieData.representante_legal.toUpperCase() : prospectoieData.representante_legal;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios
-        .post(crud, {
+        .post(crud, { // Objeto de datos
             // Cambios
             opcion: 3,
             // Campos a guardar
@@ -462,7 +459,7 @@ export default {
     },
 
     obtieneusuarios: function () {
-      axios.post(urlprogramadores).then((response) => {
+      axios.post(urlprogramadores, { opcion: 1 }).then((response) => {
         this.programadores_listado = response.data;
       });
     },
@@ -472,6 +469,7 @@ export default {
         this.municipios_listado = response.data;
       });   
     },
+
     salir: function(){
       window.location.href = "logout.php";
     },
@@ -483,8 +481,8 @@ export default {
         await this.editar(prospectoieData, periodosParaAgregar);
       }
     },
+
     updateProspectoie(updatedProspectoie) {
-      // This method updates the parent's prospectoie data when the child emits changes
       this.prospectoie = { ...this.prospectoie, ...updatedProspectoie };
     },
 
@@ -517,9 +515,6 @@ export default {
     },
 
     formEditar: function (objeto) {
-      //capturamos los datos del registro seleccionado 
-      // y los mostramos en el formulario
-
       this.dialog = true;
       this.operacion = "editar";
       this.prospectoie.id=objeto.id;
@@ -549,7 +544,8 @@ export default {
     },
     
     convertirFecha(fechaCaptura) {
-      const fecha = new Date(fechaCaptura + 'T00:00:00'); // Add T00:00:00 to avoid timezone issues
+    // Convertir a objeto Date
+    const fecha = new Date(fechaCaptura);
 
     // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');
@@ -576,7 +572,7 @@ export default {
       }
       try {
         // 1. Eliminar periodos existentes para este prospecto en la BD.
-        await axios.post(crud, {
+        await axios.post(crud, { // Objeto de datos
           opcion: 6, // Nueva opción para eliminar periodos por prospecto_id
           prospecto_id: prospectoId
         });
@@ -584,7 +580,7 @@ export default {
         // 2. Insertar los nuevos periodos uno por uno desde el array.
         for (const periodo of periodsArray) {
           if (periodo.inicio && periodo.fin) {
-            await axios.post(crud, {
+            await axios.post(crud, { // Objeto de datos
               opcion: 7, // Nueva opción para insertar un periodo
               prospecto_id: prospectoId,
               fecha_inicial: periodo.inicio,
