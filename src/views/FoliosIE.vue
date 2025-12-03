@@ -144,9 +144,18 @@ export default {
     this.obtienefoliosoficios();
   },
   methods: {
-    salir() {
-      // Lógica para el botón de salir
-      console.log("Saliendo...");
+    salir: function(){
+      // Redirigir al usuario a la vista de login
+      localStorage.removeItem("id");
+      localStorage.removeItem("token");
+      localStorage.removeItem("nombre");
+      localStorage.removeItem("nivel");
+      this.$user.id = null;
+      this.$user.nombre = null;
+      this.isAuthenticated = false;
+      this.usuarioLogueado = "";
+      this.opcionesMenu = [];
+      this.$router.push("/login");
     },
     guardarFolios() {
       if (!this.folioInicial || !this.cantidadFolios) {

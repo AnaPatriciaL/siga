@@ -51,10 +51,16 @@
           </v-tooltip>
           <v-tooltip top>
             <template v-slot:activator="{ on, attrs }">
-              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="generarDocumento(item, $event, 1)">mdi-file-eye</v-icon>
+              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">mdi-file-eye</v-icon>
             </template>
             <span>Vista previa</span>
-          </v-tooltip>                
+          </v-tooltip>   
+          <v-tooltip top>
+            <template v-slot:activator="{ on, attrs }">
+              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="red" dark dense style="font-size: 32px" @click="CancelarOrden(item)">mdi-file-cancel</v-icon>
+            </template>
+            <span>Cancelar orden</span>
+          </v-tooltip>              
         </template>
       </v-data-table>
     </v-container>
@@ -214,97 +220,9 @@ export default {
       this.progresoVisible = true;
     },
   async generarDocumento(item, event, tipo, numCopias) {
-    if (event && event.target) {
-      event.target.blur();
-    }
-    if (tipo === 1) {
-      this.vistaPrevia(item);
-      return { success: true, impreso: false };
-    } else {
-      if (this.foliosDisponiblesCount < 1) {
-        Swal.fire({
-          title: 'Folios no suficientes',
-          text: 'No tienes folios suficientes para generar la orden.',
-          icon: 'warning'
-        });
-        return { success: false };
-      }
-      try {
-        const response = await axios.post(urlgenerar_ordenes, {
-          prospecto: item,
-          usuario_id: this.sessionData.id_usuario,            
-          fecha_orden: this.fechaOrden,
-          copias: numCopias
-        });
-        if (response.data && response.data.success) {
-          this.obtienefoliosoficios();
-          this.actualizarOrdenesCount();
-          return response.data; // <<< 🔥 IMPORTANTE
-        } else {
-          Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
-          return { success: false, impreso: false };
-        }
-      } catch (error) {
-          this.cargando = false;
-          Swal.fire('Error', mensajeError, 'error');
-          return { success: false, impreso: false };
-        }
-    }
+    this.vistaPrevia(item);
+    return { success: true, impreso: false };
   },
-  async actualizarOrdenesCount() {
-      this.ordenesGeneradasCount = 0;
-      this.ordenesPendientesCount = 0;
-      if (this.prospectosie.length === 0) {
-        return;
-      }
-      const prospectoIds = this.prospectosie.map(p => p.id);
-
-      try {
-        const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 2, // Opción para obtener conteos de órdenes
-          prospecto_ids: prospectoIds
-        });
-
-        if (response.data && !response.data.error) {
-          this.ordenesGeneradasCount = response.data.ordenes_generadas_count || 0;
-          this.ordenesPendientesCount = response.data.ordenes_pendientes_count || 0;
-          this.prospectosConOrdenGenerada = new Set(response.data.ids_con_orden || []);
-          if (this.ordenesPendientesCount > 0 && this.foliosDisponiblesCount < this.ordenesPendientesCount) {
-            Swal.fire({
-              title: 'Folios no suficientes',
-              text: 'No tienes folios suficientes para generar todas las órdenes pendientes.',
-              icon: 'warning'
-            });
-          }
-        } else {
-          console.error('Error al obtener conteo de órdenes:', response.data.error);
-        }
-      } catch (error) {
-        console.error('Error en la solicitud para conteo de órdenes:', error);
-      }
-    },
-  async obtienefoliosoficios() {
-      try {
-        const response = await axios.post(urlfolios_oficios, { opcion: 1 });
-        if (Array.isArray(response.data)) {
-          this.folios_oficios = response.data;
-          const foliosConEstatusDisponible = this.folios_oficios.filter(item => Number(item.estatus) === 0);
-          if (foliosConEstatusDisponible.length > 0) {
-            this.siguientefolio = foliosConEstatusDisponible[0];
-          }
-          this.foliosDisponiblesCount = foliosConEstatusDisponible.length;
-          await this.actualizarOrdenesCount();
-        } else if (response.data.error) {
-          console.error('Error desde el servidor:', response.data.error);
-          Swal.fire('Error', response.data.error, 'error');
-        } else {
-          console.warn('Respuesta inesperada:', response.data);
-        }
-      } catch (error) {
-        console.error('Error en la solicitud de folios:', error);
-        Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
-      }
-    },
   async vistaPrevia(item) {
       this.cargandoVistaPrevia = true;
       this.pdfSrc = '';
@@ -453,35 +371,6 @@ export default {
           this.limpiar();
         })
     },
-          
-    borrar: function (id) {
-      Swal.fire({
-        title: "¿Confirma eliminar el prospecto?",
-        icon: "warning",
-        confirmButtonColor: "#3085d6",
-        confirmButtonText: `Si, eliminarlo`,
-        cancelButtonColor: "#d33",
-        showCancelButton: true,
-      }).then((result) => {
-        if (result.isConfirmed) {
-          axios.post(crud, { opcion: 4, id: id }).then((response) => {
-            Swal.fire(
-              "¡Eliminado!",
-              "se ha eliminado el prospecto",
-              "success"
-            );
-            this.mostrar();
-          });
-         
-        } else if (result.isDenied) {
-          Swal.fire(
-            "¡Error!",
-            "No se pudos eliminar el prospecto",
-            "error"
-          );
-        }
-      });
-    },
 
     obtieneoficinas: function () {
       axios.post(urloficinas).then((response) => {
@@ -520,7 +409,17 @@ export default {
     },
     
     salir: function(){
-      window.location.href = "logout.php";
+      // Redirigir al usuario a la vista de login
+      localStorage.removeItem("id");
+      localStorage.removeItem("token");
+      localStorage.removeItem("nombre");
+      localStorage.removeItem("nivel");
+      this.$user.id = null;
+      this.$user.nombre = null;
+      this.isAuthenticated = false;
+      this.usuarioLogueado = "";
+      this.opcionesMenu = [];
+      this.$router.push("/login");
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {

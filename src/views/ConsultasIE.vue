@@ -21,7 +21,7 @@
           <span>Generar Nuevo Prospecto</span>
         </v-tooltip>
        <!-- Boton exportar Excel -->
-        <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
+        <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
           <v-tooltip top color="green darken-3">
             <template v-slot:activator="{ on, attrs }">
               <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
@@ -37,7 +37,7 @@
           <span>Recargar información</span>
         </v-tooltip>
         <!-- Boton exportar No localizados -->
-        <vue-excel-xlsx v-if="permiso" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
+        <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
           <v-tooltip top color="pink accent-3">
             <template v-slot:activator="{ on, attrs }">
               <v-btn fab class="pink accent-3 ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-map-marker-remove</v-icon></v-btn>
@@ -209,9 +209,29 @@ export default {
     this.obtienemunicipios();
   },
   methods: {
-    obtenerPermisos() {
+    esUsuarioNivel0() {
       const nivel = Number(localStorage.getItem('nivel'));
-      this.permiso = [0, 2].includes(nivel);
+      if (nivel === 0) {
+        return true
+      }else
+      {
+        return false;
+      }
+      
+      
+
+    },
+    async obtenerPermisos() {
+      try {
+        // Hacer la solicitud al endpoint PHP
+        const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
+        this.sessionData = response.data;
+        // Verificar la propiedad 'nivel' para establecer el permiso
+        const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente
+        this.permiso = [0, 2].includes(nivel); // Validar si está en los valores permitidos
+      } catch (error) {
+        console.error('Error al obtener los datos de la sesión:', error);
+      }
     },
 
     mostrar33: function () {
@@ -462,7 +482,17 @@ export default {
     },
 
     salir: function(){
-      window.location.href = "logout.php";
+      // Redirigir al usuario a la vista de login
+      localStorage.removeItem("id");
+      localStorage.removeItem("token");
+      localStorage.removeItem("nombre");
+      localStorage.removeItem("nivel");
+      this.$user.id = null;
+      this.$user.nombre = null;
+      this.isAuthenticated = false;
+      this.usuarioLogueado = "";
+      this.opcionesMenu = [];
+      this.$router.push("/login");
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {

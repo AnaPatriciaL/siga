@@ -626,7 +626,17 @@ export default {
     },
     
     salir: function(){
-      window.location.href = "logout.php";
+      // Redirigir al usuario a la vista de login
+      localStorage.removeItem("id");
+      localStorage.removeItem("token");
+      localStorage.removeItem("nombre");
+      localStorage.removeItem("nivel");
+      this.$user.id = null;
+      this.$user.nombre = null;
+      this.isAuthenticated = false;
+      this.usuarioLogueado = "";
+      this.opcionesMenu = [];
+      this.$router.push("/login");
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {
