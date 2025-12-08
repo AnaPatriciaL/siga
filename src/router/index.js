@@ -3,15 +3,16 @@ import Vue from "vue";
 import Router from "vue-router";
 import Login from "@/views/Login.vue";
 import Principal from "@/views/Principal.vue";
-import ConsultasIE from "@/views/ConsultasIE.vue";
-import ProspectosIE from "@/views/ProspectosIE.vue";
-import ListasIE from "@/views/ListasIE.vue";
-import ComitesIE from "@/views/ComitesIE.vue";
-import AutorizadosIE from "@/views/AutorizadosIE.vue";
-import EmitidasIE from "@/views/EmitidasIE.vue";
-import FoliosIE from "@/views/FoliosIE.vue";
+import Consultas from "@/views/Consultas.vue";
+import Prospectos from "@/views/Prospectos.vue";
+import Listas from "@/views/Listas.vue";
+import Comites from "@/views/Comites.vue";
+import Autorizados from "@/views/Autorizados.vue";
+import Emitidas from "@/views/Emitidas.vue";
+import Folios from "@/views/Folios.vue";
 import Usuarios from "@/views/Usuarios.vue";
 import Permisos from "@/views/Permisos.vue";
+import Programadores from "@/views/Programadores.vue";
 
 // import Buscar from "@/views/Buscar.vue";
 
@@ -27,45 +28,51 @@ const router = new Router({
       meta: { requiresAuth: true },
     },
     {
-      path: "/consultasIE",
-      name: "ConsultasIE",
-      component: ConsultasIE,
+      path: "/consultas",
+      name: "Consultas",
+      component: Consultas,
       meta: { requiresAuth: true },
     },
     {
-      path: "/prospectosIE",
-      name: "ProspectosIE",
-      component: ProspectosIE,
+      path: "/prospectos",
+      name: "Prospectos",
+      component: Prospectos,
       meta: { requiresAuth: true },
     },
     {
-      path: "/listasIE",
-      name: "ListasIE",
-      component: ListasIE,
+      path: "/listas",
+      name: "Listas",
+      component: Listas,
       meta: { requiresAuth: true },
     },
     {
-      path: "/comitesIE",
-      name: "ComitesIE",
-      component: ComitesIE,
+      path: "/comites",
+      name: "Comites",
+      component: Comites,
       meta: { requiresAuth: true },
     },
     {
-      path: "/autorizadosIE",
-      name: "AutorizadosIE",
-      component: AutorizadosIE,
+      path: "/autorizados",
+      name: "Autorizados",
+      component: Autorizados,
       meta: { requiresAuth: true },
     },
     {
-      path: "/EmitidasIE",
-      name: "EmitidasIE",
-      component: EmitidasIE,
+      path: "/Emitidas",
+      name: "Emitidas",
+      component: Emitidas,
       meta: { requiresAuth: true },
     },
     {
-      path: "/FoliosIE",
-      name: "FoliosIE",
-      component: FoliosIE,
+      path: "/Folios",
+      name: "Folios",
+      component: Folios,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/Programadores",
+      name: "Programadores",
+      component: Programadores,
       meta: { requiresAuth: true },
     },
     {
