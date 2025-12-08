@@ -5,7 +5,7 @@
       <v-row class="center">
         <v-spacer></v-spacer>
         <v-col cols="8"  class="text-center">
-          <h1>PROSPECTOS LISTOS PARA TRABAJAR</h1>
+          <h1>PROSPECTOS IMPUESTOS ESTATALES</h1>
         </v-col>
         <v-spacer></v-spacer>
         <v-col cols="1" class="text-right">
@@ -13,8 +13,15 @@
         </v-col>
       </v-row>
       <v-row class="mb-4">
-        <!-- Boton exportar Excel -->
-        <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
+        <!-- Boton Nuevo -->
+        <v-tooltip top color="pink darken-4">
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn class="mt-2" color="pink darken-4" fab dark @click="formNuevo()" v-bind="attrs" v-on="on"><v-icon large>mdi-plus-thick</v-icon></v-btn>
+          </template>
+          <span>Generar Nuevo Prospecto</span>
+        </v-tooltip>
+       <!-- Boton exportar Excel -->
+        <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
           <v-tooltip top color="green darken-3">
             <template v-slot:activator="{ on, attrs }">
               <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
@@ -28,7 +35,16 @@
             <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
           </template>
           <span>Recargar información</span>
-        </v-tooltip>              
+        </v-tooltip>
+        <!-- Boton exportar No localizados -->
+        <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
+          <v-tooltip top color="pink accent-3">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab class="pink accent-3 ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-map-marker-remove</v-icon></v-btn>
+            </template>
+            <span>Exportar a Excel No Localizados</span>
+          </v-tooltip>
+        </vue-excel-xlsx>
         <v-spacer></v-spacer>
         <v-col COL="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
@@ -44,13 +60,8 @@
         <!-- Acciones -->
         <template v-slot:item.actions="{ item }">
           <!-- Icono Editar en el data-table -->
-          <v-icon large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
-            <v-tooltip top>
-            <template v-slot:activator="{ on, attrs }">
-              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense @click="seleccionarProspecto(item)">mdi-check-bold</v-icon>
-            </template>
-            <span>Seleccionar Prospecto</span>
-          </v-tooltip>                
+          <v-icon
+            large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
         </template>
       </v-data-table>
     </v-container>
@@ -65,12 +76,11 @@
       :programadores-listado="programadores_listado"
       :fuentes-listado="fuentes_listado"
       :oficinas-listado="oficinas_listado"
-      :cargando-prop="cargando"
-      :mostrar-boton-supervisor="false"
+      :cargando-prop="cargando"      
       @cerrar="dialog = false"                      
       @guardar="handleGuardar"
       @update:prospectoieData="updateProspectoie">
-    </form-crear-editar>
+      </form-crear-editar>
   </v-container>
 </template>
 
@@ -88,10 +98,11 @@
   var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
   var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
   var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
+  var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
   var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
 
 export default {
-  name: "ProspectosIE",
+  name: "Consultas",
   data() {
     return {
       busca: "",
@@ -173,7 +184,7 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
         oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 2,
+        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -189,62 +200,48 @@ export default {
   },
   created() {
     this.obtenerPermisos();
-    this.mostrar(),
-    this.obtieneoficinas(),
-    this.obtienefuentes(),
-    this.obtieneimpuestos(),
-    this.obtieneusuarios(),
-    this.obtieneantecedentes()
-    this.obtienemunicipios()
+    this.mostrar();
+    this.obtieneoficinas();
+    this.obtienefuentes();
+    this.obtieneimpuestos();
+    this.obtieneusuarios();
+    this.obtieneantecedentes();
+    this.obtienemunicipios();
   },
- methods: {
+  methods: {
+    esUsuarioNivel0() {
+      const nivel = Number(localStorage.getItem('nivel'));
+      if (nivel === 0) {
+        return true
+      }else
+      {
+        return false;
+      }
+      
+      
+
+    },
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
         const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
-        // Asignar la respuesta a sessionData
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso
         const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente
         this.permiso = [0, 2].includes(nivel); // Validar si está en los valores permitidos
       } catch (error) {
-        // Manejar errores en la solicitud
         console.error('Error al obtener los datos de la sesión:', error);
       }
     },
-    seleccionarProspecto: function (item) {
-      Swal.fire({
-        title: '¿Agregar este prospecto?',
-        text: "Esta acción enviará el prospecto a la lista de revisados.",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Seleccionar',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          axios.post(crud, {
-            opcion: 5, // Opción para actualizar solo el estatus
-            id: item.id,
-            estatus: 3
-          }).then(response => {
-            Swal.fire(
-              '¡Agregado!',
-              'El prospecto ha sido agregado a la lista de revisados.',
-              'success'
-            );
-            this.mostrar(); // Recargar la tabla para reflejar el cambio
-          }).catch(error => {
-            Swal.fire('Error', 'No se pudo agregar el prospecto a la lista.', 'error');
-            console.error("Error al cambiar estatus:", error);
-          });
-        }
+
+    mostrar33: function () {
+      axios.post(crud, { opcion: 1 }).then((response) => {
+        this.prospectosie = response.data;
       });
     },
     mostrar: function () {
       axios
-        .post(crud, { opcion: 1, estatus_prospecto:2 })
+        .post(crud, { opcion: 1, estatus_prospecto:0 })
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data;
@@ -268,13 +265,87 @@ export default {
           Swal.fire('Error de conexión', 'No se pudo obtener la información', 'error');
         });
     },
+    
+    async crear(prospectoieData, periodosParaAgregar) {
+      let nombre = prospectoieData.nombre != null && prospectoieData.nombre !== '' ? prospectoieData.nombre.toUpperCase() : prospectoieData.nombre;
+      let calle = prospectoieData.calle != null && prospectoieData.calle !== '' ? prospectoieData.calle.toUpperCase() : prospectoieData.calle;
+      let num_exterior = prospectoieData.num_exterior != null && prospectoieData.num_exterior !== '' ? prospectoieData.num_exterior.toUpperCase() : prospectoieData.num_exterior;
+      let num_interior = prospectoieData.num_interior != null && prospectoieData.num_interior !== '' ? prospectoieData.num_interior.toUpperCase() : prospectoieData.num_interior;
+      let colonia = prospectoieData.colonia != null && prospectoieData.colonia !== '' ? prospectoieData.colonia.toUpperCase() : prospectoieData.colonia;
+      let localidad = prospectoieData.localidad != null && prospectoieData.localidad !== '' ? prospectoieData.localidad.toUpperCase() : prospectoieData.localidad;
+      let giro = prospectoieData.giro != null && prospectoieData.giro !== '' ? prospectoieData.giro.toUpperCase() : prospectoieData.giro;
+      let periodos = prospectoieData.periodos != null && prospectoieData.periodos !== '' ? prospectoieData.periodos.toUpperCase() : prospectoieData.periodos;
+      let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
+      axios.post(crud,
+            {
+              // Nuevo
+              opcion:2, 
+              // Campos a guardar
+              rfc:prospectoieData.rfc.toUpperCase(),
+              nombre:prospectoieData.nombre != null ? prospectoieData.nombre.toUpperCase() : null,
+              calle:prospectoieData.calle != null ? prospectoieData.calle.toUpperCase() : null,
+              num_exterior:prospectoieData.num_exterior != null ? prospectoieData.num_exterior.toUpperCase() : null,
+              num_interior:prospectoieData.num_interior != null ? prospectoieData.num_interior.toUpperCase() : null,
+              colonia:prospectoieData.colonia != null ? prospectoieData.colonia.toUpperCase() : null,
+              cp:prospectoieData.cp,
+              localidad:prospectoieData.localidad != null ? prospectoieData.localidad.toUpperCase() : null,
+              municipio_id:prospectoieData.municipio_id,
+              oficina_id:prospectoieData.oficina_id,
+              fuente_id:prospectoieData.fuente_id,
+              giro:prospectoieData.giro != null ? prospectoieData.giro.toUpperCase() : null,
+              periodos:prospectoieData.periodos != null ? prospectoieData.periodos.toUpperCase() : null,
+              antecedente_id:prospectoieData.antecedente_id,
+              impuesto_id:prospectoieData.impuesto_id,
+              determinado:prospectoieData.determinado,
+              programador_id:prospectoieData.programador_id,
+              representante_legal:prospectoieData.representante_legal != null ? prospectoieData.representante_legal.toUpperCase() : null,
+              retenedor:prospectoieData.retenedor, 
+              origen_id: prospectoieData.origen_id,
+              observaciones:observaciones,
+              estatus:prospectoieData.estatus
+      })
+      .then(response =>{
+        console.log("esto regresa al creae",response.data);
+        Swal.fire({
+          title: "Exito",
+          text: "La información fue guardada satisfactoriamente",
+          icon: 'success',
+          showCancelButton: false,
+          showConfirmButton:false,
+          timer:2000,
+          timerProgressBar: true,
+          allowOutsideClick: false, // Bloquea clics fuera del diálogo
+          allowEscapeKey: false, // Bloquea la tecla de escape
+          allowEnterKey: false // Bloquea la tecla enter
+        })
+        // Asumiendo que el backend devuelve el ID del nuevo prospecto
+        if (response.data && response.data.id && periodosParaAgregar) {
+          this.sincronizarPeriodosDetalle(response.data.id, periodosParaAgregar);
+        }        
+      })
+      .catch(error => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Hubo un error al guardar los datos: ' + error.message,
+            confirmButtonText: 'OK',
+            confirmButtonAriaLabel: 'OK'
+          });
+      })
+      .finally(() => {
+        this.mostrar();
+        this.limpiar();
+      })
+    },
     limpiar: function(){
-      this.prospectoie = { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
-        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null,
-        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 2,
+      this.prospectoie = {
+        id: null, fecha_captura: this.fechaactual(), rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
+        colonia: null, cp: null, localidad: null, municipio_id: null, municipio: null, oficina_descripcion: null,
+        oficina_id: null, fuente_id: 3, giro: null, periodos: null, impuesto_id: 1, antecedente_id: 1, determinado: 0,
+        programador_id: null, retenedor: 0, origen_id: 0, representante_legal: null, estatus: 1, observaciones: null,
+        estatus_descripcion: 'NUEVO'
       };
-    },      
+    },   
     async editar(prospectoieData, periodosParaAgregar) {
       let nombre = prospectoieData.nombre != null && prospectoieData.nombre !== '' ? prospectoieData.nombre.toUpperCase() : prospectoieData.nombre;
       let calle = prospectoieData.calle != null && prospectoieData.calle !== '' ? prospectoieData.calle.toUpperCase() : prospectoieData.calle;
@@ -343,6 +414,7 @@ export default {
           this.mostrar();
           this.limpiar();
         })
+      
     },
           
     borrar: function (id) {
@@ -399,7 +471,8 @@ export default {
     },
 
     obtieneusuarios: function () {
-      axios.post(urlprogramadores, { opcion: 1 }).then((response) => {
+      const usuarioId = localStorage.getItem('id');
+      axios.post(urlprogramadores, {  opcion: 2, id: usuarioId  }).then((response) => {
         this.programadores_listado = response.data;
       });
     },
@@ -409,7 +482,7 @@ export default {
         this.municipios_listado = response.data;
       });   
     },
-    
+
     salir: function(){
       // Redirigir al usuario a la vista de login
       localStorage.removeItem("id");
@@ -418,8 +491,6 @@ export default {
       localStorage.removeItem("nivel");
       this.$user.id = null;
       this.$user.nombre = null;
-      this.$user.nivel = null;
-      this.$user.token = null;
       this.isAuthenticated = false;
       this.usuarioLogueado = "";
       this.opcionesMenu = [];
@@ -436,6 +507,12 @@ export default {
 
     updateProspectoie(updatedProspectoie) {
       this.prospectoie = { ...this.prospectoie, ...updatedProspectoie };
+    },
+
+    formNuevo: function () {
+      this.limpiar(); 
+      this.dialog = true;
+      this.operacion = "crear";
     },
 
     formEditar: function (objeto) {

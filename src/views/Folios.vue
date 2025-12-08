@@ -121,7 +121,7 @@
   var urlfolios_oficios ="http://10.10.120.228/siga/backend/folios_oficios.php";
 
 export default {
-  name: "FoliosIE",
+  name: "Folios",
   data() {
     return {
       folioInicial: null,

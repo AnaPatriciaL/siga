@@ -142,7 +142,18 @@ switch ($opcion) {
 
   case 5: // 🔹 Cambio de Estatus
     $estatus_nuevo = $datos['estatus'] ?? null;
-    $consulta = "UPDATE siga_prospectosie SET estatus = ? WHERE id = ?";
+    $consulta = "UPDATE siga_prospectosie SET estatus = ?";
+
+    if ($estatus_nuevo == 4) {
+        $consulta .= ", fecha_comite = CURDATE()";
+    } elseif ($estatus_nuevo == 5) {
+        $consulta .= ", fecha_autorizacion = CURDATE()";
+    } elseif ($estatus_nuevo == 6) {
+        $consulta .= ", fecha_emision = CURDATE()";
+    }
+
+    $consulta .= " WHERE id = ?";
+
     $stmt = $conexion->prepare($consulta);
     $stmt->execute([$estatus_nuevo, $id]);
     $data = ['mensaje' => 'Estatus actualizado correctamente'];

@@ -107,7 +107,7 @@
                     ></v-text-field>
                   </template>
                   <template v-else>
-                    <v-select
+                    <v-select 
                       :items="programadoresListado" v-model="prospectoie.programador_id" label="Programador" outlined dense required item-text="usuario" item-value="id" ref="programador">
                     </v-select>
                   </template>
@@ -128,7 +128,7 @@
                 </v-col>
                 <!-- Origen -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen" inset :label="prospectoie.origen ? 'Origen: Prospecto' : 'Origen: Cruce'"></v-switch>
+                  <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen_id" inset :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"></v-switch>
                 </v-col>
                 <!-- Observaciones -->
                 <v-col class="my-0 py-0" cols="12" md="10">
@@ -263,16 +263,21 @@ export default {
   watch: {
     // Cuando el diálogo se abre, copia los datos del prop al estado local.
     dialog(val) {
-      if (val) {
-        this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));        
+      if (val) { // Si el diálogo se abre
+        this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));
         const usuarioId = Number(localStorage.getItem('id'));
-        if (usuarioId && this.programadoresListado) {
           const usuarioActual = this.programadoresListado.find(u => u.id === usuarioId);
-          if (usuarioActual && usuarioActual.nivel === 1) {
-            this.prospectoie.programador_id = usuarioActual.id;
-            this.prospectoie.programador_descripcion = usuarioActual.usuario;
-          }
+          if (usuarioActual) {
+            // Asignamos siempre el ID y la descripción
+            this.prospectoie.programador_id = usuarioActual.programador_id;
+            this.prospectoie.programador_descripcion = usuarioActual.usuario;  
         }
+      }
+    },
+    operacion(val) {
+      // Limpiar los períodos cuando se abre para crear un nuevo prospecto
+      if (val === 'crear') {
+        this.periodosParaAgregar = [{ inicio: '', fin: '' }];
       }
     },
     dialogPeriodos(val) {
@@ -313,13 +318,13 @@ export default {
   },
   methods: {
     esUsuarioNivel1() {
-      const usuarioId = Number(localStorage.getItem('id'));
-      if (usuarioId && this.programadoresListado) {
-        const usuarioActual = this.programadoresListado.find(u => u.id === usuarioId);
-        if (usuarioActual && usuarioActual.nivel === 1) {
-          return true; // Deshabilitar si el nivel es 1
-        }
+      const idUsuario = Number(localStorage.getItem('id'));
+      if (!idUsuario || !this.programadoresListado) return false;
+      const usuario = this.programadoresListado.find(p => p.id === idUsuario);
+      if (usuario && usuario.nivel === 1) {
+        return true;
       }
+      return false;
     },
     // Lógica para buscar datos del contribuyente
     datos_contribuyentes() {
@@ -408,6 +413,7 @@ export default {
     },
     cerrar() {
       this.$emit('cerrar');
+      this.cerrarDialogoPeriodo(); // Limpia los periodos al cerrar el diálogo principal
     },
     // Métodos para el diálogo de periodos
      convertirFecha(fechaCaptura) {
@@ -497,7 +503,7 @@ export default {
       }
     },
     cerrarDialogoPeriodo() {
-      this.dialogPeriodos = false; // Ahora solo cierra el diálogo
+      this.dialogPeriodos = false;
     },
     /**
      * Establece el campo de periodos a partir de un array de objetos.
