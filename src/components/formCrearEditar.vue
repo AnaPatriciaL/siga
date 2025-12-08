@@ -18,7 +18,7 @@
                 <!-- RFC -->
                 <v-col class="my-0 py-0" cols="12" md="3">
                   <v-text-field maxlength="13" minlength="12" class="my-0 py-0 mayusculas" v-model="prospectoie.rfc"
-                    label="RFC" outlined :readonly="operacion=='editar'" dense ref="rfc"></v-text-field>
+                    label="RFC" outlined :readonly="operacion=='editar' && esUsuarioNivel1()" dense ref="rfc"></v-text-field>
                 </v-col>
                 <!-- Boton buscar -->
                 <v-col class="my-0 py-0" cols="12" md="1">
@@ -140,7 +140,7 @@
           <v-divider></v-divider>
           <v-card-actions class="grey lighten-2 py-2">
             <v-spacer></v-spacer>
-            <v-btn v-if="mostrarBotonSupervisor" class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor()" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
+            <v-btn v-if="mostrarBotonSupervisor && Number(prospectoie.estatus) === 1" class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor()" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
             <v-btn class="my-1 ma-2 py-1" color="success" @click="validar()" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
             <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
           </v-card-actions>

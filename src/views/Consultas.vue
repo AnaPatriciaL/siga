@@ -54,7 +54,7 @@
       <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
         <template v-slot:item.tipo="{ item }">
           <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
-          <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
+          <v-icon v-else-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
           <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check</v-icon>
         </template>
         <!-- Acciones -->
@@ -76,8 +76,8 @@
       :programadores-listado="programadores_listado"
       :fuentes-listado="fuentes_listado"
       :oficinas-listado="oficinas_listado"
-      :cargando-prop="cargando"      
-      @cerrar="dialog = false"                      
+      :cargando-prop="cargando"
+      @cerrar="dialog = false"
       @guardar="handleGuardar"
       @update:prospectoieData="updateProspectoie">
       </form-crear-editar>
@@ -358,10 +358,8 @@ export default {
       let representante_legal = prospectoieData.representante_legal != null && prospectoieData.representante_legal !== '' ? prospectoieData.representante_legal.toUpperCase() : prospectoieData.representante_legal;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios
-        .post(crud, { // Objeto de datos
-            // Cambios
+        .post(crud, { 
             opcion: 3,
-            // Campos a guardar
             rfc:prospectoieData.rfc,
             id:prospectoieData.id,
             nombre:nombre,
@@ -542,6 +540,7 @@ export default {
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
+      this.prospectoie.estatus=objeto.estatus;
     },
     
     convertirFecha(fechaCaptura) {

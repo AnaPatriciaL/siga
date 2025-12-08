@@ -74,7 +74,30 @@
       @cerrar="dialog = false"                      
       @guardar="handleGuardar"
       @update:prospectoieData="updateProspectoie">
-    </form-crear-editar>        
+    </form-crear-editar>  
+    <!-- Componente de Diálogo para VISTA PREVIA -->
+    <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
+      <v-card>
+        <v-card-title class="pink darken-4 white--text">
+          VISTA PREVIA - {{ vistaPreviaRFC }}
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="cerrarVistaPrevia"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+        <v-card-text>
+          <div v-if="cargandoVistaPrevia" class="text-center py-5">
+            <v-progress-circular indeterminate color="pink darken-4"></v-progress-circular>
+            <p class="mt-2">Generando vista previa...</p>
+          </div>
+          <embed v-else-if="pdfSrc" :src="pdfSrc" type="application/pdf" width="100%" height="600px" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="progresoVisible" persistent max-width="400">
+      <v-card class="pa-4" style="text-align: center;">
+        <v-progress-circular indeterminate size="50"></v-progress-circular>
+        <div class="mt-3">{{ progresoMensaje }}</div>
+      </v-card>
+    </v-dialog>      
   </v-container>
 </template>
 
@@ -209,7 +232,13 @@ export default {
     this.obtienemunicipios()
   },
  methods: {
-  actualizarProgreso(texto) {
+  cerrarVistaPrevia() {
+      this.dialogVistaPrevia = false;
+      if (this.pdfSrc) {
+        window.URL.revokeObjectURL(this.pdfSrc);
+      }
+    },
+    actualizarProgreso(texto) {
       this.progresoMensaje = texto;
       this.progresoVisible = true;
     },
@@ -225,7 +254,7 @@ export default {
 
       try {
         const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 4, // Opción para VISTA PREVIA
+          opcion: 4, 
           prospecto: item,
           usuario_id: this.sessionData.id_usuario
         }, {
@@ -343,12 +372,10 @@ export default {
           })
           this.sincronizarPeriodosDetalle(prospectoieData.id, periodosParaAgregar);
           // Si el prospecto ya tiene una orden generada, actualiza también la tabla de órdenes
-          if (this.tieneOrdenGenerada(prospectoieData)) {
-            axios.post(urlgenerar_ordenes, {
-              opcion: 3, // Opción para actualizar datos en tabla de órdenes
-              prospecto: prospectoieData
-            });
-          }
+          axios.post(urlgenerar_ordenes, {
+            opcion: 3, // Opción para actualizar datos en tabla de órdenes
+            prospecto: prospectoieData
+          });
         })
         .catch(error => {
           Swal.fire({

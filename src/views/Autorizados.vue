@@ -63,30 +63,38 @@
         </template>
         <!-- Acciones -->
         <template v-slot:item.actions="{ item }">
-          <v-tooltip top>
-            <template v-slot:activator="{ on, attrs }">
-              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
-            </template>
-            <span>Editar Prospecto</span>
-          </v-tooltip>
-          <v-tooltip top>
-            <template v-slot:activator="{ on, attrs }">
-              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="generarDocumento(item, $event, 1)">mdi-file-eye</v-icon>
-            </template>
-            <span>Vista previa</span>
-          </v-tooltip>
-          <v-tooltip top>
-            <template v-slot:activator="{ on, attrs }">
-              <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumentoUnico(item, $event, 0)">mdi-file-word</v-icon>
-            </template>
-            <span>Generar/imprimir Orden</span>
-          </v-tooltip>
-          <v-tooltip top>
-            <template v-slot:activator="{ on, attrs }">
-              <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">mdi-check-circle </v-icon>
-            </template>
-            <span>Enviar a Emitidas</span>
-          </v-tooltip>
+          <div class="d-flex">
+            <v-tooltip top>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
+              </template>
+              <span>Editar Prospecto</span>
+            </v-tooltip>
+            <v-tooltip top>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="generarDocumento(item, $event, 1)">mdi-file-eye</v-icon>
+              </template>
+              <span>Vista previa</span>
+            </v-tooltip>
+            <v-tooltip top>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon v-bind="attrs" v-on="on" large class="ml-2" :color="tieneOrdenGenerada(item) ? 'success' : 'orange'" dark dense style="font-size: 32px" @click="generarDocumentoUnico(item, $event, 0)">mdi-file-word</v-icon>
+              </template>
+              <span>Generar/imprimir Orden</span>
+            </v-tooltip>
+            <v-tooltip top>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="success" dark dense style="font-size: 32px" @click="seleccionarProspecto(item)">mdi-check-circle </v-icon>
+              </template>
+              <span>Enviar a Emitidas</span>
+            </v-tooltip>
+            <v-tooltip top>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="red" dark dense @click="prospectoPendiente(item)">mdi-close-circle</v-icon>
+              </template>
+              <span>No autorizado</span>
+            </v-tooltip>
+          </div>
         </template>
       </v-data-table>
       <v-row class="mt-4">
@@ -219,8 +227,8 @@ export default {
         {
           text: "ACCIONES",
           value: "actions",
-          class: "pink darken-4 white--text elevation-1",
-          width:"140"
+          class: "pink darken-4 white--text elevation-1 text-center",
+          width:"250"
         },
       ],
       columnas: [
@@ -291,6 +299,32 @@ export default {
     this.obtienefoliosoficios();
   },
  methods: {
+    prospectoPendiente: function (item) {
+      Swal.fire({
+        title: '¿Marcar como no autorizado?',
+        text: "Esta acción cambiará el estatus del prospecto a pendiente.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Aceptar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          axios.post(crud, {
+            opcion: 5, // Opción para actualizar solo el estatus
+            id: item.id,
+            estatus: 7
+          }).then(response => {
+            Swal.fire('¡Hecho!', 'El prospecto ha sido marcado como pendiente.', 'success');
+            this.mostrar(); // Recargar la tabla para reflejar el cambio
+          }).catch(error => {
+            Swal.fire('Error', 'No se pudo actualizar el prospecto.', 'error');
+            console.error("Error al cambiar estatus:", error);
+          });
+        }
+      });
+    },
     cerrarVistaPrevia() {
       this.dialogVistaPrevia = false;
       if (this.pdfSrc) {
@@ -458,7 +492,8 @@ export default {
         const response = await axios.post(urlgenerar_ordenes, {
           opcion: 1, // Opción para VISTA PREVIA
           prospecto: item,
-          usuario_id: this.sessionData.id_usuario
+          usuario_id: this.sessionData.id_usuario,
+          fecha_orden: this.fechaOrden
         }, {
           responseType: 'blob'
         });
@@ -529,7 +564,7 @@ export default {
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Seleccionar',
+        confirmButtonText: 'Enviar',
         cancelButtonText: 'Cancelar'
       }).then((result) => {
         if (result.isConfirmed) {

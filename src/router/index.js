@@ -14,6 +14,7 @@ import Canceladas from "@/views/Canceladas.vue";
 import Usuarios from "@/views/Usuarios.vue";
 import Permisos from "@/views/Permisos.vue";
 import Programadores from "@/views/Programadores.vue";
+import Oficinas from "@/views/Oficinas.vue";
 
 // import Buscar from "@/views/Buscar.vue";
 
@@ -86,6 +87,12 @@ const router = new Router({
       path: "/Programadores",
       name: "Programadores",
       component: Programadores,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/Oficinas",
+      name: "Oficinas",
+      component: Oficinas,
       meta: { requiresAuth: true },
     },
     {
