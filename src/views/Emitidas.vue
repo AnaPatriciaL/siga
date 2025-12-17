@@ -12,23 +12,25 @@
             <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
         </v-col>
       </v-row>
-      <v-row class="mb-4">
-        <!-- Boton exportar Excel -->
-        <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Emitidas'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
-          <v-tooltip top color="green darken-3">
+      <v-row class="mb-4" align="center">
+        <v-col class="d-flex align-center">
+          <!-- Boton exportar Excel -->
+          <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Emitidas'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
+            <v-tooltip top color="green darken-3">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              </template>
+              <span>Exportar a Excel</span>
+            </v-tooltip>
+          </vue-excel-xlsx>
+          <!-- Boton recargar  -->
+          <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
-              <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              <v-btn class="ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
             </template>
-            <span>Exportar a Excel</span>
+            <span>Recargar información</span>
           </v-tooltip>
-        </vue-excel-xlsx>
-        <!-- Boton recargar  -->
-        <v-tooltip right color="light-blue darken-4">
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
-          </template>
-          <span>Recargar información</span>
-        </v-tooltip>              
+        </v-col>              
         <v-spacer></v-spacer>
         <v-col COL="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
@@ -53,7 +55,7 @@
             <template v-slot:activator="{ on, attrs }">
               <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">mdi-file-eye</v-icon>
             </template>
-            <span>Vista previa</span>
+            <span>Ver documento</span>
           </v-tooltip>                
         </template>
       </v-data-table>
@@ -339,7 +341,7 @@ export default {
             calle:calle,
             num_exterior:num_exterior,
             num_interior:num_interior,
-            colonia:prospectoieData.colonia,
+            colonia:colonia,
             cp:prospectoieData.cp,
             localidad:localidad,
             municipio_id:prospectoieData.municipio_id,
@@ -382,8 +384,13 @@ export default {
             icon: 'error',
             title: 'Error',
             text: 'Hubo un error al actualizar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
           });
         })
         .finally(() => {

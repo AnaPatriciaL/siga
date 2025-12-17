@@ -24,7 +24,7 @@
                 <v-row>
                   <!-- Orden para cancelar -->
                   <v-col cols="12" md="8">
-                    <v-text-field label="Orden para cancelar" outlined dense v-model="num_orden_cancelar" type="text"></v-text-field>
+                    <v-text-field class= "mayusculas" label="Orden para cancelar" outlined dense v-model="num_orden_cancelar" type="text"></v-text-field>
                   </v-col>
                   <!-- Selector de Año -->
                   <v-col cols="12" md="4">
@@ -56,7 +56,7 @@
           <p><b>Orden:</b> {{ ordenParaCancelar.num_orden }}</p>
           <p><b>RFC:</b> {{ ordenParaCancelar.rfc }}</p>
           <p><b>Contribuyente:</b> {{ ordenParaCancelar.nombre }}</p>
-          <v-textarea
+          <v-textarea class= "mayusculas"
             v-model="motivoCancelacion"
             label="Motivo de la cancelación"
             outlined
@@ -160,5 +160,8 @@ export default {
 }
 .mt-4 {
   margin-top: 16px;
+}
+.mayusculas input{
+  text-transform: uppercase
 }
 </style>

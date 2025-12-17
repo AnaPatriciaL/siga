@@ -12,23 +12,25 @@
             <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
         </v-col>
       </v-row>
-      <v-row class="mb-4">
-        <!-- Boton exportar Excel -->
-        <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Prospectos autorizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
-          <v-tooltip top color="green darken-3">
+       <v-row class="mb-4" align="center">
+        <v-col class="d-flex align-center">
+          <!-- Boton exportar Excel -->
+          <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Autorizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
+            <v-tooltip top color="green darken-3">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              </template>
+              <span>Exportar a Excel</span>
+            </v-tooltip>
+          </vue-excel-xlsx>
+          <!-- Boton recargar  -->
+          <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
-              <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              <v-btn class="ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
             </template>
-            <span>Exportar a Excel</span>
+            <span>Recargar información</span>
           </v-tooltip>
-        </vue-excel-xlsx>
-        <!-- Boton recargar  -->
-        <v-tooltip right color="light-blue darken-4">
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
-          </template>
-          <span>Recargar información</span>
-        </v-tooltip>              
+        </v-col>             
         <v-spacer></v-spacer>
         <v-col COL="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
@@ -98,7 +100,8 @@
         </template>
       </v-data-table>
       <v-row class="mt-4">
-        <v-col class="text-right">
+        <v-col class="d-flex justify-end">
+          <v-btn color="teal" dark @click="generarDocumentoFirmas" :disabled="selectedProspectos.length === 0" class="mr-2">Generar documento de firmas ({{ selectedProspectos.length }})</v-btn>
           <v-btn color="blue-grey" dark @click="generarDocumentosSeleccionados" :disabled="selectedProspectos.length === 0">Generar Órdenes Seleccionadas ({{ selectedProspectos.length }})</v-btn>
         </v-col>
       </v-row>
@@ -120,6 +123,13 @@
       @guardar="handleGuardar"
       @update:prospectoieData="updateProspectoie">
     </form-crear-editar>   
+    <!-- Componente de Diálogo para "No Autorizado" -->
+    <dialog-antecedente
+      v-model="dialogAntecedente"
+      :antecedentes="antecedentes_listado"
+      @confirmar="confirmarPendiente"
+      @cerrar="dialogAntecedente = false"
+    ></dialog-antecedente>
     <!-- Componente de Diálogo para VISTA PREVIA -->
     <v-dialog v-model="dialogVistaPrevia" max-width="1000" transition="dialog-top-transition" persistent>
       <v-card>
@@ -149,8 +159,9 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
-  import VueExcelXlsx from "vue-excel-xlsx";
+  import * as XLSX from 'xlsx-js-style';
   import FormCrearEditar from '@/components/formCrearEditar.vue';
+  import DialogAntecedente from '@/components/dialogoNoAutorizado.vue';
 
   var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
   var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
@@ -175,6 +186,8 @@ export default {
       busca: "",
       progresoVisible: false,
       progresoMensaje: "",
+      dialogAntecedente: false,
+      prospectoSeleccionado: null,
       encabezados: [
         {
           text: "", // El texto del encabezado del checkbox puede ser vacío
@@ -286,6 +299,7 @@ export default {
   },
   components:{
     FormCrearEditar,
+    DialogAntecedente 
   },
   created() {
     this.obtenerPermisos(),
@@ -299,31 +313,248 @@ export default {
     this.obtienefoliosoficios();
   },
  methods: {
-    prospectoPendiente: function (item) {
-      Swal.fire({
-        title: '¿Marcar como no autorizado?',
-        text: "Esta acción cambiará el estatus del prospecto a pendiente.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Aceptar',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          axios.post(crud, {
-            opcion: 5, // Opción para actualizar solo el estatus
-            id: item.id,
-            estatus: 7
-          }).then(response => {
-            Swal.fire('¡Hecho!', 'El prospecto ha sido marcado como pendiente.', 'success');
-            this.mostrar(); // Recargar la tabla para reflejar el cambio
-          }).catch(error => {
-            Swal.fire('Error', 'No se pudo actualizar el prospecto.', 'error');
-            console.error("Error al cambiar estatus:", error);
-          });
-        }
+    formatearFechaDMY(fecha) {
+      if (!fecha) return "";
+
+      const [anio, mes, dia] = fecha.split("-");
+      return `${dia}/${mes}/${anio}`;
+    },
+    async generarDocumentoFirmas() {
+      if (this.selectedProspectos.length === 0) return;
+
+      const prospectoSinOrden = this.selectedProspectos.some(p => !this.tieneOrdenGenerada(p));
+      if (prospectoSinOrden) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Acción no permitida',
+          text: 'Seleccionó prospectos sin orden, es necesario generarle una orden a todos.'
+        });
+        return;
+      }
+
+      this.actualizarProgreso('Obteniendo datos de órdenes...');
+
+      const prospecto_ids = this.selectedProspectos.map(p => p.id);
+      let prospectosOrdenados = [];
+      try {
+        const response = await axios.post(urlgenerar_ordenes, {
+          opcion: 5,
+          prospecto_ids
+        });
+        prospectosOrdenados = response.data;
+      } catch (error) {
+        this.progresoVisible = false;
+        Swal.fire('Error', 'No se pudieron obtener los datos actualizados de las órdenes.', 'error');
+        console.error("Error al obtener datos para documento de firmas:", error);
+        return;
+      }
+
+      this.actualizarProgreso('Generando documento...');
+
+      const wb = XLSX.utils.book_new();
+      const borderAll = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+        left: { style: "thin" }, right: { style: "thin" }
+      };
+      const titleRight = {
+        font: { sz: 11 },
+        alignment: { horizontal: "right", vertical: "center" }
+      };
+
+      const titleCenter = {
+        font: { sz: 11 },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true }
+      };
+
+      const headerStyle = {
+        font: { bold: true, sz: 11 },
+        fill: { fgColor: { rgb: "D9D9D9" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: borderAll
+      };
+
+      const cellCenter = {
+        font: { sz: 11 },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: borderAll
+      };
+
+      const firmaStyle = {
+        font: { sz: 11 },
+        alignment: { horizontal: "left", vertical: "top", wrapText: true }
+      };
+      const firmaTituloStyle = {
+        font: { bold: true, sz: 11 },
+        alignment: { horizontal: "center", vertical: "top", wrapText: true }
+      };
+      
+      const ws_data = [];
+
+      const nombreJefe = prospectosOrdenados.length > 0 ? prospectosOrdenados[0].nombre_jefe : "";
+      const nombreFirmante = prospectosOrdenados.length > 0 ? prospectosOrdenados[0].nombre_firmante : "";
+
+      const hoy = new Date();
+      const fechaFormateada = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+      const encabezadoFecha = `CULIACÁN, SINALOA A ${fechaFormateada}`;
+      
+      // Encabezado
+      ws_data.push([{ v: encabezadoFecha, s: titleRight }]);
+      ws_data.push([{ v: "SECRETARÍA DE ADMINISTRACIÓN Y FINANZAS", s: titleCenter }]);
+      ws_data.push([{ v: "SERVICIO DE ADMINISTRACIÓN TRIBUTARIA DEL ESTADO DE SINALOA", s: titleCenter }]);
+      ws_data.push([{ v: "DIRECCIÓN DE AUDITORÍA", s: titleCenter }]);
+      ws_data.push([]);
+
+      // Encabezados tabla
+      ws_data.push([
+        { v: "No.", s: headerStyle },
+        { v: "FECHA OFICIO", s: headerStyle },
+        { v: "No. OFICIO\nSATES-DA-DP-\n/2025", s: headerStyle },
+        { v: "ORDEN", s: headerStyle },
+        { v: "NOMBRE", s: headerStyle },
+        { v: "LOCALIDAD", s: headerStyle }
+      ]);
+
+      // Filas de datos
+      prospectosOrdenados.forEach((item, index) => {
+        ws_data.push([
+          { v: index + 1, s: cellCenter },
+          { v: this.formatearFechaDMY(item.fecha_orden), s: cellCenter },
+          { v: item.num_oficio || "", s: cellCenter },
+          { v: item.num_orden || "", s: cellCenter },
+          { v: item.nombre || "", s: cellCenter },
+          { v: item.municipio || "", s: cellCenter }
+        ]);
       });
+
+      // Fila vacía
+      ws_data.push([]);
+
+      // === INICIO DEL BLOQUE DE FIRMAS: Se prepara el texto y se añaden las filas necesarias ===
+      const firmaInicio = ws_data.length;
+      const textoEnvia = `ENVÍA:\n\n${nombreJefe.toUpperCase()}\n\n\nFIRMA:\n\nFECHA:`;
+      const textoRecibe = `RECIBE PARA FIRMA:\n\n${nombreFirmante.toUpperCase()}\n\n\nFIRMA:\n\nFECHA:`;
+
+      // Se agrega el contenido en la primera fila de los cuadros de firma.
+      ws_data.push([
+        { v: textoEnvia, s: firmaStyle }, "", "", "", 
+        { v: textoRecibe, s: firmaStyle }, ""
+      ]);
+      ws_data.push(["", "", "", "", "", ""]); // Fila vacía para la segunda línea del cuadro
+      ws_data.push(["", "", "", "", "", ""]); // Fila vacía para la tercera línea del cuadro
+
+      // Crear hoja
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      ws['!merges'] = ws['!merges'] || [];
+
+      // === MERGES ===
+      ws['!merges'].push(
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 5 } },
+        { s: { r: firmaInicio, c: 0 }, e: { r: firmaInicio + 2, c: 3 } }, // Cuadro ENVÍA
+        { s: { r: firmaInicio, c: 4 }, e: { r: firmaInicio + 2, c: 5 } }  // Cuadro RECIBE
+      );
+
+      // --- Aplicación de Bordes a los Cuadros de Firma ---
+      const firmaFin = firmaInicio + 2;
+      const thinBorder = { style: "thin" };
+
+      // Itera sobre el rango completo de los cuadros de firma
+      for (let r = firmaInicio; r <= firmaFin; ++r) {
+        for (let c = 0; c <= 5; ++c) {
+          const cell_address = XLSX.utils.encode_cell({ r, c });
+          if (!ws[cell_address]) ws[cell_address] = { t: 's', v: '' };
+          if (!ws[cell_address].s) ws[cell_address].s = {};
+          if (!ws[cell_address].s.border) ws[cell_address].s.border = {};
+
+          // Cuadro Izquierdo (ENVÍA)
+          if (c >= 0 && c <= 3) {
+            if (r === firmaInicio) ws[cell_address].s.border.top = thinBorder;
+            if (r === firmaFin) ws[cell_address].s.border.bottom = thinBorder;
+            if (c === 0) ws[cell_address].s.border.left = thinBorder;
+            if (c === 3) ws[cell_address].s.border.right = thinBorder;
+          }
+          // Cuadro Derecho (RECIBE)
+          else if (c >= 4 && c <= 5) {
+            if (r === firmaInicio) ws[cell_address].s.border.top = thinBorder;
+            if (r === firmaFin) ws[cell_address].s.border.bottom = thinBorder;
+            if (c === 4) ws[cell_address].s.border.left = thinBorder;
+            if (c === 5) ws[cell_address].s.border.right = thinBorder;
+          }
+        }
+      }
+
+      ws['!rows'] = ws_data.map((_, i) => i >= firmaInicio && i <= firmaInicio + 2 ? { hpt: 45 } : {} );
+
+
+      // Tamaño columnas
+      ws['!cols'] = [
+        { wch: 4 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 45 },
+        { wch: 22 }
+      ];
+      
+      // Márgenes estrechos
+      ws["!margins"] = {
+        left: 0.3,
+        right: 0.3,
+        top: 0.5,
+        bottom: 0.5,
+        header: 0.3
+      };
+
+      XLSX.utils.book_append_sheet(wb, ws, "Firmas");
+      XLSX.writeFile(wb, "Documento_Firmas.xlsx");
+
+      this.progresoVisible = false;
+      this.selectedProspectos = [];
+    },
+    confirmarPendiente({ antecedente_id, observaciones }) {
+      if (!this.prospectoSeleccionado) return;
+
+      axios.post(crud, {
+        opcion: 5,
+        id: this.prospectoSeleccionado.id,
+        estatus: 7,
+        antecedente_id,
+        observaciones
+      })
+      .then(() => {
+        this.$swal({
+          title:'¡Hecho!',
+          text:'El prospecto se ha cambiado al estatus pendiente.',
+          icon:'success',
+          showCancelButton: false,
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          allowEnterKey: false});
+        this.mostrar();
+      })
+      .catch(error => {
+        this.$swal(
+          'Error',
+          'No se pudo actualizar el estatus.',
+          'error'
+        );
+        console.error(error);
+      })
+      .finally(() => {
+        this.prospectoSeleccionado = null;
+      });
+    },
+    prospectoPendiente(item) {
+      this.prospectoSeleccionado = item;
+      this.dialogAntecedente = true;
     },
     cerrarVistaPrevia() {
       this.dialogVistaPrevia = false;
@@ -337,14 +568,14 @@ export default {
     },
     async generarDocumentoUnico(item, event, tipo) {      
       const { value: numCopias } = await Swal.fire({
-        title: 'Número de Copias',
+        title: 'Número de impresiones',
         input: 'number',
-        inputLabel: '¿Cuántas copias desea imprimir?',
+        inputLabel: '¿Cuántas juegos desea imprimir?',
         inputValue: 1,
         showCancelButton: true,
         inputValidator: (value) => {
           if (!value || value < 1) {
-            return '¡Necesitas ingresar un número válido de copias!'
+            return '¡Necesitas ingresar un número válido de impresiones!'
           }
         }
       });
@@ -376,6 +607,22 @@ export default {
     async generarDocumentosSeleccionados() {
       if (this.selectedProspectos.length === 0) return;
 
+      const { value: numCopias } = await Swal.fire({
+        title: 'Número de impresiones',
+        input: 'number',
+        inputLabel: '¿Cuántas juegos desea imprimir de cada documento?',
+        inputValue: 1,
+        showCancelButton: true,
+        inputValidator: (value) => {
+          if (!value || value < 1) {
+            return '¡Necesitas ingresar un número válido de impresiones!';
+          }
+        }
+      });
+
+      if (!numCopias) return;
+      if (this.selectedProspectos.length === 0) return;
+
       let total = this.selectedProspectos.length;
       let generados = 0;
       let impresos = 0;
@@ -387,7 +634,7 @@ export default {
 
         this.actualizarProgreso(`Generando documento ${i+1} de ${total}...`);
 
-        const resp = await this.generarDocumento(prospecto);
+        const resp = await this.generarDocumento(prospecto, null, 0, numCopias);
 
         if (resp.success) {
           generados++;
@@ -444,43 +691,65 @@ export default {
         Swal.fire('Error de conexión', 'No se pudo obtener la información de los folios', 'error');
       }
     },
-    async generarDocumento(item, event, tipo, numCopias) {
+    async generarDocumento(item, event, tipo, numCopias) {      
       if (event && event.target) {
         event.target.blur();
       }
+
       if (tipo === 1) {
         this.vistaPrevia(item);
-        return { success: true, impreso: false };
-      } else {
-        if (this.foliosDisponiblesCount < 1) {
-          Swal.fire({
-            title: 'Folios no suficientes',
-            text: 'No tienes folios suficientes para generar la orden.',
-            icon: 'warning'
-          });
-          return { success: false };
-        }
-        try {
-          const response = await axios.post(urlgenerar_ordenes, {
+        return { success: true, impreso: false }; // No se genera, solo se visualiza
+      }
+
+      // Lógica para generar o reimprimir (tipo === 0)
+      if (this.foliosDisponiblesCount < 1 && !this.tieneOrdenGenerada(item)) {
+        Swal.fire('Folios no suficientes', 'No tienes folios para generar una nueva orden.', 'warning');
+        return { success: false };
+      }
+
+      try {
+        let data = {};
+
+        if (this.tieneOrdenGenerada(item)) {
+          // Es una REIMPRESIÓN
+          data = {
+            opcion: 4, // Opción para REIMPRIMIR
             prospecto: item,
-            usuario_id: this.sessionData.id_usuario,            
+            copias: numCopias,
+            usuario_id: this.sessionData.id,
+            fecha_orden: this.fechaOrden,
+          };
+          console.log("Enviando datos para REIMPRESIÓN:", data);
+        } else {
+          // Es una GENERACIÓN NUEVA
+          data = {
+            prospecto: item,
+            usuario_id: this.sessionData.id,
             fecha_orden: this.fechaOrden,
             copias: numCopias
-          });
-          if (response.data && response.data.success) {
-            this.obtienefoliosoficios();
-            this.actualizarOrdenesCount();
-            return response.data; // <<< 🔥 IMPORTANTE
-          } else {
-            Swal.fire('Error', response.data.error || 'Respuesta inesperada del servidor.', 'error');
-            return { success: false, impreso: false };
+          };
+          console.log("Enviando datos para GENERACIÓN:", data);
+        }
+
+        // Tanto para generar como para reimprimir, esperamos un PDF directamente
+        const response = await axios.post(urlgenerar_ordenes, data, { responseType: 'blob' });
+        console.log("Respuesta del servidor (blob):", response);
+
+        // Si la respuesta es un blob (PDF) con contenido, asumimos que fue exitoso
+        if (response.data.size > 0) {
+          this.obtienefoliosoficios(); // <-- AÑADIDO: Actualiza el contador de folios
+          this.mostrar();
+          this.actualizarOrdenesCount();
+          return { success: true, impreso: true };
+        } else {
+          return { success: false, impreso: false };
           }
         } catch (error) {
             this.cargando = false;
-            Swal.fire('Error', mensajeError, 'error');
+            console.error("Error en la petición a generar_ordenes.php:", error);
+            Swal.fire('Error', 'Hubo un problema de comunicación con el servidor.', 'error');
             return { success: false, impreso: false };
           }
-      }
     },
     async vistaPrevia(item) {
       this.cargandoVistaPrevia = true;
@@ -535,7 +804,14 @@ export default {
             Swal.fire({
               title: 'Folios no suficientes',
               text: 'No tienes folios suficientes para generar todas las órdenes pendientes.',
-              icon: 'warning'
+              icon: 'warning',
+              showCancelButton: false,
+              showConfirmButton: false,
+              timer: 2000,
+              timerProgressBar: true,
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              allowEnterKey: false
             });
           }
         } else {
@@ -552,7 +828,14 @@ export default {
           title: 'Acción no permitida',
           text: 'Debe generar la orden para este prospecto antes de enviarlo a emitidas.',
           icon: 'warning',
-          confirmButtonText: 'Entendido'
+          confirmButtonText: 'Entendido',
+          showCancelButton: false,
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          allowEnterKey: false
         });
         return; // Detener la ejecución si no hay orden
       }
@@ -573,11 +856,18 @@ export default {
             id: item.id,
             estatus: 6
           }).then(response => {
-            Swal.fire(
-              '¡Emitida!',
-              'El prospecto ha sido enviado a emitidas.',
-              'success'
-            );
+            Swal.fire({
+              title:'¡Emitida!',
+              text:'El prospecto ha sido enviado a emitidas.',
+              icon:'success',
+              showCancelButton: false,
+              showConfirmButton: false,
+              timer: 2000,
+              timerProgressBar: true,
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              allowEnterKey: false
+            });
             this.mostrar(); // Recargar la tabla para reflejar el cambio
             this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
 
@@ -597,7 +887,7 @@ export default {
             this.prospectosie_no_localizados = this.prospectosie
             .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
             .map(item => ({ ...item }));
-            this.actualizarOrdenesCount(); // Llamar al método para actualizar los conteos de órdenes
+            //this.actualizarOrdenesCount();
           } else if (response.data.error) {
             console.error('Error desde el servidor:', response.data.error);
             Swal.fire('Error', response.data.error, 'error');
@@ -632,7 +922,7 @@ export default {
             calle:calle,
             num_exterior:num_exterior,
             num_interior:num_interior,
-            colonia:prospectoieData.colonia,
+            colonia:colonia,
             cp:prospectoieData.cp,
             localidad:localidad,
             municipio_id:prospectoieData.municipio_id,
@@ -677,8 +967,13 @@ export default {
             icon: 'error',
             title: 'Error',
             text: 'Hubo un error al actualizar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
           });
         })
         .finally(() => {
@@ -853,7 +1148,14 @@ export default {
         }
         console.log('Periodos sincronizados correctamente.');
       } catch (error) {
-        Swal.fire('Error', 'Hubo un problema al sincronizar los periodos: ' + error.message, 'error');
+        Swal.fire({title:'Error', text:'Hubo un problema al sincronizar los periodos: ' + error.message, icon:'error',
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false});
         console.error('Error al sincronizar periodos:', error);
       }
     }

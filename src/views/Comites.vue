@@ -12,21 +12,25 @@
             <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
         </v-col>
       </v-row>
-      <v-row class="mb-4">
-        <!-- Boton exportar Excel -->
-        <v-tooltip top color="green darken-3" v-if="permiso">
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on" @click="exportarExcelConEstilo"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
-          </template>
-          <span>Exportar a Excel</span>
-        </v-tooltip>
-        <!-- Boton recargar  -->
-        <v-tooltip right color="light-blue darken-4">
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
-          </template>
-          <span>Recargar información</span>
-        </v-tooltip>              
+      <v-row class="mb-4" align="center">
+        <v-col class="d-flex align-center">
+          <!-- Boton exportar Excel -->
+          <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'En comite'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
+            <v-tooltip top color="green darken-3">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              </template>
+              <span>Exportar a Excel</span>
+            </v-tooltip>
+          </vue-excel-xlsx>
+          <!-- Boton recargar  -->
+          <v-tooltip right color="light-blue darken-4">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn class="ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
+            </template>
+            <span>Recargar información</span>
+          </v-tooltip>
+        </v-col>            
         <v-spacer></v-spacer>
         <v-col COL="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
@@ -78,7 +82,12 @@
       @cerrar="dialog = false"                      
       @guardar="handleGuardar"
       @update:prospectoieData="updateProspectoie">
-    </form-crear-editar>      
+    </form-crear-editar> 
+    <dialog-antecedente
+      v-model="dialogAntecedente"
+      :antecedentes="antecedentes_listado"
+      title="¿Marcar como no autorizado?"
+      @confirmar="confirmarPendiente"/>     
   </v-container>
 </template>
 
@@ -87,6 +96,7 @@
   import axios from 'axios';
   import * as XLSX from 'xlsx-js-style';
   import FormCrearEditar from '@/components/formCrearEditar.vue';
+  import DialogAntecedente from '@/components/dialogoNoAutorizado.vue';
 
   // var crud = "./backend/crud_prospectosie.php";
   var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
@@ -103,6 +113,8 @@ export default {
   data() {
     return {
       busca: "",
+      dialogAntecedente: false,
+      prospectoSeleccionado: null,
       encabezados: [
         {
           text: "RFC",
@@ -194,6 +206,7 @@ export default {
   },
   components:{
     FormCrearEditar,
+    DialogAntecedente 
   },
   created() {
     this.obtenerPermisos();
@@ -206,25 +219,50 @@ export default {
     this.obtienemunicipios()
   },
  methods: {
-    exportarExcelConEstilo() {      
+    confirmarPendiente({ antecedente_id, observaciones }) {
+      if (!this.prospectoSeleccionado) return;
+
+      axios.post(crud, {
+        opcion: 5,
+        id: this.prospectoSeleccionado.id,
+        estatus: 7,
+        antecedente_id,
+        observaciones
+      })
+      .then(() => {
+        this.$swal(
+          '¡Hecho!',
+          'El prospecto se ha cambiado al estatus pendiente.',
+          'success'
+        );
+        this.mostrar();
+      })
+      .catch(error => {
+        this.$swal(
+          'Error',
+          'No se pudo actualizar el estatus.',
+          'error'
+        );
+        console.error(error);
+      })
+      .finally(() => {
+        this.prospectoSeleccionado = null;
+      });
+    },
+    exportarExcelConEstilo() {
       // Filtrar los prospectos para incluir solo aquellos con estatus 4
       const prospectosFiltrados = this.prospectosie.filter(p => Number(p.estatus) === 4);
+      const cruceData = prospectosFiltrados.filter(p => Number(p.origen_id) === 0);
+      const prospectoData = prospectosFiltrados.filter(p => Number(p.origen_id) === 1);
 
       const wb = XLSX.utils.book_new();
 
-      // --- Hoja 1: CRUCE ---
-      // 1.a. Definir los estilos para la primera hoja
+      // --- Estilos ---
       const border = {
         top: { style: 'thin', color: { rgb: "000000" } },
         bottom: { style: 'thin', color: { rgb: "000000" } },
         left: { style: 'thin', color: { rgb: "000000" } },
         right: { style: 'thin', color: { rgb: "000000" } }
-      };
-      const subHeaderStyleborder = {
-        top: { style: 'thick', color: { rgb: "000000" } },
-        bottom: { style: 'thick', color: { rgb: "000000" } },
-        left: { style: 'thick', color: { rgb: "000000" } },
-        right: { style: 'thick', color: { rgb: "000000" } }
       };
       const titleStyle = {
         font: { bold: true, sz: 18 },
@@ -249,58 +287,123 @@ export default {
         numFmt: "$#,##0.00"
       };
 
-      // 1.b. Preparar los datos y encabezados para la primera hoja
+      // --- Hoja 1: CRUCE (con secciones CRUCE / PROSPECTO) ---
       const title = "LISTADO DE CRUCE DE ORDENES DE VISITAS DE IMPUESTOS ESTATALES";
       const headers = ["No.", "R.F.C.", "NOMBRE DEL CONTRIBUYENTE", "MÉTODO\nPROPUESTO", "PERIODO", "IMPUESTOS", "MUNICIPIO", "PRESUNTIVA", "REPRESENTANTE\nLEGAL"];
-      
-      const data = prospectosFiltrados.map((item, index) => {
-        const impuesto = item.impuesto || '';
-        const metodoPropuesto = !impuesto.startsWith('M-') ? 'VISITA' : 'CARTA';
-        return [ // Se cambia 'const row =' por 'return' para asegurar que siempre se devuelva un array
-          { v: index + 1, s: dataStyleCenter },
-          { v: item.rfc, s: dataStyleLeft },
-          { v: item.nombre, s: dataStyleLeft },
-          { v: metodoPropuesto, s: dataStyleCenter }, // Se usa la variable correcta
-          { v: item.periodos, s: dataStyleCenter },
-          { v: item.impuesto, s: dataStyleCenter },
-          { v: item.municipio_descripcion || item.localidad, s: dataStyleCenter },
-          { v: Number(item.determinado), t: 'n', s: dataStyleCurrency },
-          { v: item.representante_legal, s: dataStyleLeft }
-        ];
-      });
 
-      // 1.c. Crear la hoja de cálculo con el título y encabezados
-      const ws_data = [
-        [{v: title, s: titleStyle}],
-        headers,
-        ...data
-      ];
+      // Generador de filas con estilos (debe definirse antes de usar)
+      const generarFilas = (lista, startIndex = 1) => {
+        return lista.map((item, index) => {
+          const impuesto = item.impuesto || '';
+          const metodoPropuesto = !impuesto.startsWith('M-') ? 'VISITA' : 'CARTA';
+
+          return [
+            { v: startIndex + index, s: dataStyleCenter },
+            { v: item.rfc || '', s: dataStyleLeft },
+            { v: item.nombre || '', s: dataStyleLeft },
+            { v: metodoPropuesto, s: dataStyleCenter },
+            { v: item.periodos || '', s: dataStyleCenter },
+            { v: item.impuesto || '', s: dataStyleCenter },
+            { v: item.municipio_estado || '', s: dataStyleCenter },
+            { v: Number(item.determinado) || 0, t: 'n', s: dataStyleCurrency },
+            { v: item.representante_legal || '', s: dataStyleLeft }
+          ];
+        });
+      };
+
+      // Construir ws_data y registrar índices de filas de encabezado/ títulos para aplicar estilos/merges
+      const ws_data = [];
+      const headerRowIndexes = []; // filas donde están los headers (0-indexed)
+      const sectionTitleRows = []; // filas con 'CRUCE' y 'PROSPECTO' (para merges)
+
+      let currentRow = 0;
+
+      // 0) Título general
+      ws_data.push([{ v: title, s: titleStyle }]);
+      const titleRow = currentRow;
+      currentRow++;
+
+      // ===== SECCIÓN CRUCE =====
+      ws_data.push([{ v: 'CRUCE', s: titleStyle }]);
+      sectionTitleRows.push(currentRow);
+      currentRow++;
+
+      ws_data.push(headers);
+      headerRowIndexes.push(currentRow);
+      currentRow++;
+
+      const filasCruce = generarFilas(cruceData, 1);
+      filasCruce.forEach(r => { ws_data.push(r); currentRow++; });
+
+      // fila en blanco separadora
+      ws_data.push([]);
+      currentRow++;
+
+      // ===== SECCIÓN PROSPECTO =====
+      ws_data.push([{ v: 'PROSPECTO', s: titleStyle }]);
+      sectionTitleRows.push(currentRow);
+      currentRow++;
+
+      ws_data.push(headers);
+      headerRowIndexes.push(currentRow);
+      currentRow++;
+
+      const filasProspecto = generarFilas(prospectoData, 1);
+      filasProspecto.forEach(r => { ws_data.push(r); currentRow++; });
+
+      // Crear hoja
       const ws1 = XLSX.utils.aoa_to_sheet(ws_data);
 
+      // --- Merges: título general y títulos de sección (abarcan todas las columnas) ---
       if (!ws1['!merges']) ws1['!merges'] = [];
-      ws1['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } });
-
-      const range = XLSX.utils.decode_range(ws1['!ref']);
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell_address = XLSX.utils.encode_cell({ r: 1, c: C });
-        if (ws1[cell_address]) ws1[cell_address].s = subHeaderStyle;
-      }
-
-      const colWidths = headers.map((header, i) => {
-        let max = header.length;
-        data.forEach(row => {
-          const cellValue = row[i].v;
-          if (cellValue != null) {
-            max = Math.max(max, String(cellValue).length);
-          }
-        });
-        return { wch: max + 2 }; // Añadir un pequeño padding
+      const lastColIndex = headers.length - 1;
+      // Título general
+      ws1['!merges'].push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: lastColIndex } });
+      // Secciones
+      sectionTitleRows.forEach(rIdx => {
+        ws1['!merges'].push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: lastColIndex } });
       });
-      ws1['!cols'] = colWidths;
+
+      // --- Aplicar estilo a filas de encabezado (gris) ---
+      headerRowIndexes.forEach(rowIdx => {
+        for (let c = 0; c <= lastColIndex; c++) {
+          const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+          if (!ws1[addr]) {
+            // si no existe, crear celda vacía con estilo
+            ws1[addr] = { v: '', t: 's', s: subHeaderStyle };
+          } else {
+            ws1[addr].s = subHeaderStyle;
+          }
+        }
+      });
+
+      // --- Calcular anchos de columna basados en ws_data ---
+      const colCount = headers.length;
+      const colWidths = new Array(colCount).fill(0);
+      ws_data.forEach(row => {
+        for (let c = 0; c < colCount; c++) {
+          const cell = row[c];
+          let text = '';
+          if (cell == null) text = '';
+          else if (typeof cell === 'object' && cell.v !== undefined) text = String(cell.v);
+          else text = String(cell);
+          colWidths[c] = Math.max(colWidths[c], text.length);
+        }
+      });
+      ws1['!cols'] = colWidths.map((w, i) => {
+        // Columna No. (índice 0) → ancho fijo
+        if (i === 0) {
+          return { wch: 6 };
+        }
+        return { wch: Math.min(Math.max(w + 2, 10), 50) };
+      });
+
+      // Page setup horizontal
+      ws1['!pageSetup'] = { orientation: 'landscape' };
 
       XLSX.utils.book_append_sheet(wb, ws1, "CRUCE");
 
-      // --- Hoja 2: PROSPECTOS (Agrupados) ---
+      // --- Hoja 2: PRE-APROBADA / Agrupados (la conservé igual que la tuya) ---
       const getProspectoGroupKey = (prospecto) => {
         const fuente = prospecto.fuente_descripcion || '';
         const impuesto = prospecto.impuesto || '';
@@ -320,107 +423,93 @@ export default {
 
       const prospectosAgrupados = prospectosFiltrados.reduce((acc, prospecto) => {
         const groupKey = getProspectoGroupKey(prospecto);
-        if (!acc[groupKey]) {
-          acc[groupKey] = [];
-        }
+        if (!acc[groupKey]) acc[groupKey] = [];
         acc[groupKey].push(prospecto);
         return acc;
       }, {});
 
       const ws2 = XLSX.utils.aoa_to_sheet([]);
-      let currentRow = 0;
-
+      let currentRow2 = 0;
       const headers2 = ["No.", "R.F.C.", "NOMBRE DEL CONTRIBUYENTE", "CALLE Y No.", "COLONIA", "C.P. Y MUNICIPIO", "PERIODO", "ANTECEDENTE", "PRESUNTIVA", "MUNICIPIO", "FUENTE", "PROGRAMADOR", "REPRESENTANTE LEGAL"];
-      // Ordenar las claves de grupo (los títulos) basándose en el impuesto_id del primer elemento de cada grupo.
-      const sortedGroupKeys = Object.keys(prospectosAgrupados).sort((keyA, keyB) => {
-        let firstItemA = undefined;
-        let firstItemB = undefined;
 
-        // Asegurarse de que el grupo existe, es un array y no está vacío antes de intentar acceder a su primer elemento
-        if (prospectosAgrupados[keyA] && Array.isArray(prospectosAgrupados[keyA]) && prospectosAgrupados[keyA].length > 0) {
-          firstItemA = prospectosAgrupados[keyA][0];
-        }
-        if (prospectosAgrupados[keyB] && Array.isArray(prospectosAgrupados[keyB]) && prospectosAgrupados[keyB].length > 0) {
-          firstItemB = prospectosAgrupados[keyB][0];
-        }
-
-        const idA = (firstItemA && firstItemA.impuesto_id !== undefined) ? Number(firstItemA.impuesto_id) : Infinity;
-        const idB = (firstItemB && firstItemB.impuesto_id !== undefined) ? Number(firstItemB.impuesto_id) : Infinity;
-
+      const sortedGroupKeys = Object.keys(prospectosAgrupados).sort((a, b) => {
+        const aFirst = prospectosAgrupados[a] && prospectosAgrupados[a][0];
+        const bFirst = prospectosAgrupados[b] && prospectosAgrupados[b][0];
+        const idA = aFirst && aFirst.impuesto_id !== undefined ? Number(aFirst.impuesto_id) : Infinity;
+        const idB = bFirst && bFirst.impuesto_id !== undefined ? Number(bFirst.impuesto_id) : Infinity;
         return idA - idB;
       });
 
       sortedGroupKeys.forEach(groupKey => {
-        const prospectosDelGrupo = prospectosAgrupados[groupKey];
-
-        // 1. Agregar Título del Grupo (una sola línea)
-        currentRow++;
-        const groupTitle = [{ v: groupKey, s: titleStyle }];
-        XLSX.utils.sheet_add_aoa(ws2, [groupTitle], { origin: `A${currentRow + 1}` });
+        const group = prospectosAgrupados[groupKey];
+        // título del grupo
+        currentRow2++;
+        XLSX.utils.sheet_add_aoa(ws2, [[{ v: groupKey, s: titleStyle }]], { origin: `A${currentRow2}` });
         if (!ws2['!merges']) ws2['!merges'] = [];
-        ws2['!merges'].push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: headers2.length - 1 } });
-        currentRow++;
+        ws2['!merges'].push({ s: { r: currentRow2 - 1, c: 0 }, e: { r: currentRow2 - 1, c: headers2.length - 1 } });
+        currentRow2++;
 
-        // 2. Agregar Encabezados de la tabla
-        XLSX.utils.sheet_add_aoa(ws2, [headers2], { origin: `A${currentRow + 1}` });
+        // encabezado
+        XLSX.utils.sheet_add_aoa(ws2, [headers2], { origin: `A${currentRow2}` });
         for (let C = 0; C < headers2.length; C++) {
-          const cell_address = XLSX.utils.encode_cell({ r: currentRow, c: C });
-          if (ws2[cell_address]) ws2[cell_address].s = subHeaderStyle;
+          const addr = XLSX.utils.encode_cell({ r: currentRow2 - 1, c: C });
+          if (ws2[addr]) ws2[addr].s = subHeaderStyle;
         }
-        currentRow++;
+        currentRow2++;
 
-        // 3. Agregar datos del grupo
-        const dataGrupo = prospectosDelGrupo.map((item, index) => [
-          { v: index + 1, s: dataStyleCenter },
-          { v: item.rfc, s: dataStyleLeft },
-          { v: item.nombre, s: dataStyleLeft },
+        // filas
+        const filas = group.map((item, idx) => ([
+          { v: idx + 1, s: dataStyleCenter },
+          { v: item.rfc || '', s: dataStyleLeft },
+          { v: item.nombre || '', s: dataStyleLeft },
           { v: `${item.calle || ''} ${item.num_exterior || ''}`.trim(), s: dataStyleLeft },
-          { v: item.colonia, s: dataStyleLeft },
-          { v: `${item.cp || ''} ${item.localidad || ''} ${item.municipio_descripcion || ''} ${'SINALOA' || ''}`.trim(), s: dataStyleCenter },
-          { v: item.periodos, s: dataStyleCenter },
-          { v: item.antecedente_descripcion, s: dataStyleLeft },
-          { v: Number(item.determinado), t: 'n', s: dataStyleCurrency },
-          { v: `${item.localidad || ''} ${item.municipio_descripcion || ''} ${'SINALOA' || ''}`.trim(), s: dataStyleLeft },
-          { v: item.fuente_descripcion, s: dataStyleLeft },
-          { v: item.fuente_descripcion, s: dataStyleLeft },
-          { v: item.programador_descripcion, s: dataStyleLeft },
-          { v: item.representante_legal, s: dataStyleLeft }
-        ]);
-
-        XLSX.utils.sheet_add_aoa(ws2, dataGrupo, { origin: `A${currentRow + 1}` });
-        currentRow += dataGrupo.length;
-        currentRow++; // Fila en blanco para separar tablas
+          { v: item.colonia || '', s: dataStyleLeft },
+          { v: `${item.cp || ''} ${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim(), s: dataStyleCenter },
+          { v: item.periodos || '', s: dataStyleCenter },
+          { v: item.antecedente_descripcion || '', s: dataStyleLeft },
+          { v: Number(item.determinado) || 0, t: 'n', s: dataStyleCurrency },
+          { v: `${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim(), s: dataStyleLeft },
+          { v: item.fuente_descripcion || '', s: dataStyleLeft },
+          { v: item.programador_descripcion || '', s: dataStyleLeft },
+          { v: item.representante_legal || '', s: dataStyleLeft }
+        ]));
+        XLSX.utils.sheet_add_aoa(ws2, filas, { origin: `A${currentRow2}` });
+        currentRow2 += filas.length;
+        currentRow2++; // separador
       });
 
-      // Lógica simplificada y corregida para calcular el ancho de las columnas
-      const colWidths2 = headers2.map((header, colIndex) => {
-        const headerWidth = (header || '').length;
-        const dataWidths = prospectosFiltrados.map(item => {
-            switch (colIndex) {
-                case 0: return 5; // No.
-                case 1: return (item.rfc || '').length;
-                case 2: return (item.nombre || '').length;
-                case 3: return (`${item.calle || ''} ${item.num_exterior || ''}`.trim()).length;
-                case 4: return (item.colonia || '').length;
-                case 5: return (`${item.cp || ''} ${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim()).length;
-                case 6: return (item.periodos || '').length;
-                case 7: return (item.antecedente_descripcion || '').length;
-                case 8: return (String(item.determinado) || '').length;
-                case 9: return (`${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim()).length;
-                case 10: return (item.fuente_descripcion || '').length;
-                case 11: return (item.programador_descripcion || '').length;
-                case 12: return (item.representante_legal || '').length;
-                default: return 0;
-            }
+      // Col widths for ws2 (simple heuristic)
+      const colWidths2 = headers2.map((h, ci) => {
+        let max = (h || '').length;
+        prospectosFiltrados.forEach(item => {
+          let len = 0;
+          switch (ci) {
+            case 0: len = 5; break;
+            case 1: len = (item.rfc || '').length; break;
+            case 2: len = (item.nombre || '').length; break;
+            case 3: len = (`${item.calle || ''} ${item.num_exterior || ''}`.trim()).length; break;
+            case 4: len = (item.colonia || '').length; break;
+            case 5: len = (`${item.cp || ''} ${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim()).length; break;
+            case 6: len = (item.periodos || '').length; break;
+            case 7: len = (item.antecedente_descripcion || '').length; break;
+            case 8: len = (String(item.determinado) || '').length; break;
+            case 9: len = (`${item.localidad || ''} ${item.municipio_descripcion || ''} SINALOA`.trim()).length; break;
+            case 10: len = (item.fuente_descripcion || '').length; break;
+            case 11: len = (item.programador_descripcion || '').length; break;
+            case 12: len = (item.representante_legal || '').length; break;
+            default: len = 0;
+          }
+          if (len > max) max = len;
         });
-        const maxWidth = Math.max(headerWidth, ...dataWidths);
-        return { wch: maxWidth + 2 };
+        return { wch: Math.min(Math.max(max + 2, 8), 60) };
       });
       ws2['!cols'] = colWidths2;
+      ws2['!pageSetup'] = { orientation: 'landscape' };
 
       XLSX.utils.book_append_sheet(wb, ws2, "PRE-APROBADA");
 
-      XLSX.writeFile(wb, "LISTADO DE CRUCE DE ORDENES DE IMPUESTOS ESTATALES.xlsx");
+      // Guardar archivo
+      XLSX.writeFile(wb, "LISTADO DE CRUCE DE ORDENES DE IMPUESTOS_ESTATALES.xlsx");
     },
     async obtenerPermisos() {
       try {
@@ -453,44 +542,36 @@ export default {
             id: item.id,
             estatus: 5
           }).then(response => {
-            Swal.fire(
-              '¡Autorizado!',
-              'El prospecto ha sido autorizado.',
-              'success'
-            );
+            Swal.fire({
+              title:'¡Autorizado!',
+              text:'El prospecto ha sido autorizado.',
+              icon:'success',
+              showCancelButton: false,
+              showConfirmButton: false,
+              timer: 2000,
+              timerProgressBar: true,
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              allowEnterKey: false
+            });
             this.mostrar(); // Recargar la tabla para reflejar el cambio
           }).catch(error => {
-            Swal.fire('Error', 'No se pudo autorizar el prospecto.', 'error');
+            Swal.fire({title:'Error', text:'No se pudo autorizar el prospecto.', icon:'error',
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false});
             console.error("Error al cambiar estatus:", error);
           });
         }
       });
     },
     prospectoPendiente: function (item) {
-      Swal.fire({
-        title: '¿Marcar como no autorizado?',
-        text: "Esta acción cambiará el estatus del prospecto a pendiente.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Aceptar',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          axios.post(crud, {
-            opcion: 5, // Opción para actualizar solo el estatus
-            id: item.id,
-            estatus: 7
-          }).then(response => {
-            Swal.fire('¡Hecho!', 'El prospecto ha sido marcado como pendiente.', 'success');
-            this.mostrar(); // Recargar la tabla para reflejar el cambio
-          }).catch(error => {
-            Swal.fire('Error', 'No se pudo actualizar el prospecto.', 'error');
-            console.error("Error al cambiar estatus:", error);
-          });
-        }
-      });
+      this.prospectoSeleccionado = item;
+      this.dialogAntecedente = true;
     },
     mostrar: function () {
       axios
@@ -547,7 +628,7 @@ export default {
             calle:calle,
             num_exterior:num_exterior,
             num_interior:num_interior,
-            colonia:prospectoieData.colonia,
+            colonia:colonia,
             cp:prospectoieData.cp,
             localidad:localidad,
             municipio_id:prospectoieData.municipio_id,
@@ -585,8 +666,13 @@ export default {
             icon: 'error',
             title: 'Error',
             text: 'Hubo un error al actualizar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
           });
         })
         .finally(() => {
@@ -617,7 +703,7 @@ export default {
         } else if (result.isDenied) {
           Swal.fire(
             "¡Error!",
-            "No se pudos eliminar el prospecto",
+            "No se pudo eliminar el prospecto",
             "error"
           );
         }

@@ -18,7 +18,7 @@
                 <!-- RFC -->
                 <v-col class="my-0 py-0" cols="12" md="3">
                   <v-text-field maxlength="13" minlength="12" class="my-0 py-0 mayusculas" v-model="prospectoie.rfc"
-                    label="RFC" outlined :readonly="operacion=='editar' && esUsuarioNivel1()" dense ref="rfc"></v-text-field>
+                    label="RFC" outlined :readonly="operacion=='editar' && esUsuarioNivel1()" dense @keydown="nobloquearBasicos" @input="limpiarRFC" ref="rfc"></v-text-field>
                 </v-col>
                 <!-- Boton buscar -->
                 <v-col class="my-0 py-0" cols="12" md="1">
@@ -27,31 +27,31 @@
                 </v-col>
                 <!-- Nombre -->
                 <v-col class="my-0 py-0" cols="12" md="8">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" label="Nombre" outlined maxlength="300" dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" @blur="prospectoie.nombre = prospectoie.nombre?.trim()" label="Nombre" outlined maxlength="300" dense></v-text-field>
                 </v-col>
                 <!-- Calle -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" @blur="prospectoie.calle = prospectoie.calle?.trim()" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense></v-text-field>
                 </v-col>
                 <!-- Numero exterior -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_exterior" label="No. exterior" maxlength="250" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_exterior" nombre label="No. exterior" maxlength="250" outlined dense></v-text-field>
                 </v-col>
                 <!-- Numero interior -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" label="No. interior" maxlength="250" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" @blur="prospectoie.num_interior = prospectoie.num_interior?.trim()" label="No. interior" maxlength="250" outlined dense></v-text-field>
                 </v-col>
                 <!-- Colonia -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" label="Colonia" maxlength="150" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" @blur="prospectoie.colonia = prospectoie.colonia?.trim()" label="Colonia" maxlength="150" outlined dense></v-text-field>
                 </v-col>
                 <!-- CP -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-text-field class="my-0 py-0" v-model="prospectoie.cp" label="C.P." outlined maxlength="5" minlength="5" dense type="number"></v-text-field>
+                  <v-text-field class="my-0 py-0" v-model="prospectoie.cp" @blur="prospectoie.cp = prospectoie.cp?.trim()" label="C.P." outlined maxlength="5" minlength="5" dense type="number"></v-text-field>
                 </v-col>
                 <!-- Localidad -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" label="Localidad" maxlength="100" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" @blur="prospectoie.localidad = prospectoie.localidad?.trim()" label="Localidad" maxlength="100" outlined dense></v-text-field>
                 </v-col>
                 <!-- Municipio -->
                 <v-col class="my-0 py-0" cols="12" md="3">
@@ -74,7 +74,7 @@
                   </v-tooltip>
                 </v-col>
                 <v-col class="my-0 py-0" cols="12" md="5" >
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" label="Periodos" outlined dense readonly></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" @blur="prospectoie.periodos = prospectoie.periodos?.trim()" label="Periodos" outlined dense readonly></v-text-field>
                 </v-col>
                 <!-- Antecedentes -->
                 <v-col class="my-0 py-0" cols="12" md="6">
@@ -124,7 +124,7 @@
                 </v-col>
                 <!-- Representante Legal -->
                 <v-col v-if="prospectoie.rfc && prospectoie.rfc.length === 12" class="my-0 py-0" cols="12" md="10">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" label="Representante Legal" item-text="" outlined maxlengt></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" @blur="prospectoie.representante_legal = prospectoie.representante_legal?.trim()" label="Representante Legal" item-text="" outlined maxlengt></v-text-field>
                 </v-col>
                 <!-- Origen -->
                 <v-col class="my-0 py-0" cols="12" md="2">
@@ -132,7 +132,7 @@
                 </v-col>
                 <!-- Observaciones -->
                 <v-col class="my-0 py-0" cols="12" md="10">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" label="Observaciones" item-text="" outlined  maxlength="200"dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" @blur="prospectoie.observaciones = prospectoie.observaciones?.trim()" label="Observaciones" item-text="" outlined  maxlength="200"dense></v-text-field>
                 </v-col>
               </v-row>
             </v-container>
@@ -140,8 +140,8 @@
           <v-divider></v-divider>
           <v-card-actions class="grey lighten-2 py-2">
             <v-spacer></v-spacer>
-            <v-btn v-if="mostrarBotonSupervisor && Number(prospectoie.estatus) === 1" class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor()" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
-            <v-btn class="my-1 ma-2 py-1" color="success" @click="validar()" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
+            <v-btn v-if="mostrarBotonSupervisor && Number(prospectoie.estatus) === 1" class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
+            <v-btn class="my-1 ma-2 py-1" color="success" @click="validar(false)" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
             <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
           </v-card-actions>
         </v-form>
@@ -261,6 +261,14 @@ export default {
     }
   },
   watch: {
+    value(val) {
+      if (val) {
+        this.periodosParaAgregar = [{
+          inicio: '',
+          fin: ''
+        }];
+      }
+    },
     // Cuando el diálogo se abre, copia los datos del prop al estado local.
     dialog(val) {
       if (val) { // Si el diálogo se abre
@@ -317,6 +325,25 @@ export default {
     
   },
   methods: {
+    nobloquearBasicos(e) {
+      // Permitir teclas especiales
+      const permitidas = [
+        'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'
+      ];
+      if (permitidas.includes(e.key)) return;
+
+      // Solo letras y números
+      if (!/^[a-zA-Z0-9]$/.test(e.key)) {
+        e.preventDefault(); // ⛔ bloquea el .
+      }
+    },
+    limpiarRFC() {
+      if (this.prospectoie.rfc) {
+        this.prospectoie.rfc = this.prospectoie.rfc
+          .toUpperCase()              // Opcional: forzar mayúsculas
+          .replace(/[^A-Z0-9]/g, ''); // Solo letras y números
+      }
+    },
     esUsuarioNivel1() {
       const idUsuario = Number(localStorage.getItem('id'));
       if (!idUsuario || !this.programadoresListado) return false;
@@ -358,7 +385,7 @@ export default {
         });
     },
     // Lógica de validación
-    async validar() {
+    async validar(esSupervisor = false) {
       var errores=0;
       var textoMostrar='';
       // Validaciones
@@ -370,27 +397,28 @@ export default {
           textoMostrar = 'El RFC debe tener entre 12 y 13 caracteres';
           errores = 2;
       }
-      if ((this.prospectoie.fuente_id===null || this.prospectoie.fuente_id==="") || 
-        this.prospectoie.rfc.length===12 && (this.prospectoie.representante_legal===null || this.prospectoie.representante_legal==="") ||
-        this.prospectoie.nombre===null || this.prospectoie.nombre==="" ||
-        this.prospectoie.calle===null || this.prospectoie.calle==="" ||
-        this.prospectoie.num_exterior===null || this.prospectoie.num_exterior==="" ||
-        this.prospectoie.localidad===null || this.prospectoie.localidad==="" ||
-        this.prospectoie.municipio_id===null || this.prospectoie.municipio_id==="" ||
-        this.prospectoie.oficina_id===null || this.prospectoie.oficina_id==="" ||
-        this.prospectoie.periodos===null || this.prospectoie.periodos==="" ||
-        this.prospectoie.antecedente_id===null || this.prospectoie.antecedente_id==="" ||
-        this.prospectoie.giro===null || this.prospectoie.giro==="" ||
-        this.prospectoie.impuesto_id===null || this.prospectoie.impuesto_id==="" ||
-        this.prospectoie.determinado===null || this.prospectoie.determinado==="" ||
-        this.prospectoie.programador_id===null //FLA-quité num_int y colonia porque no siempre hay esos 2 campos
+      if (
+        (this.prospectoie.fuente_id === null || this.prospectoie.fuente_id === "") || 
+        (this.prospectoie.rfc.length === 12 && (this.prospectoie.representante_legal === null || this.prospectoie.representante_legal === "")) ||
+        this.prospectoie.nombre === null || this.prospectoie.nombre === "" ||
+        this.prospectoie.calle === null || this.prospectoie.calle === "" ||
+        ((this.prospectoie.localidad === null || this.prospectoie.localidad === "") &&
+          (this.prospectoie.colonia === null || this.prospectoie.colonia === "")) ||
+        this.prospectoie.municipio_id === null || this.prospectoie.municipio_id === "" ||
+        this.prospectoie.oficina_id === null || this.prospectoie.oficina_id === "" ||
+        this.prospectoie.periodos === null || this.prospectoie.periodos === "" ||
+        this.prospectoie.antecedente_id === null || this.prospectoie.antecedente_id === "" ||
+        this.prospectoie.giro === null || this.prospectoie.giro === "" ||
+        this.prospectoie.impuesto_id === null || this.prospectoie.impuesto_id === "" ||
+        this.prospectoie.determinado === null || this.prospectoie.determinado === "" ||
+        this.prospectoie.programador_id === null
       ) {
         textoMostrar='Es necesario llenar toda la información';
         errores=3;
       }
       if (errores>0) {
         await Swal.fire({  
-          position: 'center',  
+          position: 'center',
           icon: 'warning',  
           titleText: 'Datos incompletos',
           text: textoMostrar,
@@ -402,14 +430,17 @@ export default {
           this.$refs.rfc.focus();
           return;
       }else{
+        if (esSupervisor) {
+          // Si la validación es para el supervisor, cambia el estatus aquí.
+          this.prospectoie.estatus = 2;
+        }
         this.$emit('guardar', this.prospectoie, this.periodosParaAgregar);
       this.cerrar();
       }
       
     },
     async validar_supervisor() {
-      this.prospectoie.estatus = 2;
-      await this.validar();
+      await this.validar(true);
     },
     cerrar() {
       this.$emit('cerrar');

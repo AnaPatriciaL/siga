@@ -12,39 +12,41 @@
             <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
         </v-col>
       </v-row>
-      <v-row class="mb-4">
-        <!-- Boton Nuevo -->
-        <v-tooltip top color="pink darken-4">
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn class="mt-2" color="pink darken-4" fab dark @click="formNuevo()" v-bind="attrs" v-on="on"><v-icon large>mdi-plus-thick</v-icon></v-btn>
-          </template>
-          <span>Generar Nuevo Prospecto</span>
-        </v-tooltip>
-       <!-- Boton exportar Excel -->
-        <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
-          <v-tooltip top color="green darken-3">
+      <v-row class="mb-4" align="center">
+        <v-col class="d-flex align-center">
+          <!-- Boton Nuevo -->
+          <v-tooltip top color="pink darken-4">
             <template v-slot:activator="{ on, attrs }">
-              <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              <v-btn color="pink darken-4" fab dark @click="formNuevo()" v-bind="attrs" v-on="on"><v-icon large>mdi-plus-thick</v-icon></v-btn>
             </template>
-            <span>Exportar a Excel</span>
+            <span>Generar Nuevo Prospecto</span>
           </v-tooltip>
-        </vue-excel-xlsx>
-        <!-- Boton recargar  -->
-        <v-tooltip right color="light-blue darken-4">
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
-          </template>
-          <span>Recargar información</span>
-        </v-tooltip>
-        <!-- Boton exportar No localizados -->
-        <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
-          <v-tooltip top color="pink accent-3">
+         <!-- Boton exportar Excel -->
+          <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie" :columns="columnas" :file-name="'Consultas IE'" :file-type="'xlsx'" :sheet-name="'ConsultasIE'">
+            <v-tooltip top color="green darken-3">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+              </template>
+              <span>Exportar a Excel</span>
+            </v-tooltip>
+          </vue-excel-xlsx>
+          <!-- Boton recargar  -->
+          <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
-              <v-btn fab class="pink accent-3 ml-3 mt-2" dark v-bind="attrs" v-on="on"><v-icon large>mdi-map-marker-remove</v-icon></v-btn>
+              <v-btn class="ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
             </template>
-            <span>Exportar a Excel No Localizados</span>
+            <span>Recargar información</span>
           </v-tooltip>
-        </vue-excel-xlsx>
+          <!-- Boton exportar No localizados -->
+          <vue-excel-xlsx v-if="esUsuarioNivel0()" :data="prospectosie_no_localizados" :columns="columnas" :file-name="'Prospectos IE - NO Localizados'" :file-type="'xlsx'" :sheet-name="'ProspectosIE-No-Localizados'">
+            <v-tooltip top color="pink accent-3">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn fab class="pink accent-3 ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-map-marker-remove</v-icon></v-btn>
+              </template>
+              <span>Exportar a Excel No Localizados</span>
+            </v-tooltip>
+          </vue-excel-xlsx>
+        </v-col>
         <v-spacer></v-spacer>
         <v-col COL="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
@@ -304,32 +306,41 @@ export default {
               observaciones:observaciones,
               estatus:prospectoieData.estatus
       })
-      .then(response =>{
-        console.log("esto regresa al creae",response.data);
-        Swal.fire({
-          title: "Exito",
-          text: "La información fue guardada satisfactoriamente",
-          icon: 'success',
-          showCancelButton: false,
-          showConfirmButton:false,
-          timer:2000,
-          timerProgressBar: true,
-          allowOutsideClick: false, // Bloquea clics fuera del diálogo
-          allowEscapeKey: false, // Bloquea la tecla de escape
-          allowEnterKey: false // Bloquea la tecla enter
-        })
-        // Asumiendo que el backend devuelve el ID del nuevo prospecto
-        if (response.data && response.data.id && periodosParaAgregar) {
-          this.sincronizarPeriodosDetalle(response.data.id, periodosParaAgregar);
-        }        
+      .then(response => {
+        if (response.data.success === false) {
+          // Manejar el error de RFC duplicado enviado desde el backend
+          Swal.fire('Error al crear', response.data.mensaje, 'error');
+        } else {
+          // Flujo de éxito existente
+          Swal.fire({
+            title: "Éxito",
+            text: "La información fue guardada satisfactoriamente",
+            icon: 'success',
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
+          });
+          if (response.data && response.data.id && periodosParaAgregar) {
+            this.sincronizarPeriodosDetalle(response.data.id, periodosParaAgregar);
+          }
+        }
       })
       .catch(error => {
           Swal.fire({
             icon: 'error',
             title: 'Error',
             text: 'Hubo un error al guardar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
           });
       })
       .finally(() => {
@@ -366,7 +377,7 @@ export default {
             calle:calle,
             num_exterior:num_exterior,
             num_interior:num_interior,
-            colonia:prospectoieData.colonia,
+            colonia:colonia,
             cp:prospectoieData.cp,
             localidad:localidad,
             municipio_id:prospectoieData.municipio_id,
@@ -404,8 +415,13 @@ export default {
             icon: 'error',
             title: 'Error',
             text: 'Hubo un error al actualizar los datos: ' + error.message,
-            confirmButtonText: 'OK',
-            confirmButtonAriaLabel: 'OK'
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
           });
         })
         .finally(() => {
@@ -589,7 +605,6 @@ export default {
             });
           }
         }
-        console.log('Periodos sincronizados correctamente.');
       } catch (error) {
         Swal.fire('Error', 'Hubo un problema al sincronizar los periodos: ' + error.message, 'error');
         console.error('Error al sincronizar periodos:', error);
