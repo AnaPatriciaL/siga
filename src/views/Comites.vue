@@ -15,21 +15,19 @@
       <v-row class="mb-4" align="center">
         <v-col class="d-flex align-center">
           <!-- Boton exportar Excel -->
-          <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'En comite'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
-            <v-tooltip top color="green darken-3">
-              <template v-slot:activator="{ on, attrs }">
-                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
-              </template>
-              <span>Exportar a Excel</span>
-            </v-tooltip>
-          </vue-excel-xlsx>
+          <v-tooltip top color="green darken-3" v-if="permiso">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on" @click="exportarExcelConEstilo"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+            </template>
+            <span>Exportar a Excel</span>
+          </v-tooltip>
           <!-- Boton recargar  -->
           <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
-              <v-btn class="ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
+              <v-btn class="mt-2 ml-3" color="light-blue darken-4" fab dark @click="mostrar()" v-bind="attrs" v-on="on"><v-icon large>mdi-refresh</v-icon></v-btn>
             </template>
             <span>Recargar información</span>
-          </v-tooltip>
+          </v-tooltip>  
         </v-col>            
         <v-spacer></v-spacer>
         <v-col COL="6">
