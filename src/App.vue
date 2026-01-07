@@ -139,15 +139,13 @@ export default {
 
         const data = JSON.parse(responseText);
         
-       // const data = await response.json();
-        
         if (!data || typeof data !== "object") {
           throw new Error("La respuesta del servidor no es un JSON válido.");
         }
 
         if (data.success) {
           // Ordenar el menú por el campo 'orden'
-          const menuOrdenado = data.data.sort((a, b) => {
+          const menuOrdenado = [...data.data].sort((a, b) => {
             return Number(a.orden) - Number(b.orden);
           });
           this.opcionesMenu = menuOrdenado;
@@ -156,7 +154,7 @@ export default {
         }
       } catch (error) {
         console.error("Error al cargar las opciones del menú:", error.message);
-        Swal.fire("Error", "No se pudieron cargar las opciones del menú. Intente nuevamente.", "error");
+        Swal.fire("Error", `No se pudieron cargar las opciones del menú: ${error.message}`, "error");
       }
     },
    
@@ -171,19 +169,21 @@ export default {
       localStorage.removeItem("id");
       localStorage.removeItem("token");
       localStorage.removeItem("nombre");
+      localStorage.removeItem("nivel");
       this.$user.id = null;
       this.$user.nombre = null;
+      this.$user.nivel = null;
       this.isAuthenticated = false;
       this.usuarioLogueado = "";
       this.opcionesMenu = [];
       this.$router.push("/login");
-      // this.$router.push('/login');
     },
     
     checkAuthentication() {
       const token = localStorage.getItem("token");
       const id = localStorage.getItem("id");
       const nombre = localStorage.getItem("nombre");
+      const nivel = localStorage.getItem("nivel");
 
       // Convierte el token en un valor booleano (true si existe, false si no)
       this.isAuthenticated = !!token; 

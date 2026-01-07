@@ -67,11 +67,13 @@ function getProspectoData($conexion, $prospecto_id) {
                               IF(a.cp != '', CONCAT(' C.P. ', a.cp), ''),
                               IF(a.localidad != '', CONCAT(', ', a.localidad), '')) AS domicilio_completo,
                           CONCAT(IFNULL(a.calle, ''),
-                              IF(a.num_exterior != '', CONCAT(', ', a.num_exterior), ''),
-                              IF(a.num_interior != '', CONCAT(', ', a.num_interior), '')) AS calle_numero,
-                          CONCAT(IF(a.localidad != '', CONCAT( a.localidad), ''),
-                              IF(j.nombre != '', CONCAT(', ', j.nombre), ''),
-                              ' SINALOA') AS ciudad_estado,
+                              IF(a.num_exterior != '', CONCAT(' No. ', a.num_exterior), ''),
+                              IF(a.num_interior != '', CONCAT(' INTERIOR ', a.num_interior), '')) AS calle_numero,
+                          CONCAT (IF(a.cp != '', CONCAT(' C.P. ', a.cp), ''),
+                          IF(a.localidad != '' AND (j.nombre IS NULL OR a.localidad != j.nombre),
+                                        CONCAT(' ', a.localidad, ', '),''),
+                                IF(j.nombre != '', CONCAT(' ', j.nombre, ', '), ''),
+                                ' SINALOA') AS ciudad_estado,
                           f.descripcion AS antecedente_descripcion
                         FROM siga_prospectosie AS a
                         LEFT JOIN siga_prospectosie_impuestos AS b ON a.impuesto_id = b.id
@@ -99,33 +101,46 @@ function getImpuestoInfo($conexion, $impuesto_id) {
         'prefix'        => $row['impuesto']
     ];
 }
-function getNumeroOrden(PDO $conexion, $impuesto_prefix) {
+function getNumeroOrden(PDO $conexion, $impuesto_prefix, $anio) {
+
     $prefix = "D-" . $impuesto_prefix . "-";
 
-    // Buscar el máximo consecutivo en siga_prospectosie_ordenes
-    $sql_ordenes = "SELECT MAX(CAST(SUBSTRING(num_orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_consecutivo 
-                    FROM siga_prospectosie_ordenes 
-                    WHERE num_orden LIKE ?";
+    $sql_ordenes = "SELECT MAX(CAST(SUBSTRING(num_orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) FROM siga_prospectosie_ordenes WHERE num_orden LIKE ? AND anio = ?";
     $stmt_ordenes = $conexion->prepare($sql_ordenes);
-    $stmt_ordenes->execute([$prefix . '%']);
-    $max_ordenes = $stmt_ordenes->fetchColumn();
-    
-    // Buscar el máximo consecutivo en siga_prospectosie_emitidas
-    $sql_emitidas = "SELECT MAX(CAST(SUBSTRING(orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_consecutivo 
-                     FROM emitidas 
-                     WHERE orden LIKE ?";
+    $stmt_ordenes->execute([$prefix . '%', $anio]);
+    $max_ordenes = $stmt_ordenes->fetchColumn() ?: 0;
+
+    $sql_emitidas = "SELECT MAX( CAST(SUBSTRING(orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) FROM emitidas  WHERE orden LIKE ? AND anio = ?";
     $stmt_emitidas = $conexion->prepare($sql_emitidas);
-    $stmt_emitidas->execute([$prefix . '%']);
-    $max_emitidas = $stmt_emitidas->fetchColumn();
-    $max_consecutivo = max((int)$max_ordenes, (int)$max_emitidas);
-    
-    return $prefix . str_pad($max_consecutivo + 1, 4, '0', STR_PAD_LEFT);
+    $stmt_emitidas->execute([$prefix . '%', $anio]);
+    $max_emitidas = $stmt_emitidas->fetchColumn() ?: 0;
+
+    $sql_disponibles = "SELECT MIN(CAST(SUBSTRING(num_orden, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) FROM siga_prospectos_ordenes_disponibles WHERE num_orden LIKE ?";
+    $stmt_disponibles = $conexion->prepare($sql_disponibles);
+    $stmt_disponibles->execute([$prefix . '%']);
+    $min_disponible = $stmt_disponibles->fetchColumn() ?: PHP_INT_MAX;
+
+    $siguiente_consecutivo = max($max_ordenes, $max_emitidas) + 1;
+    $final_consecutivo = min($siguiente_consecutivo, $min_disponible);
+
+    return $prefix . str_pad($final_consecutivo, 4, '0', STR_PAD_LEFT);
 }
 
 function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_generador = null, $fecha_orden = null) {
-    // Verificar orden existente
-    $stmt_orden = $conexion->prepare("SELECT * FROM siga_prospectosie_ordenes WHERE id_prospecto = ?");
-    $stmt_orden->execute([$prospecto_id]);
+    // Obtener periodos y año para una validación más robusta.
+    $stmt_prosp_check = $conexion->prepare("SELECT periodos FROM siga_prospectosie WHERE id = ?");
+    $stmt_prosp_check->execute([$prospecto_id]);
+    $prospecto_check_data = $stmt_prosp_check->fetch(PDO::FETCH_ASSOC);
+    $periodos_prospecto = $prospecto_check_data['periodos'] ?? null;
+
+    $anio_orden = date('Y', strtotime($fecha_orden ?? 'now'));
+
+    // Verificar si ya existe una orden para el mismo prospecto, con los mismos periodos y en el mismo año.
+    $stmt_orden = $conexion->prepare(
+        "SELECT * FROM siga_prospectosie_ordenes 
+         WHERE id_prospecto = ? AND periodos = ? AND anio = ? AND estatus = 1"
+    );
+    $stmt_orden->execute([$prospecto_id, $periodos_prospecto, $anio_orden]);
     $orden_existente = $stmt_orden->fetch(PDO::FETCH_ASSOC);
     if ($orden_existente) {
         $stmt_folio = $conexion->prepare("SELECT * FROM siga_prospectosie_folios_oficios WHERE num_folio = ?");
@@ -136,10 +151,7 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     }
     if (!$create) {
         // Para la vista previa, generamos un número de orden temporal sin guardarlo
-        $impuesto_id_preview = $conexion->query("SELECT impuesto_id FROM siga_prospectosie WHERE id = $prospecto_id")->fetchColumn();
-        $impuestoInfo_preview = getImpuestoInfo($conexion, $impuesto_id_preview);
-        $numero_orden_preview = getNumeroOrden($conexion, $impuestoInfo_preview['prefix']);
-        return ['num_folio' => 'XXXX', 'anio' => date('Y'), 'num_orden' => $numero_orden_preview];
+        return ['num_folio' => 'XXXX', 'anio' => date('Y'), 'num_orden' => 'XXXX'];
     }
     $stmt_folio_nuevo = $conexion->prepare("SELECT * FROM siga_prospectosie_folios_oficios WHERE estatus = 0 ORDER BY num_folio ASC LIMIT 1 FOR UPDATE");
     $stmt_folio_nuevo->execute();
@@ -147,7 +159,7 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     if (!$folio_oficio) {
         throw new Exception("No hay folios de oficio disponibles.");
     }
-    $stmt_prosp = $conexion->prepare("SELECT oficina_id, programador_id, retenedor, impuesto_id FROM siga_prospectosie WHERE id = ?");
+    $stmt_prosp = $conexion->prepare("SELECT oficina_id, programador_id, retenedor, impuesto_id, periodos FROM siga_prospectosie WHERE id = ?");
     $stmt_prosp->execute([$prospecto_id]);
     $prospectoRow = $stmt_prosp->fetch(PDO::FETCH_ASSOC);
     if (!$prospectoRow) {
@@ -157,13 +169,13 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     $programador_id = $prospectoRow['programador_id'] ?? null;
     $retenedor_id = $prospectoRow['retenedor'] ?? null; // referencia a siga_prospectosie_retenedores.id_retenedor
     $impuesto_id = $prospectoRow['impuesto_id'] ?? null;
+    $periodos = $prospectoRow['periodos'] ?? null;
 
     $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
     if (!$impuestoInfo) {
         throw new Exception("No se encontró información para el impuesto_id: $impuesto_id");
     }
-    $numero_orden = getNumeroOrden($conexion, $impuestoInfo['prefix']);
-
+    $numero_orden = getNumeroOrden($conexion, $impuestoInfo['prefix'], $anio_orden);
     $oficina_grupo = null;
     $oficina_fraccion = null;
     if ($oficina_id) {
@@ -191,17 +203,24 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
     $stmt_update->execute([$folio_oficio['id']]);
 
     $insert_orden = "INSERT INTO siga_prospectosie_ordenes 
-        (id_prospecto, num_oficio, num_orden, grupo, fraccion, id_programador, id_generador, fecha_orden, estatus, id_firmante, id_jefe, id_supervisor, art_retenedor, sujeto_retenedor)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        (id_prospecto, num_oficio, num_orden, anio, grupo, fraccion, id_programador, id_generador, fecha_orden, estatus, id_firmante, id_jefe, id_supervisor, art_retenedor, sujeto_retenedor, periodos)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt_insert_orden = $conexion->prepare($insert_orden);
     // Si no se proporciona fecha_orden, se usa la fecha actual del servidor de BD.
-    $stmt_insert_orden->execute([$prospecto_id, $folio_oficio['num_folio'], $numero_orden,
-        $oficina_grupo, $oficina_fraccion, $programador_id, // viene de siga_prospectosie.programador_id
+    $stmt_insert_orden->execute([$prospecto_id, $folio_oficio['num_folio'], $numero_orden, date('Y'),
+        $oficina_grupo, $oficina_fraccion, $programador_id,
         $id_generador, $fecha_orden, 1, getFirmas($conexion)['id_firmante'], getFirmas($conexion)['id_jefe'], getFirmas($conexion)['id_supervisor'],
-        $art_retenedor, $sujeto_retenedor
-    ]);
+        $art_retenedor, $sujeto_retenedor, $periodos]);
 
     $folio_oficio['num_orden'] = $numero_orden;
+
+    // Si el número de orden utilizado proviene de la tabla de disponibles, eliminarlo.
+    $stmt_check_disponible = $conexion->prepare("SELECT id FROM siga_prospectos_ordenes_disponibles WHERE num_orden = ?");
+    $stmt_check_disponible->execute([$numero_orden]);
+    if ($stmt_check_disponible->fetch()) {
+        $stmt_delete = $conexion->prepare("DELETE FROM siga_prospectos_ordenes_disponibles WHERE num_orden = ?");
+        $stmt_delete->execute([$numero_orden]);
+    }
     return $folio_oficio;
 }
 
@@ -294,18 +313,25 @@ function formatDateToSpanish($fecha_orden_str) {
     return '';
 }
 
-function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, array $firmas, $fecha_orden_str) {
+function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, array $firmas, $fecha_orden_str, $prefix) {
     // Formatear la fecha al formato "dd de MMMM de yyyy"
     if (class_exists('IntlDateFormatter')) {
         // Implementación original si la extensión está disponible
     }
 
     $fecha_formateada = formatDateToSpanish($fecha_orden_str);
-    $templateProcessor = new TemplateProcessor(__DIR__ . '/formatos/ISN.docx');
+    $template_file = "{$prefix}.docx";
+    if (isset($prospecto['fuente_id']) && ($prospecto['fuente_id'] == 1 || $prospecto['fuente_id'] == 2)) {
+        $template_file = "{$prefix} - NR.docx";
+    }
+    if (!file_exists(__DIR__ . "/formatos/{$template_file}")) {
+        throw new Exception("No se encontró el archivo de plantilla: {$template_file}");
+    }
+    $templateProcessor = new TemplateProcessor(__DIR__ . "/formatos/{$template_file}");
     $templateProcessor->setValue('num_folio', $folio['num_folio'] ?? 'XXXX');   
     $templateProcessor->setValue('orden', $folio['num_orden'] ?? 'X-XXX-XXXX');
     $templateProcessor->setValue('anio', $folio['anio'] ?? date('Y'));
-    $templateProcessor->setValue('representante_legal', $prospecto['representante_legal'] ?? '');
+    $templateProcessor->setValue('representante_legal',!empty($prospecto['representante_legal'])? 'REPRESENTANTE LEGAL DE: ' : '');
     $templateProcessor->setValue('rfc', $prospecto['rfc'] ?? '');
     $templateProcessor->setValue('nombre', $prospecto['nombre'] ?? '');
     $templateProcessor->setValue('domicilio_completo', $prospecto['domicilio_completo'] ?? '');
@@ -400,7 +426,7 @@ switch ($opcion) {
 
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
-        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista);
+        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
         $savePath = __DIR__ . '/ordenes_generadas/';
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
@@ -426,11 +452,26 @@ switch ($opcion) {
                 exit;
             }
             $conexion = getConexion();
+            $fecha_orden = $data['fecha_orden'] ?? date('Y-m-d');
+            $anio_orden = date('Y', strtotime($fecha_orden));
+
             $placeholders = implode(',', array_fill(0, count($prospecto_ids), '?'));
-            $consulta = "SELECT DISTINCT id_prospecto FROM siga_prospectosie_ordenes WHERE id_prospecto IN ($placeholders)";
+            
+            // La consulta ahora une con siga_prospectosie para obtener los periodos de cada prospecto
+            // y valida contra el año de la orden y los periodos correspondientes.
+            $consulta = "SELECT DISTINCT o.id_prospecto 
+                         FROM siga_prospectosie_ordenes o
+                         JOIN siga_prospectosie p ON o.id_prospecto = p.id
+                         WHERE o.estatus = 1 
+                            AND o.anio = ?
+                            AND o.periodos = p.periodos
+                            AND o.id_prospecto IN ($placeholders)";
+            
             $stmt = $conexion->prepare($consulta);
-            $stmt->execute($prospecto_ids);
+            $params = array_merge([$anio_orden], $prospecto_ids);
+            $stmt->execute($params);
             $ids_con_orden = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+
             $ordenes_generadas_count = count($ids_con_orden);
             $total_prospectos = count($prospecto_ids);
             $ordenes_pendientes_count = $total_prospectos - $ordenes_generadas_count;
@@ -451,23 +492,16 @@ switch ($opcion) {
          try {
              $conexion = getConexion();
              $consulta = "UPDATE siga_prospectosie_ordenes SET 
-                             num_oficio = :num_oficio,
-                             grupo = :grupo,
-                             fraccion = :fraccion,
                              id_programador = :id_programador,
-                             art_retenedor = :art_retenedor,
-                             sujeto_retenedor = :sujeto_retenedor
+                             periodos = :periodos
                           WHERE id_prospecto = :id_prospecto";
              $stmt = $conexion->prepare($consulta);
              $stmt->execute([
-                 'num_oficio' => $prospecto['num_oficio'],
-                 'grupo' => $prospecto['oficina_grupo'],
-                 'fraccion' => $prospecto['oficina_fraccion'],
                  'id_programador' => $prospecto['programador_id'],
-                 'art_retenedor' => $prospecto['art_retenedor'],
-                 'sujeto_retenedor' => $prospecto['sujeto_retenedor'],
+                 'periodos' => $prospecto['periodos'],
                  'id_prospecto' => $prospecto_id
              ]);
+ 
              header('Content-Type: application/json');
              echo json_encode(['success' => true, 'message' => 'Orden actualizada correctamente']);
          } catch (Exception $e) {
@@ -496,7 +530,7 @@ switch ($opcion) {
 
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
-        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista);
+        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
         $savePath = __DIR__ . '/ordenes_generadas/';
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
@@ -512,6 +546,43 @@ switch ($opcion) {
             header("Content-Type: text/plain");
             echo "Error al generar PDF:\n" . $e->getMessage() . "\n\n";
             echo $e->getTraceAsString();
+        }
+        break;
+    case 5:
+        try {
+            $prospecto_ids = $data['prospecto_ids'] ?? [];
+            if (empty($prospecto_ids)) {
+                echo json_encode([]);
+                exit;
+            }
+            $conexion = getConexion();
+            $placeholders = implode(',', array_fill(0, count($prospecto_ids), '?'));
+
+            $sql_firmante = "(SELECT nombre FROM siga_prospectosie_personal_actuante WHERE id_actuante = 1)";
+            $sql_jefe = "(SELECT nombre FROM siga_prospectosie_personal_actuante WHERE id_actuante = 2)";
+
+            $consulta = "SELECT 
+                            o.fecha_orden, 
+                            o.num_oficio, 
+                            o.num_orden, 
+                            p.nombre, 
+                            CONCAT(m.nombre, ', SINALOA') AS municipio,
+                            ($sql_firmante) AS nombre_firmante,
+                            ($sql_jefe) AS nombre_jefe
+                        FROM siga_prospectosie_ordenes o
+                        JOIN siga_prospectosie p ON o.id_prospecto = p.id
+                        LEFT JOIN siga_prospectosie_municipios m ON p.municipio_id = m.municipio_id
+                        WHERE o.id_prospecto IN ($placeholders) ORDER BY p.oficina_id";
+
+            $stmt = $conexion->prepare($consulta);
+            $stmt->execute($prospecto_ids);
+            $ordenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            header('Content-Type: application/json');
+            echo json_encode($ordenes);
+        } catch (Exception $e) {
+            header("HTTP/1.1 500 Internal Server Error");
+            echo json_encode(['error' => 'Error al consultar las órdenes: ' . $e->getMessage()]);
         }
         break;
     default: // Generar orden (crear folio si es necesario e insertar orden)
@@ -531,15 +602,18 @@ switch ($opcion) {
             if (!$impuestoInfo) {
                 throw new Exception("No se encontró impuesto_id = $impuesto_id en la tabla.");
             }
-            $templateFile = $impuestoInfo['template_file'];
             $prefix = $impuestoInfo['prefix'];
-            $templatePath = __DIR__ . "/formatos/" . $templateFile;
+            $templateFile = "{$prefix}.docx";
+            if (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
+                $templateFile = "{$prefix} - NR.docx";
+            }
+            $templatePath = __DIR__ . "/formatos/{$templateFile}";
             if (!file_exists($templatePath)) {
                 throw new Exception("No existe el archivo base: $templateFile");
             }
             $folio = getFolioOrCreate($conexion, $prospecto_id, true, $id_generador, $fecha_orden);
             $firmas = getFirmas($conexion);
-            $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden);
+            $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden, $prefix);
             $savePath = __DIR__ . '/ordenes_generadas/';
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);

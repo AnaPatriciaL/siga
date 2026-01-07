@@ -83,8 +83,10 @@ export default {
           localStorage.setItem("id", response.data.id);
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("nombre", response.data.nombre);
+          localStorage.setItem("nivel", response.data.nivel);
           this.$user.id = localStorage.getItem("id");
           this.$user.nombre = localStorage.getItem("nombre");
+          this.$user.nivel = localStorage.getItem("nivel");
           this.$root.$emit("authenticated");
           this.$router.push("/");
         } else {

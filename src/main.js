@@ -13,7 +13,11 @@ import Swal from "sweetalert2";
 // import { formatCurrency } from '@/utils/formatters';
 // import api from '@/services/api';
 import api from './services/api';
-import "sweetalert2/dist/sweetalert2.min.css"; // SweetAlert2 styles
+import VueSweetalert2 from 'vue-sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
+
+Vue.use(VueSweetalert2);
+
 
 // Configurar axios globalmente
 Vue.prototype.$axios = axios; // Esto hará que axios esté disponible en todas las vistas

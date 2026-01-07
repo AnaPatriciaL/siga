@@ -55,21 +55,29 @@ switch ($opcion) {
                   g.nombre AS fuente_descripcion,
                   h.nombre AS estatus_descripcion,
                   j.nombre AS municipio_nombre,
-                  CONCAT(
-                      IFNULL(a.calle, ''),
-                      IF(a.num_exterior != '', CONCAT(', ', a.num_exterior), ''),
-                      IF(a.num_interior != '', CONCAT(', ', a.num_interior), ''),
-                      IF(a.colonia != '', CONCAT(', ', a.colonia), ''),
-                      IF(a.cp != '', CONCAT(' C.P. ', a.cp), ''),
-                      IF(a.localidad != '', CONCAT(', ', a.localidad), '')
+                  CONCAT( 
+                    IFNULL(a.calle, ''),
+                    IF(a.num_exterior != '', CONCAT(' No. ', a.num_exterior), ''),
+                    IF(a.num_interior != '', CONCAT(' INTERIOR ', a.num_interior), ''),
+                    IF(a.colonia != '', CONCAT(', ', a.colonia), ''),
+                    IF(a.cp != '', CONCAT(' C.P. ', a.cp), ''),
+                    IF(
+                        a.localidad != '' 
+                        AND (j.nombre IS NULL OR a.localidad != j.nombre),
+                        CONCAT(' ', a.localidad, ', '),
+                        ''
+                    ),
+                    IF(j.nombre != '', CONCAT(' ', j.nombre, ', '), ''),
+                    ' SINALOA'
                   ) AS domicilio_completo,
                   CONCAT(
                       IFNULL(a.calle, ''),
-                      IF(a.num_exterior != '', CONCAT(', ', a.num_exterior), ''),
-                      IF(a.num_interior != '', CONCAT(', ', a.num_interior), '')
+                      IF(a.num_exterior != '', CONCAT(' No. ', a.num_exterior), ''),
+                      IF(a.num_interior != '', CONCAT(', INTERIOR ', a.num_interior), '')
                   ) AS calle_numero,
                   CONCAT(
                       IF(a.cp != '', CONCAT('C.P. ', a.cp, ' '), ''),
+                      IF(a.colonia != '', CONCAT(' ', a.colonia), ''),
                       IFNULL(a.localidad, '')
                   ) AS cp_municipio,
                   CONCAT(
@@ -77,6 +85,16 @@ switch ($opcion) {
                       IF(j.nombre != '', CONCAT(', ', j.nombre), ''),
                       ' SINALOA'
                   ) AS ciudad_estado,
+                  CONCAT(
+                      IF(
+                        a.localidad != '' 
+                        AND (j.nombre IS NULL OR a.localidad != j.nombre),
+                        CONCAT(' ', a.localidad, ', '),
+                        ''
+                    ),
+                    IF(j.nombre != '', CONCAT(' ', j.nombre, ', '), ''),
+                    ' SINALOA'
+                  ) AS municipio_estado,
                   f.descripcion AS antecedente_descripcion
                 FROM siga_prospectosie AS a
                 LEFT JOIN siga_prospectosie_impuestos AS b ON a.impuesto_id = b.id
@@ -103,6 +121,23 @@ switch ($opcion) {
 
 
   case 2: // 🔹 Alta
+    // Verificar si el RFC ya existe con antecedente 6 o 7
+    $consulta_verificacion = "SELECT antecedente_id FROM siga_prospectosie WHERE rfc = ? AND antecedente_id IN (6, 7)";
+    $stmt_verificacion = $conexion->prepare($consulta_verificacion);
+    $stmt_verificacion->execute([$rfc]);
+    $existente = $stmt_verificacion->fetch(PDO::FETCH_ASSOC);
+
+    if ($existente) {
+        $antecedente_id_existente = $existente['antecedente_id'];
+        $mensaje = "No es posible crear el prospecto. El RFC ya se encuentra ";
+        if ($antecedente_id_existente == 6) {
+            $mensaje .= "EN PROCESO.";
+        } else { // antecedente_id == 7
+            $mensaje .= "como NO LOCALIZADO.";
+        }
+        $data = ['success' => false, 'mensaje' => $mensaje];
+        break;
+    }
     $consulta = "INSERT INTO siga_prospectosie
       (rfc, nombre, calle, num_exterior, num_interior, colonia, cp, localidad, municipio_id, oficina_id, fuente_id,  giro, periodos,
       antecedente_id, impuesto_id, determinado, programador_id, representante_legal, retenedor, origen_id, observaciones, estatus)
@@ -142,46 +177,72 @@ switch ($opcion) {
 
   case 5: // 🔹 Cambio de Estatus
     $estatus_nuevo = $datos['estatus'] ?? null;
-    $consulta = "UPDATE siga_prospectosie SET estatus = ? WHERE id = ?";
+    $observaciones = $datos['observaciones'] ?? null;
+    $antecedente_id = $datos['antecedente_id'] ?? null;
+    $id = $datos['id'] ?? null;
+
+    $consulta = "UPDATE siga_prospectosie SET estatus = ?";
+
+    $params = [$estatus_nuevo];
+
+    if ($estatus_nuevo == 4) {
+        $consulta .= ", fecha_comite = CURDATE()";
+    } 
+    elseif ($estatus_nuevo == 5) {
+        $consulta .= ", fecha_autorizacion = CURDATE()";
+    } 
+    elseif ($estatus_nuevo == 6) {
+        $consulta .= ", fecha_emision = CURDATE()";
+    } 
+    elseif ($estatus_nuevo == 7) {
+        $consulta .= ", observaciones = ?, antecedente_id = ?";
+        $params[] = $observaciones;
+        $params[] = $antecedente_id;
+    }
+
+    $consulta .= " WHERE id = ?";
+    $params[] = $id;
+
     $stmt = $conexion->prepare($consulta);
-    $stmt->execute([$estatus_nuevo, $id]);
+    $stmt->execute($params);
+
     $data = ['mensaje' => 'Estatus actualizado correctamente'];
     break;
 
 
-        case 6: // Eliminar periodos por prospecto_id
-            if (isset($datos['prospecto_id'])) {
-                $prospecto_id = $datos['prospecto_id'];
-                $sql = "DELETE FROM siga_prospectosie_periodos WHERE prospecto_id = :prospecto_id";
-                $stmt = $conexion->prepare($sql);
-                $stmt->bindParam(':prospecto_id', $prospecto_id);
-                $stmt->execute();
-                $data = ["success" => true, "message" => "Periodos eliminados correctamente."];
-            } else {
-                $data = ["error" => "prospecto_id no proporcionado para eliminar periodos."];
-            }
-            break;
+  case 6: // Eliminar periodos por prospecto_id
+    if (isset($datos['prospecto_id'])) {
+        $prospecto_id = $datos['prospecto_id'];
+        $sql = "DELETE FROM siga_prospectosie_periodos WHERE prospecto_id = :prospecto_id";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bindParam(':prospecto_id', $prospecto_id);
+        $stmt->execute();
+        $data = ["success" => true, "message" => "Periodos eliminados correctamente."];
+    } else {
+        $data = ["error" => "prospecto_id no proporcionado para eliminar periodos."];
+    }
+    break;
 
-        case 7: // Insertar un nuevo periodo
-            if (isset($datos['prospecto_id']) && isset($datos['fecha_inicial']) && isset($datos['fecha_final'])) {
-                $prospecto_id = $datos['prospecto_id'];
-                $fecha_inicial_ddmmyyyy = $datos['fecha_inicial'];
-                $fecha_final_ddmmyyyy = $datos['fecha_final'];
+  case 7: // Insertar un nuevo periodo
+    if (isset($datos['prospecto_id']) && isset($datos['fecha_inicial']) && isset($datos['fecha_final'])) {
+        $prospecto_id = $datos['prospecto_id'];
+        $fecha_inicial_ddmmyyyy = $datos['fecha_inicial'];
+        $fecha_final_ddmmyyyy = $datos['fecha_final'];
 
-                // Convertir DD/MM/YYYY a YYYY-MM-DD para la base de datos
-                $fecha_inicial_ymd = DateTime::createFromFormat('d/m/Y', $fecha_inicial_ddmmyyyy)->format('Y-m-d');
-                $fecha_final_ymd = DateTime::createFromFormat('d/m/Y', $fecha_final_ddmmyyyy)->format('Y-m-d');
+        // Convertir DD/MM/YYYY a YYYY-MM-DD para la base de datos
+        $fecha_inicial_ymd = DateTime::createFromFormat('d/m/Y', $fecha_inicial_ddmmyyyy)->format('Y-m-d');
+        $fecha_final_ymd = DateTime::createFromFormat('d/m/Y', $fecha_final_ddmmyyyy)->format('Y-m-d');
 
-                $sql = "INSERT INTO siga_prospectosie_periodos (fecha_inicial, fecha_final, prospecto_id, status) VALUES (?, ?, ?, ?)";
-                $stmt = $conexion->prepare($sql);
-                $stmt->execute([
-                    $fecha_inicial_ymd, $fecha_final_ymd, $prospecto_id, 1
-                ]);
-                $data = ["success" => true, "message" => "Periodo insertado correctamente."];
-            } else {
-                $data = ["error" => "Datos incompletos para insertar periodo."];
-            }
-            break;
+        $sql = "INSERT INTO siga_prospectosie_periodos (fecha_inicial, fecha_final, prospecto_id, status) VALUES (?, ?, ?, ?)";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute([
+            $fecha_inicial_ymd, $fecha_final_ymd, $prospecto_id, 1
+        ]);
+        $data = ["success" => true, "message" => "Periodo insertado correctamente."];
+    } else {
+        $data = ["error" => "Datos incompletos para insertar periodo."];
+    }
+    break;
   default:
     $data = ['error' => 'Opción inválida o no enviada'];
     break;
