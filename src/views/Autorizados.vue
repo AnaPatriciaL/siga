@@ -320,240 +320,177 @@ export default {
       return `${dia}/${mes}/${anio}`;
     },
     async generarDocumentoFirmas() {
-      if (this.selectedProspectos.length === 0) return;
+  if (this.selectedProspectos.length === 0) return;
 
-      const prospectoSinOrden = this.selectedProspectos.some(p => !this.tieneOrdenGenerada(p));
-      if (prospectoSinOrden) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Acción no permitida',
-          text: 'Seleccionó prospectos sin orden, es necesario generarle una orden a todos.'
-        });
-        return;
-      }
+  const prospectoSinOrden = this.selectedProspectos.some(p => !this.tieneOrdenGenerada(p));
+  if (prospectoSinOrden) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Acción no permitida',
+      text: 'Seleccionó prospectos sin orden, es necesario generarle una orden a todos.'
+    });
+    return;
+  }
 
-      this.actualizarProgreso('Obteniendo datos de órdenes...');
-      const prospecto_ids = this.selectedProspectos.map(p => p.id);
-      let prospectosOrdenados = [];
+  const wb = XLSX.utils.book_new();
+  const ws_data = [];
+  const merges = [];
+  const rowsConfig = [];
+  const pageBreaks = [];
 
-      try {
-        const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 5,
-          prospecto_ids
-        });
-        prospectosOrdenados = response.data;
-      } catch (error) {
-        this.progresoVisible = false;
-        Swal.fire('Error', 'No se pudieron obtener los datos.', 'error');
-        return;
-      }
+  /* ==== ESTILOS ==== */
+  const borderAll = { top:{style:"thin"}, bottom:{style:"thin"}, left:{style:"thin"}, right:{style:"thin"} };
+  const titleRight = { font:{sz:11}, alignment:{horizontal:"right", vertical:"center"} };
+  const titleCenter = { font:{sz:11}, alignment:{horizontal:"center", vertical:"center", wrapText:true} };
+  const headerStyle = { font:{bold:true,sz:11}, fill:{fgColor:{rgb:"D9D9D9"}}, alignment:{horizontal:"center",vertical:"center",wrapText:true}, border:borderAll };
+  const cellCenter = { font:{sz:11}, alignment:{horizontal:"center",vertical:"center",wrapText:true}, border:borderAll };
+  const cellSinBorde = { font:{sz:11}, alignment:{horizontal:"center",vertical:"center"} };
+  const firmaStyle = { font:{sz:11}, alignment:{horizontal:"left",vertical:"top",wrapText:true} };
 
-      const wb = XLSX.utils.book_new();
-      const ws_data = [];
-      const merges = [];
-      const rowsConfig = [];
-      const pageBreaks = [];
+  /* ==== DATOS ==== */
+  const prospecto_ids = this.selectedProspectos.map(p => p.id);
+  const { data: prospectosOrdenados } = await axios.post(urlgenerar_ordenes, { opcion: 5, prospecto_ids });
 
-      /* ==== ESTILOS ==== */
-      const borderAll = {
-        top: { style: "thin" },
-        bottom: { style: "thin" },
-        left: { style: "thin" },
-        right: { style: "thin" }
-      };
+  const nombreJefe = prospectosOrdenados[0]?.nombre_jefe || "";
+  const nombreFirmante = prospectosOrdenados[0]?.nombre_firmante || "";
 
-      const titleRight = {
-        font: { sz: 11 },
-        alignment: { horizontal: "right", vertical: "center" }
-      };
+  const hoy = new Date();
+  const fechaFormateada = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+  const encabezadoFecha = `CULIACÁN, SINALOA A ${fechaFormateada}`;
 
-      const titleCenter = {
-        font: { sz: 11 },
-        alignment: { horizontal: "center", vertical: "center", wrapText: true }
-      };
+  /* ==== CONFIG ==== */
+  const registrosPorPagina = 21;
+  const filasTotalesSinFirmas = 25;
+  const filasFirmas = 3;
 
-      const headerStyle = {
-        font: { bold: true, sz: 11 },
-        fill: { fgColor: { rgb: "D9D9D9" } },
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: borderAll
-      };
+  const totalRegistros = prospectosOrdenados.length;
+  const totalPaginas = Math.ceil(totalRegistros / registrosPorPagina);
 
-      const cellCenter = {
-        font: { sz: 11 },
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: borderAll
-      };
+  let paginaActual = 1;
+  let indice = 0;
+  let firmaInicioGlobal = null;
 
-      const firmaStyle = {
-        font: { sz: 11 },
-        alignment: { horizontal: "left", vertical: "top", wrapText: true }
-      };
+  /* ==== PAGINADO ==== */
+  while (indice < totalRegistros) {
+    const inicioPagina = ws_data.length;
 
-      /* ==== DATOS ==== */
-      const nombreJefe = prospectosOrdenados[0]?.nombre_jefe || "";
-      const nombreFirmante = prospectosOrdenados[0]?.nombre_firmante || "";
+    /* ENCABEZADO */
+    ws_data.push([{ v: encabezadoFecha, s: titleRight }]);
+    ws_data.push([{ v:"SECRETARÍA DE ADMINISTRACIÓN Y FINANZAS", s:titleCenter }]);
+    ws_data.push([{ v:"SERVICIO DE ADMINISTRACIÓN TRIBUTARIA DEL ESTADO DE SINALOA", s:titleCenter }]);
+    ws_data.push([{ v:"DIRECCIÓN DE AUDITORÍA", s:titleCenter }]);
+    ws_data.push([]);
 
-      const hoy = new Date();
-      const fechaFormateada = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
-      const encabezadoFecha = `CULIACÁN, SINALOA A ${fechaFormateada}`;
+    for (let i=0;i<4;i++){
+      merges.push({ s:{r:inicioPagina+i,c:0}, e:{r:inicioPagina+i,c:5} });
+      rowsConfig[inicioPagina+i]={hpt:20};
+    }
 
-      /* ==== PAGINACIÓN ==== */
-      const REGISTROS_POR_PAGINA = 20;
-      const totalPaginas = Math.ceil(prospectosOrdenados.length / REGISTROS_POR_PAGINA);
-      let paginaActual = 1;
-      let indice = 0;
+    /* HEADER TABLA */
+    ws_data.push([
+      { v:"No.",s:headerStyle },
+      { v:"FECHA OFICIO",s:headerStyle },
+      { v:"No. OFICIO\nSATES-DA-DP-\n/2025",s:headerStyle },
+      { v:"ORDEN",s:headerStyle },
+      { v:"NOMBRE",s:headerStyle },
+      { v:"LOCALIDAD",s:headerStyle }
+    ]);
+    rowsConfig[ws_data.length-1]={hpt:50};
 
-      while (indice < prospectosOrdenados.length) {
+    const inicioDatosPagina = indice;
+    const registrosConDatos = Math.min(registrosPorPagina, totalRegistros-indice);
 
-        /* ==== ENCABEZADO GENERAL ==== */
-        const inicioEncabezado = ws_data.length;
+    for (let i=0;i<registrosConDatos;i++,indice++){
+      const item = prospectosOrdenados[indice];
+      ws_data.push([
+        { v:indice+1,s:cellCenter },
+        { v:this.formatearFechaDMY(item.fecha_orden),s:cellCenter },
+        { v:item.num_oficio||"",s:cellCenter },
+        { v:item.num_orden||"",s:cellCenter },
+        { v:item.nombre||"",s:cellCenter },
+        { v:item.municipio||"",s:cellCenter }
+      ]);
+      rowsConfig[ws_data.length-1]={hpt:30};
+    }
 
-        ws_data.push([{ v: encabezadoFecha, s: titleRight }]);
-        ws_data.push([{ v: "SECRETARÍA DE ADMINISTRACIÓN Y FINANZAS", s: titleCenter }]);
-        ws_data.push([{ v: "SERVICIO DE ADMINISTRACIÓN TRIBUTARIA DEL ESTADO DE SINALOA", s: titleCenter }]);
-        ws_data.push([{ v: "DIRECCIÓN DE AUDITORÍA", s: titleCenter }]);
-        ws_data.push([]);
+    const esUltimaPagina = paginaActual === totalPaginas;
 
-        for (let i = 0; i < 4; i++) {
-          merges.push({
-            s: { r: inicioEncabezado + i, c: 0 },
-            e: { r: inicioEncabezado + i, c: 5 }
-          });
-          rowsConfig[inicioEncabezado + i] = { hpt: 18 };
-        }
-
-        /* ==== ENCABEZADO TABLA ==== */
-        const filaHeaderTabla = ws_data.length;
-        ws_data.push([
-          { v: "No.", s: headerStyle },
-          { v: "FECHA OFICIO", s: headerStyle },
-          { v: "No. OFICIO\nSATES-DA-DP-\n/2025", s: headerStyle },
-          { v: "ORDEN", s: headerStyle },
-          { v: "NOMBRE", s: headerStyle },
-          { v: "LOCALIDAD", s: headerStyle }
-        ]);
-        rowsConfig[filaHeaderTabla] = { hpt: 36 };
-
-        /* ==== REGISTROS ==== */
-        let contador = 0;
-        while (contador < REGISTROS_POR_PAGINA && indice < prospectosOrdenados.length) {
-          const item = prospectosOrdenados[indice];
-          ws_data.push([
-            { v: indice + 1, s: cellCenter },
-            { v: this.formatearFechaDMY(item.fecha_orden), s: cellCenter },
-            { v: item.num_oficio || "", s: cellCenter },
-            { v: item.num_orden || "", s: cellCenter },
-            { v: item.nombre || "", s: cellCenter },
-            { v: item.municipio || "", s: cellCenter }
-          ]);
-          rowsConfig[ws_data.length - 1] = { hpt: 28 };
-          contador++;
-          indice++;
-        }
-
-        /* ==== NÚMERO DE PÁGINA (NO ÚLTIMA) ==== */
-        if (paginaActual < totalPaginas) {
-          ws_data.push([]);
-          const filaPagina = ws_data.length;
-          ws_data.push([{ v: `${paginaActual}/${totalPaginas}`, s: titleRight }]);
-          merges.push({ s: { r: filaPagina, c: 0 }, e: { r: filaPagina, c: 5 } });
-          rowsConfig[filaPagina] = { hpt: 18 };
-        }
-
-        paginaActual++;
-      }
-
-      /* ==== SALTO DE PÁGINA FORZADO PARA FIRMAS ==== */
-      pageBreaks.push({ r: ws_data.length });
-
-      /* ==== FIRMAS ==== */
+    /* ==== FIRMAS ==== */
+    if (esUltimaPagina) {
       ws_data.push([]);
-      const firmaInicio = ws_data.length;
+      firmaInicioGlobal = ws_data.length;
 
       ws_data.push([
-        { v: `ENVÍA:\n\n${nombreJefe.toUpperCase()}\n\n\nFIRMA:\n\nFECHA:`, s: firmaStyle },
+        { v:`ENVÍA:\n\n${nombreJefe.toUpperCase()}\n\n\nFIRMA:\n\nFECHA:`, s:firmaStyle },
         "", "", "",
-        { v: `RECIBE PARA FIRMA:\n\n${nombreFirmante.toUpperCase()}\n\n\nFIRMA:\n\nFECHA:`, s: firmaStyle },
+        { v:`RECIBE PARA FIRMA:\n\n${nombreFirmante.toUpperCase()}\n\n\nFIRMA:\n\nFECHA:`, s:firmaStyle },
         ""
       ]);
-      ws_data.push(["", "", "", "", "", ""]);
-      ws_data.push(["", "", "", "", "", ""]);
+      ws_data.push(["","","","","",""]);
+      ws_data.push(["","","","","",""]);
 
-      rowsConfig[firmaInicio]     = { hpt: 45 };
-      rowsConfig[firmaInicio + 1] = { hpt: 45 };
-      rowsConfig[firmaInicio + 2] = { hpt: 45 };
+      rowsConfig[firmaInicioGlobal]={hpt:45};
+      rowsConfig[firmaInicioGlobal+1]={hpt:45};
+      rowsConfig[firmaInicioGlobal+2]={hpt:45};
 
       merges.push(
-        { s: { r: firmaInicio, c: 0 }, e: { r: firmaInicio + 2, c: 3 } },
-        { s: { r: firmaInicio, c: 4 }, e: { r: firmaInicio + 2, c: 5 } }
+        { s:{r:firmaInicioGlobal,c:0}, e:{r:firmaInicioGlobal+2,c:3} },
+        { s:{r:firmaInicioGlobal,c:4}, e:{r:firmaInicioGlobal+2,c:5} }
       );
+    }
 
-       /* ==== NÚMERO DE PÁGINA FINAL ==== */
+    /* REGISTROS VACÍOS SIN BORDE */
+    while ((indice - inicioDatosPagina) < registrosPorPagina) {
+      ws_data.push([
+        {v:"",s:cellSinBorde},{v:"",s:cellSinBorde},{v:"",s:cellSinBorde},
+        {v:"",s:cellSinBorde},{v:"",s:cellSinBorde},{v:"",s:cellSinBorde}
+      ]);
+      rowsConfig[ws_data.length-1]={hpt:30};
+      indice++;
+    }
+
+    /* ESPACIOS */
+    const filasUsadas = registrosPorPagina + (esUltimaPagina ? filasFirmas : 0);
+    for (let i=0;i<(filasTotalesSinFirmas-filasUsadas);i++){
       ws_data.push([]);
+      rowsConfig[ws_data.length-1]={hpt:20};
+    }
 
-      const filaPaginaFinal = ws_data.length;
-      ws_data.push([{ v: `${totalPaginas}/${totalPaginas}`, s: titleRight }]);
+    /* NUMERO PAGINA */
+    const filaPagina = ws_data.length;
+    ws_data.push([{ v:`${paginaActual}/${totalPaginas}`, s:titleRight }]);
+    merges.push({ s:{r:filaPagina,c:0}, e:{r:filaPagina,c:5} });
+    rowsConfig[filaPagina]={hpt:18};
 
-      merges.push({s: { r: filaPaginaFinal, c: 0 },e: { r: filaPaginaFinal, c: 5 }});
+    pageBreaks.push({ r: ws_data.length });
+    paginaActual++;
+  }
 
-      rowsConfig[filaPaginaFinal] = { hpt: 18 };
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws["!merges"]=merges;
+  ws["!rows"]=rowsConfig;
+  ws["!rowBreaks"]=pageBreaks;
+  ws["!cols"]=[{wch:4},{wch:14},{wch:16},{wch:16},{wch:45},{wch:22}];
+  ws["!margins"]={left:0.5,right:0.3,top:0.5,bottom:0.7,header:0.3};
 
-      /* ==== CREAR HOJA ==== */
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      ws['!merges'] = merges;
-      ws['!rowBreaks'] = pageBreaks;
+  /* ==== BORDES FIRMAS (CORRECTO) ==== */
+  const thin = { style:"thin" };
+  for (let r=firmaInicioGlobal;r<=firmaInicioGlobal+2;r++){
+    for (let c=0;c<=5;c++){
+      const addr=XLSX.utils.encode_cell({r,c});
+      if(!ws[addr]) ws[addr]={t:'s',v:''};
+      ws[addr].s=ws[addr].s||{};
+      ws[addr].s.border=ws[addr].s.border||{};
+      if (r===firmaInicioGlobal) ws[addr].s.border.top=thin;
+      if (r===firmaInicioGlobal+2) ws[addr].s.border.bottom=thin;
+      if (c===0||c===4) ws[addr].s.border.left=thin;
+      if (c===3||c===5) ws[addr].s.border.right=thin;
+    }
+  }
 
-      /* ==== BORDES FIRMAS (TU SOLUCIÓN) ==== */
-      const firmaFin = firmaInicio + 2;
-      const thinBorder = { style: "thin" };
-
-      for (let r = firmaInicio; r <= firmaFin; r++) {
-        for (let c = 0; c <= 5; c++) {
-          const addr = XLSX.utils.encode_cell({ r, c });
-          if (!ws[addr]) ws[addr] = { t: 's', v: '' };
-          ws[addr].s = ws[addr].s || {};
-          ws[addr].s.border = ws[addr].s.border || {};
-
-          if (c <= 3) {
-            if (r === firmaInicio) ws[addr].s.border.top = thinBorder;
-            if (r === firmaFin) ws[addr].s.border.bottom = thinBorder;
-            if (c === 0) ws[addr].s.border.left = thinBorder;
-            if (c === 3) ws[addr].s.border.right = thinBorder;
-          } else {
-            if (r === firmaInicio) ws[addr].s.border.top = thinBorder;
-            if (r === firmaFin) ws[addr].s.border.bottom = thinBorder;
-            if (c === 4) ws[addr].s.border.left = thinBorder;
-            if (c === 5) ws[addr].s.border.right = thinBorder;
-          }
-        }
-      }
-
-      ws['!rows'] = rowsConfig;
-
-      ws['!cols'] = [
-        { wch: 4 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 16 },
-        { wch: 45 },
-        { wch: 22 }
-      ];
-
-      ws["!margins"] = {
-        left: 0.3,
-        right: 0.3,
-        top: 0.5,
-        bottom: 0.5,
-        header: 0.3
-      };
-
-      XLSX.utils.book_append_sheet(wb, ws, "Firmas");
-      XLSX.writeFile(wb, "Documento_Firmas.xlsx");
-
-      this.progresoVisible = false;
-      this.selectedProspectos = [];
-    },
+  XLSX.utils.book_append_sheet(wb, ws, "Firmas");
+  XLSX.writeFile(wb, "Documento_Firmas.xlsx");
+},
     confirmarPendiente({ antecedente_id, observaciones }) {
       if (!this.prospectoSeleccionado) return;
 
