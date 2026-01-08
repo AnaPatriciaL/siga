@@ -322,32 +322,38 @@ export default {
       currentRow++;
 
       // ===== SECCIÓN CRUCE =====
-      ws_data.push([{ v: 'CRUCE', s: titleStyle }]);
-      sectionTitleRows.push(currentRow);
-      currentRow++;
+      if (cruceData.length > 0) {
+        ws_data.push([{ v: 'CRUCE', s: titleStyle }]);
+        sectionTitleRows.push(currentRow);
+        currentRow++;
 
-      ws_data.push(headers);
-      headerRowIndexes.push(currentRow);
-      currentRow++;
+        ws_data.push(headers);
+        headerRowIndexes.push(currentRow);
+        currentRow++;
 
-      const filasCruce = generarFilas(cruceData, 1);
-      filasCruce.forEach(r => { ws_data.push(r); currentRow++; });
+        const filasCruce = generarFilas(cruceData, 1);
+        filasCruce.forEach(r => { ws_data.push(r); currentRow++; });
+      }
 
       // fila en blanco separadora
-      ws_data.push([]);
-      currentRow++;
+      if (cruceData.length > 0 && prospectoData.length > 0) {
+        ws_data.push([]);
+        currentRow++;
+      }
 
       // ===== SECCIÓN PROSPECTO =====
-      ws_data.push([{ v: 'PROSPECTO', s: titleStyle }]);
-      sectionTitleRows.push(currentRow);
-      currentRow++;
+      if (prospectoData.length > 0) {
+        ws_data.push([{ v: 'PROSPECTO', s: titleStyle }]);
+        sectionTitleRows.push(currentRow);
+        currentRow++;
 
-      ws_data.push(headers);
-      headerRowIndexes.push(currentRow);
-      currentRow++;
+        ws_data.push(headers);
+        headerRowIndexes.push(currentRow);
+        currentRow++;
 
-      const filasProspecto = generarFilas(prospectoData, 1);
-      filasProspecto.forEach(r => { ws_data.push(r); currentRow++; });
+        const filasProspecto = generarFilas(prospectoData, 1);
+        filasProspecto.forEach(r => { ws_data.push(r); currentRow++; });
+      }
 
       // Crear hoja
       const ws1 = XLSX.utils.aoa_to_sheet(ws_data);
@@ -883,7 +889,6 @@ tbody tr:nth-of-type(odd) {
 .mayusculas input{
   text-transform: uppercase
 }
-
 .center-header {
   text-align: center;
 }

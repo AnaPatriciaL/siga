@@ -267,10 +267,8 @@ export default {
 
             // Filtrar los registros con antecedente_id = 7
             this.prospectosie_no_localizados = this.prospectosie
-            .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
+            .filter(item => Number(item.antecedente_id) === 7)
             .map(item => ({ ...item }));
-
-            // console.log("No Localizados:", this.prospectosie_no_localizados);
 
           } else if (response.data.error) {
             console.error('Error desde el servidor:', response.data.error);

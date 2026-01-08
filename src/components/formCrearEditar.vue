@@ -334,7 +334,7 @@ export default {
 
       // Solo letras y números
       if (!/^[a-zA-Z0-9]$/.test(e.key)) {
-        e.preventDefault(); // ⛔ bloquea el .
+        e.preventDefault(); //bloquea el .
       }
     },
     limpiarRFC() {

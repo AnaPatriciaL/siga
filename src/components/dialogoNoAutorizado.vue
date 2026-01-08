@@ -7,7 +7,7 @@
 
       <v-card-text>
         <v-select v-model="form.antecedente_id" :items="antecedentes" item-text="descripcion" item-value="id" label="Motivo (Antecedente)" outlined/>
-        <v-textarea class= "mayusculas" v-model="form.observaciones" label="Observaciones" outlined rows="3"/>
+        <v-textarea class="mayusculas" v-model="form.observaciones" label="Observaciones" outlined rows="3" @input="form.observaciones = form.observaciones?.toUpperCase()" @blur="form.observaciones = form.observaciones?.trim()"/>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
