@@ -4,13 +4,13 @@
       <v-card-title class="red darken-3 white--text">
         {{ title }}
       </v-card-title>
-
-      <v-card-text>
+      <v-spacer></v-spacer>
+      <v-card-text class="mt-4 py-0">
         <v-select v-model="form.antecedente_id" :items="antecedentes" item-text="descripcion" item-value="id" label="Motivo (Antecedente)" outlined/>
         <v-textarea class="mayusculas" v-model="form.observaciones" label="Observaciones" outlined rows="3" @input="form.observaciones = form.observaciones?.toUpperCase()" @blur="form.observaciones = form.observaciones?.trim()"/>
       </v-card-text>
       <v-card-actions>
-        <v-spacer />
+        <v-spacer></v-spacer>
         <v-btn text @click="cancelar">Cancelar</v-btn>
         <v-btn color="red darken-2" dark @click="confirmar" :disabled="!form.antecedente_id">Aceptar</v-btn>
       </v-card-actions>

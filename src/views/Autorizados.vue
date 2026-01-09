@@ -356,6 +356,7 @@ export default {
 
       const hoy = new Date();
       const fechaFormateada = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+      const año = hoy.getFullYear();
       const encabezadoFecha = `CULIACÁN, SINALOA A ${fechaFormateada}`;
 
       /* ==== CONFIG ==== */
@@ -390,7 +391,7 @@ export default {
         ws_data.push([
           { v:"No.",s:headerStyle },
           { v:"FECHA OFICIO",s:headerStyle },
-          { v:"No. OFICIO\nSATES-DA-DP-\n/2025",s:headerStyle },
+          { v:"No. OFICIO\nSATES-DA-DP-\n/" + año,s:headerStyle },
           { v:"ORDEN",s:headerStyle },
           { v:"NOMBRE",s:headerStyle },
           { v:"LOCALIDAD",s:headerStyle }
