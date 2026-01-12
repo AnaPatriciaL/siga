@@ -23,7 +23,7 @@ $_POST = json_decode(file_get_contents("php://input"), true);
 //   }
 //   permisos();
 
-$consulta = "SELECT * FROM siga_prospectosie_antecedentes";
+$consulta = "SELECT * FROM siga_prospectos_antecedentes";
 $resultado = $conexion->prepare($consulta);
 $resultado->execute();
 $data=$resultado->fetchAll(PDO::FETCH_ASSOC);

@@ -6,27 +6,38 @@ $conexion = $objeto->Conectar();
 
 $_POST = json_decode(file_get_contents("php://input"), true);
 
-// function permisos() {  
-//     if (isset($_SERVER['HTTP_ORIGIN'])){
-//         header("Access-Control-Allow-Origin: *");
-//         header("Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS");
-//         header("Access-Control-Allow-Headers: Origin, Authorization, X-Requested-With, Content-Type, Accept");
-//         header('Access-Control-Allow-Credentials: true');      
-//     }  
-//     if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS'){
-//       if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))          
-//           header("Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS");
-//       if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
-//           header("Access-Control-Allow-Headers: Origin, Authorization, X-Requested-With, Content-Type, Accept");
-//       exit(0);
-//     }
-//   }
-//   permisos();
+$opcion = (isset($_POST['opcion'])) ? $_POST['opcion'] : '';
+$id = (isset($_POST['id'])) ? $_POST['id'] : '';
+$data = []; 
 
-$consulta = "SELECT id,usuario,nombre_completo FROM siga_prospectosie_programadores WHERE estatus=1";
-$resultado = $conexion->prepare($consulta);
-$resultado->execute();
-$data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+switch($opcion){
+    case 1:
+        $consulta = "SELECT id,usuario,nombre_completo FROM siga_prospectos_programadores WHERE estatus=1";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        break;
+    case 2:
+        // Se usa el ID enviado desde el frontend.
+        
+        $consulta_usuario = "SELECT programador_id FROM siga_usuarios WHERE id = :id";
+        $resultado_usuario = $conexion->prepare($consulta_usuario);
+        $resultado_usuario->bindParam(':id', $id, PDO::PARAM_INT);
+        $resultado_usuario->execute();
+        $usuario = $resultado_usuario->fetch(PDO::FETCH_ASSOC);
+
+        if ($usuario['programador_id'] == 0) {
+            $consulta = "SELECT id, usuario, nombre_completo FROM siga_prospectos_programadores WHERE estatus=1";
+            $resultado = $conexion->prepare($consulta);
+        } else {
+            $consulta = "SELECT a.*,b.id, b.nivel, b.iniciales,b.programador_id FROM siga_prospectos_programadores AS a LEFT JOIN siga_usuarios AS b ON a.id = b.programador_id WHERE a.estatus = 1 and b.id = :id";
+            $resultado = $conexion->prepare($consulta);
+            $resultado->bindParam(':id', $id, PDO::PARAM_INT);
+        }
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        break;
+}
 
 print json_encode($data, JSON_UNESCAPED_UNICODE);
 $conexion = NULL;

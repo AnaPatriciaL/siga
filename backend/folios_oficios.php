@@ -11,10 +11,14 @@ $data = null;
 
 switch($opcion){
     case 1: // Consulta de folios
-        $consulta = "SELECT * FROM siga_prospectosie_folios_oficios ORDER BY num_folio";
+        $anio_actual = date('Y');
+        $consulta = "SELECT * FROM siga_prospectos_folios_oficios WHERE anio = :anio ORDER BY num_folio ";
         $resultado = $conexion->prepare($consulta);
-        $resultado->execute();
+        $resultado->execute([':anio' => $anio_actual]);
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($data as &$folio) {
+            $folio['num_folio'] = str_pad($folio['num_folio'], 5, '0', STR_PAD_LEFT);
+        }
         break;
 
     case 2: // Inserción de nuevos folios
@@ -26,7 +30,7 @@ switch($opcion){
         if ($folio_inicial > 0 && $cantidad > 0) {
             $conexion->beginTransaction();
             try {
-                $consulta = "INSERT INTO siga_prospectosie_folios_oficios (num_folio, anio, estatus) VALUES (:num_folio, :anio, 0)";
+                $consulta = "INSERT INTO siga_prospectos_folios_oficios (num_folio, anio, estatus) VALUES (:num_folio, :anio, 0)";
                 $resultado = $conexion->prepare($consulta);
                 
                 for ($i = 0; $i < $cantidad; $i++) {
@@ -49,18 +53,20 @@ switch($opcion){
     case 3: // Obtener y marcar el siguiente folio disponible
         $conexion->beginTransaction();
         try {
+            $anio_actual = date('Y');
             // 1. Encontrar el primer folio disponible (estatus 0 con el menor num_folio)
-            $consulta_folio = "SELECT * FROM siga_prospectosie_folios_oficios WHERE estatus = 0 ORDER BY num_folio ASC LIMIT 1 FOR UPDATE";
+            $consulta_folio = "SELECT * FROM siga_prospectos_folios_oficios WHERE estatus = 0 AND anio = :anio ORDER BY num_folio ASC LIMIT 1 FOR UPDATE";
             $resultado_folio = $conexion->prepare($consulta_folio);
-            $resultado_folio->execute();
+            $resultado_folio->execute([':anio' => $anio_actual]);
             $folio_disponible = $resultado_folio->fetch(PDO::FETCH_ASSOC);
 
             if ($folio_disponible) {
                 // 2. Si se encontró un folio, actualizar su estatus a 1 (utilizado)
-                $consulta_update = "UPDATE siga_prospectosie_folios_oficios SET estatus = 1 WHERE id = :id";
+                $consulta_update = "UPDATE siga_prospectos_folios_oficios SET estatus = 1 WHERE id = :id";
                 $resultado_update = $conexion->prepare($consulta_update);
                 $resultado_update->bindParam(':id', $folio_disponible['id'], PDO::PARAM_INT);
                 $resultado_update->execute();
+                $folio_disponible['num_folio'] = str_pad($folio_disponible['num_folio'], 5, '0', STR_PAD_LEFT);
                 $data = $folio_disponible; // Devolver el folio que se acaba de marcar
             } else {
                 $data = ['error' => 'No hay folios disponibles'];

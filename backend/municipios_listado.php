@@ -6,7 +6,7 @@ $conexion = $objeto->Conectar();
 
 $_POST = json_decode(file_get_contents("php://input"), true);
 
-    $consulta = "SELECT * FROM siga_prospectosie_municipios
+    $consulta = "SELECT * FROM siga_prospectos_municipios
     ORDER BY nombre";
     $resultado = $conexion->prepare($consulta);
     $resultado->execute();

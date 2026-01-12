@@ -6,7 +6,7 @@ header("Content-Type: application/json; charset=UTF-8");
 try {
      $pdo = Conexion::Conectar();
     // Obtener todos los usuarios
-    $stmt = $pdo->prepare("SELECT id, usuario, nombre FROM siga_usuarios");
+    $stmt = $pdo->prepare("SELECT id, usuario, nombre, nivel FROM siga_usuarios");
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

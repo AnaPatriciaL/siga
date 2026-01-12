@@ -15,6 +15,7 @@ import Usuarios from "@/views/Usuarios.vue";
 import Permisos from "@/views/Permisos.vue";
 import Programadores from "@/views/Programadores.vue";
 import Oficinas from "@/views/Oficinas.vue";
+import Acercade from "@/views/Acercade.vue";
 
 // import Buscar from "@/views/Buscar.vue";
 
@@ -99,6 +100,12 @@ const router = new Router({
       path: "/permisos",
       name: "Permisos",
       component: Permisos,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/acercade",
+      name: "Acercade",
+      component: Acercade,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },

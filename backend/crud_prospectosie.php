@@ -63,7 +63,7 @@ switch ($opcion) {
                     IF(a.cp != '', CONCAT(' C.P. ', a.cp), ''),
                     IF(
                         a.localidad != '' 
-                        AND (j.nombre IS NULL OR a.localidad != j.nombre),
+                        AND (j.nombre IS NULL OR TRIM(a.localidad) != TRIM(j.nombre)),
                         CONCAT(' ', a.localidad, ', '),
                         ''
                     ),
@@ -88,7 +88,7 @@ switch ($opcion) {
                   CONCAT(
                       IF(
                         a.localidad != '' 
-                        AND (j.nombre IS NULL OR a.localidad != j.nombre),
+                        AND (j.nombre IS NULL OR TRIM(a.localidad) != TRIM(j.nombre)),
                         CONCAT(' ', a.localidad, ', '),
                         ''
                     ),
@@ -96,14 +96,14 @@ switch ($opcion) {
                     ' SINALOA'
                   ) AS municipio_estado,
                   f.descripcion AS antecedente_descripcion
-                FROM siga_prospectosie AS a
-                LEFT JOIN siga_prospectosie_impuestos AS b ON a.impuesto_id = b.id
-                LEFT JOIN siga_prospectosie_programadores AS d ON a.programador_id = d.id
-                LEFT JOIN siga_prospectosie_oficinas AS e ON a.oficina_id = e.id
-                LEFT JOIN siga_prospectosie_antecedentes AS f ON a.antecedente_id = f.id
-                LEFT JOIN siga_prospectosie_fuentes AS g ON a.fuente_id = g.id
-                LEFT JOIN siga_prospectosie_estatus_prospectos AS h ON a.estatus = h.id
-                LEFT JOIN siga_prospectosie_municipios AS j ON a.municipio_id = j.municipio_id
+                FROM siga_prospectos AS a
+                LEFT JOIN siga_prospectos_impuestos AS b ON a.impuesto_id = b.id
+                LEFT JOIN siga_prospectos_programadores AS d ON a.programador_id = d.id
+                LEFT JOIN siga_prospectos_oficinas AS e ON a.oficina_id = e.id
+                LEFT JOIN siga_prospectos_antecedentes AS f ON a.antecedente_id = f.id
+                LEFT JOIN siga_prospectos_fuentes AS g ON a.fuente_id = g.id
+                LEFT JOIN siga_prospectos_estatus_prospectos AS h ON a.estatus = h.id
+                LEFT JOIN siga_prospectos_municipios AS j ON a.municipio_id = j.municipio_id
                 ";
 
     $params = [];
@@ -122,7 +122,7 @@ switch ($opcion) {
 
   case 2: // 🔹 Alta
     // Verificar si el RFC ya existe con antecedente 6 o 7
-    $consulta_verificacion = "SELECT antecedente_id FROM siga_prospectosie WHERE rfc = ? AND antecedente_id IN (6, 7)";
+    $consulta_verificacion = "SELECT antecedente_id FROM siga_prospectos WHERE rfc = ? AND antecedente_id IN (6, 7)";
     $stmt_verificacion = $conexion->prepare($consulta_verificacion);
     $stmt_verificacion->execute([$rfc]);
     $existente = $stmt_verificacion->fetch(PDO::FETCH_ASSOC);
@@ -138,7 +138,7 @@ switch ($opcion) {
         $data = ['success' => false, 'mensaje' => $mensaje];
         break;
     }
-    $consulta = "INSERT INTO siga_prospectosie
+    $consulta = "INSERT INTO siga_prospectos
       (rfc, nombre, calle, num_exterior, num_interior, colonia, cp, localidad, municipio_id, oficina_id, fuente_id,  giro, periodos,
       antecedente_id, impuesto_id, determinado, programador_id, representante_legal, retenedor, origen_id, observaciones, estatus)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -154,7 +154,7 @@ switch ($opcion) {
     break;
 
   case 3: // 🔹 Cambios
-    $consulta = "UPDATE siga_prospectosie SET
+    $consulta = "UPDATE siga_prospectos SET
       rfc = ?, nombre = ?, calle = ?, num_exterior = ?, num_interior = ?, colonia = ?, cp = ?, localidad = ?, municipio_id = ?, oficina_id = ?, 
       fuente_id = ?, giro = ?, periodos = ?, antecedente_id = ?, impuesto_id = ?, 
       determinado = ?, programador_id = ?, representante_legal = ?, retenedor = ?, origen_id = ?, observaciones = ?, estatus = ?
@@ -169,7 +169,7 @@ switch ($opcion) {
     break;
 
   case 4: // 🔹 Baja lógica
-    $consulta = "UPDATE siga_prospectosie SET estatus = 0 WHERE id = ?";
+    $consulta = "UPDATE siga_prospectos SET estatus = 0 WHERE id = ?";
     $stmt = $conexion->prepare($consulta);
     $stmt->execute([$id]);
     $data = ['mensaje' => 'Registro eliminado (baja lógica)'];
@@ -181,7 +181,7 @@ switch ($opcion) {
     $antecedente_id = $datos['antecedente_id'] ?? null;
     $id = $datos['id'] ?? null;
 
-    $consulta = "UPDATE siga_prospectosie SET estatus = ?";
+    $consulta = "UPDATE siga_prospectos SET estatus = ?";
 
     $params = [$estatus_nuevo];
 
@@ -213,7 +213,7 @@ switch ($opcion) {
   case 6: // Eliminar periodos por prospecto_id
     if (isset($datos['prospecto_id'])) {
         $prospecto_id = $datos['prospecto_id'];
-        $sql = "DELETE FROM siga_prospectosie_periodos WHERE prospecto_id = :prospecto_id";
+        $sql = "DELETE FROM siga_prospectos_periodos WHERE prospecto_id = :prospecto_id";
         $stmt = $conexion->prepare($sql);
         $stmt->bindParam(':prospecto_id', $prospecto_id);
         $stmt->execute();
@@ -233,7 +233,7 @@ switch ($opcion) {
         $fecha_inicial_ymd = DateTime::createFromFormat('d/m/Y', $fecha_inicial_ddmmyyyy)->format('Y-m-d');
         $fecha_final_ymd = DateTime::createFromFormat('d/m/Y', $fecha_final_ddmmyyyy)->format('Y-m-d');
 
-        $sql = "INSERT INTO siga_prospectosie_periodos (fecha_inicial, fecha_final, prospecto_id, status) VALUES (?, ?, ?, ?)";
+        $sql = "INSERT INTO siga_prospectos_periodos (fecha_inicial, fecha_final, prospecto_id, status) VALUES (?, ?, ?, ?)";
         $stmt = $conexion->prepare($sql);
         $stmt->execute([
             $fecha_inicial_ymd, $fecha_final_ymd, $prospecto_id, 1
