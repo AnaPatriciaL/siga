@@ -52,7 +52,7 @@
           <div class="seccion">
             <p class="subtitulo">Tecnologías utilizadas</p>
             <p class="texto-secundario">
-              Vue.js · Vuetify · MySQL
+              Vue.js | Vuetify | MySQL
             </p>
           </div>
 

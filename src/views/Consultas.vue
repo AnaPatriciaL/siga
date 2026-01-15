@@ -184,9 +184,10 @@ export default {
       cargando: false,
       operacion: "",
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
-        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
-        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 1,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
+        fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
+        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta: '', origen_id:null, 
+        representante_legal: null, estatus: 1,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -269,13 +270,6 @@ export default {
     },
     
     async crear(prospectoieData, periodosParaAgregar) {
-      let nombre = prospectoieData.nombre != null && prospectoieData.nombre !== '' ? prospectoieData.nombre.toUpperCase() : prospectoieData.nombre;
-      let calle = prospectoieData.calle != null && prospectoieData.calle !== '' ? prospectoieData.calle.toUpperCase() : prospectoieData.calle;
-      let num_exterior = prospectoieData.num_exterior != null && prospectoieData.num_exterior !== '' ? prospectoieData.num_exterior.toUpperCase() : prospectoieData.num_exterior;
-      let num_interior = prospectoieData.num_interior != null && prospectoieData.num_interior !== '' ? prospectoieData.num_interior.toUpperCase() : prospectoieData.num_interior;
-      let colonia = prospectoieData.colonia != null && prospectoieData.colonia !== '' ? prospectoieData.colonia.toUpperCase() : prospectoieData.colonia;
-      let localidad = prospectoieData.localidad != null && prospectoieData.localidad !== '' ? prospectoieData.localidad.toUpperCase() : prospectoieData.localidad;
-      let giro = prospectoieData.giro != null && prospectoieData.giro !== '' ? prospectoieData.giro.toUpperCase() : prospectoieData.giro;
       let periodos = prospectoieData.periodos != null && prospectoieData.periodos !== '' ? prospectoieData.periodos.toUpperCase() : prospectoieData.periodos;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios.post(crud,
@@ -301,7 +295,11 @@ export default {
               determinado:prospectoieData.determinado,
               programador_id:prospectoieData.programador_id,
               representante_legal:prospectoieData.representante_legal != null ? prospectoieData.representante_legal.toUpperCase() : null,
-              retenedor:prospectoieData.retenedor, 
+              retenedor:prospectoieData.retenedor,
+              cambio_domicilio:prospectoieData.cambio_domicilio,
+              domicilio_anterior:prospectoieData.domicilio_anterior,
+              notificador:prospectoieData.notificador,
+              fecha_acta:prospectoieData.fecha_acta,
               origen_id: prospectoieData.origen_id,
               observaciones:observaciones,
               estatus:prospectoieData.estatus
@@ -353,8 +351,8 @@ export default {
         id: null, fecha_captura: this.fechaactual(), rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id: null, municipio: null, oficina_descripcion: null,
         oficina_id: null, fuente_id: 3, giro: null, periodos: null, impuesto_id: 1, antecedente_id: 1, determinado: 0,
-        programador_id: null, retenedor: 0, origen_id: 0, representante_legal: null, estatus: 1, observaciones: null,
-        estatus_descripcion: 'NUEVO'
+        programador_id: null, retenedor: 0, cambio_domicilio: null, domicilio_anterior: null, notificador: null, fecha_acta: '', 
+        origen_id: 0, representante_legal: null, estatus: 1, observaciones: null, estatus_descripcion: 'NUEVO'
       };
     },   
     async editar(prospectoieData, periodosParaAgregar) {
@@ -391,6 +389,10 @@ export default {
             programador_id:prospectoieData.programador_id,
             representante_legal:representante_legal,
             retenedor:prospectoieData.retenedor,
+            cambio_domicilio:prospectoieData.cambio_domicilio,
+            domicilio_anterior:prospectoieData.domicilio_anterior,
+            notificador:prospectoieData.notificador,
+            fecha_acta:prospectoieData.fecha_acta,
             origen_id: prospectoieData.origen_id,
             observaciones:observaciones,
             estatus:prospectoieData.estatus
@@ -551,6 +553,10 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
+      this.prospectoie.notificador=objeto.notificador;
+      this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
       this.prospectoie.origen_id=objeto.origen_id;
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
@@ -560,8 +566,11 @@ export default {
     },
     
     convertirFecha(fechaCaptura) {
+    if (!fechaCaptura || fechaCaptura === '0000-00-00') return null;
+
     // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
+    if (isNaN(fecha.getTime())) return null;
 
     // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');

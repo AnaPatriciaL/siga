@@ -322,7 +322,9 @@ function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, arr
 
     $fecha_formateada = formatDateToSpanish($fecha_orden_str);
     $template_file = "{$prefix}.docx";
-    if (isset($prospecto['fuente_id']) && ($prospecto['fuente_id'] == 1 || $prospecto['fuente_id'] == 2)) {
+    if (isset($prospecto['cambio_domicilio']) && $prospecto['cambio_domicilio'] == 1) {
+        $template_file = "{$prefix} - CD.docx";
+    } elseif (isset($prospecto['fuente_id']) && ($prospecto['fuente_id'] == 1 || $prospecto['fuente_id'] == 2)) {
         $template_file = "{$prefix} - NR.docx";
     }
     if (!file_exists(__DIR__ . "/formatos/{$template_file}")) {
@@ -604,9 +606,14 @@ switch ($opcion) {
                 throw new Exception("No se encontró impuesto_id = $impuesto_id en la tabla.");
             }
             $prefix = $impuestoInfo['prefix'];
+            $nombre_documento = $prefix;
             $templateFile = "{$prefix}.docx";
-            if (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
+            if ($prospecto['cambio_domicilio'] == 1) {
+                $templateFile = "{$prefix} - CD.docx";
+                $nombre_documento = "{$prefix} - CD";
+            } elseif (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
                 $templateFile = "{$prefix} - NR.docx";
+                $nombre_documento = "{$prefix} - NR";
             }
             $templatePath = __DIR__ . "/formatos/{$templateFile}";
             if (!file_exists($templatePath)) {
@@ -619,7 +626,7 @@ switch ($opcion) {
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
-            $baseName = $prefix . '_' . strtoupper($prospecto['rfc']); // Ej: ISN_RFC1234
+            $baseName = $nombre_documento . '_' . strtoupper($prospecto['rfc']); // Ej: ISN_RFC1234
             $finalDocx = $savePath . $baseName . '.docx';
             $finalPdf  = $savePath . $baseName . '.pdf';
             $templateProcessor->saveAs($finalDocx);
