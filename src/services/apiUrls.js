@@ -1,0 +1,26 @@
+const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
+
+export default {
+  crud: `${API_BASE_URL}/crud_prospectosie.php`,
+  oficinas: `${API_BASE_URL}/oficinas_listado.php`,
+  fuentes: `${API_BASE_URL}/fuentes_listado.php`,
+  programadores: `${API_BASE_URL}/programadores_listado.php`,
+  impuestos: `${API_BASE_URL}/impuestos_listado.php`,
+  antecedentes: `${API_BASE_URL}/antecedentes_listado.php`,
+  padron: `${API_BASE_URL}/padron_contribuyentes.php`,
+  municipios: `${API_BASE_URL}/municipios_listado.php`,
+  generarOrdenes: `${API_BASE_URL}/generar_ordenes.php`,
+  foliosOficios: `${API_BASE_URL}/folios_oficios.php`,
+  canceladas: `${API_BASE_URL}/canceladas.php`,
+  generarAntecedente: `${API_BASE_URL}/generar_antecedente.php`,
+  sessionCheck: `${API_BASE_URL}/session_check.php`,
+  login: `${API_BASE_URL}/login.php`,
+  obtenerUsuarios: `${API_BASE_URL}/obtenerUsuarios.php`,
+  obtenerOpciones: `${API_BASE_URL}/obtenerOpciones.php`,
+  asignarOpciones: `${API_BASE_URL}/asignarOpciones.php`,
+  programadoresListado: `${API_BASE_URL}/programadores.php`,
+  usuarios: `${API_BASE_URL}/usuarios.php`,
+  oficinas_listado: `${API_BASE_URL}/oficinas.php`,
+  opcionesUsuario: (usuario_id) => `${API_BASE_URL}/opciones_usuario.php?usuario_id=${usuario_id}`,
+  obtenerOpcionesMenu: (usuarioId) => `${API_BASE_URL}/obtener_opciones.php?usuario_id=${usuarioId}`,
+};

@@ -83,6 +83,7 @@
 
 <script>
 import axios from "axios";
+import api from "@/services/apiUrls.js";
 
 export default {
   data() {
@@ -127,18 +128,17 @@ export default {
   },
   methods: {
     obtenerUsuarios() {
-      try {
-        axios
-          .get("http://10.10.120.228/siga/backend/usuarios.php")
-          .then((response) => {
-            this.usuarios = response.data.map((usuario) => ({
-              ...usuario,
-              activo: usuario.activo > 0 ? true : false, // Convierte 1 a true y 0 a false para reactividad
-            }));
-          });
-      } catch (error) {
-        console.error("Error al obtener los usuarios:", error);
-      }
+      axios
+        .get(api.usuarios)
+        .then((response) => {
+          this.usuarios = response.data.map((usuario) => ({
+            ...usuario,
+            activo: usuario.activo > 0,
+          }));
+        })
+        .catch((error) => {
+          console.error("Error al obtener los usuarios:", error);
+        });
     },
     abrirFormulario() {
       this.dialog = true;
@@ -169,42 +169,44 @@ export default {
       const usuarioData = {
         ...this.usuario,
         activo: this.usuario.activo ? 1 : 0,
-      }; // Convierte booleano a número
+      };
+
       const endpoint = this.operacion === "crear" ? "post" : "put";
-      axios[endpoint](
-        "http://10.10.120.228/siga/backend/usuarios.php",
-        usuarioData
-      )
+
+      axios[endpoint](api.usuarios, usuarioData)
         .then(() => {
           this.obtenerUsuarios();
           this.dialog = false;
         })
-        .catch((error) => console.error(error));
+        .catch((error) => {
+          console.error("Error al guardar usuario:", error);
+        });
     },
     eliminarUsuario(id) {
       Swal.fire({
         title: "¿Confirma Desactivar el Usuario?",
         icon: "warning",
         confirmButtonColor: "#3085d6",
-        confirmButtonText: "Si, desactivarlo",
+        confirmButtonText: "Sí, desactivarlo",
         cancelButtonColor: "#d33",
         showCancelButton: true,
       }).then((result) => {
         if (result.isConfirmed) {
           axios
-            .delete("http://10.10.120.228/siga/backend/usuarios.php", {
+            .delete(api.usuarios, {
               data: { id },
             })
             .then(() => {
               Swal.fire(
                 "¡Desactivado!",
-                "se ha desactivado el Usuario",
+                "Se ha desactivado el Usuario",
                 "success"
               );
               this.obtenerUsuarios();
+            })
+            .catch((error) => {
+              console.error("Error al eliminar usuario:", error);
             });
-        } else if (result.isDenied) {
-          Swal.fire("¡Error!", "No se pudos eliminar el EFO", "error");
         }
       });
     },

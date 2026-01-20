@@ -117,8 +117,9 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
+  import api from '@/services/apiUrls.js';
 
-  var urlfolios_oficios ="http://10.10.120.228/siga/backend/folios_oficios.php";
+  var urlfolios_oficios = api.foliosOficios;
 
 export default {
   name: "Folios",

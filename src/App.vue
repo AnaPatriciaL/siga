@@ -97,6 +97,7 @@
 
 <script>
 import Swal from 'sweetalert2';
+import api from "@/services/apiUrls";
 
 export default {
   name: "App",
@@ -122,10 +123,8 @@ export default {
           return;
         }
 
-        const response = await fetch(
-          `http://10.10.120.228/siga/backend/obtener_opciones.php?usuario_id=${usuarioId}`
-        );
-        
+        const response = await fetch(api.obtenerOpcionesMenu(usuarioId));
+
         // Validar si la respuesta es correcta
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
@@ -138,23 +137,26 @@ export default {
         }
 
         const data = JSON.parse(responseText);
-        
         if (!data || typeof data !== "object") {
           throw new Error("La respuesta del servidor no es un JSON válido.");
         }
 
         if (data.success) {
-          // Ordenar el menú por el campo 'orden'
-          const menuOrdenado = [...data.data].sort((a, b) => {
-            return Number(a.orden) - Number(b.orden);
-          });
+          const menuOrdenado = [...data.data].sort(
+            (a, b) => Number(a.orden) - Number(b.orden)
+          );
           this.opcionesMenu = menuOrdenado;
         } else {
           throw new Error(data.message || "Error desconocido en el servidor.");
         }
+
       } catch (error) {
         console.error("Error al cargar las opciones del menú:", error.message);
-        Swal.fire("Error", `No se pudieron cargar las opciones del menú: ${error.message}`, "error");
+        Swal.fire(
+          "Error",
+          `No se pudieron cargar las opciones del menú: ${error.message}`,
+          "error"
+        );
       }
     },
    

@@ -95,16 +95,16 @@
   import * as XLSX from 'xlsx-js-style';
   import FormCrearEditar from '@/components/formCrearEditar.vue';
   import DialogAntecedente from '@/components/dialogoNoAutorizado.vue';
+  import api from '@/services/apiUrls.js';
 
-  // var crud = "./backend/crud_prospectosie.php";
-  var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
-  var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
-  var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
-  var urlprogramadores = "http://10.10.120.228/siga/backend/programadores_listado.php";
-  var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
-  var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
-  var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
+  var crud = api.crud;
+  var urloficinas = api.oficinas;
+  var urlfuentes = api.fuentes;
+  var urlprogramadores = api.programadores;
+  var urlimpuestos = api.impuestos;
+  var urlantecedentes = api.antecedentes;
+  var urlpadron = api.padron;
+  var urlmunicipios = api.municipios;
 
 export default {
   name: "Comites",
@@ -286,15 +286,38 @@ export default {
         numFmt: "$#,##0.00"
       };
 
+      let tipoListado = 'CRUCE';
+
+      if (prospectoData.length > 0 && cruceData.length === 0) {
+        tipoListado = 'PROSPECTOS';
+      } else if (cruceData.length > 0 && prospectoData.length > 0) {
+        tipoListado = 'CRUCE Y PROSPECTOS';
+      }
+      let tipoOrden = 'VISITAS';
+      const impuestos = prospectosFiltrados.map(p =>(p.impuesto || '').trim().toUpperCase());
+      if (impuestos.every(i => i.startsWith('M'))) {
+        tipoOrden = 'CARTAS';
+      } else if (impuestos.every(i => i.startsWith('G'))) {
+        tipoOrden = 'GABINETE';
+      } else if (impuestos.every(i => i.startsWith('D'))) {
+        tipoOrden = 'VISITAS';
+      }
       // --- Hoja 1: CRUCE (con secciones CRUCE / PROSPECTO) ---
-      const title = "LISTADO DE CRUCE DE ORDENES DE VISITAS DE IMPUESTOS ESTATALES";
+      const title = `LISTADO DE ${tipoListado} DE ORDENES DE ${tipoOrden} DE IMPUESTOS ESTATALES`;
       const headers = ["No.", "R.F.C.", "NOMBRE DEL CONTRIBUYENTE", "MÉTODO\nPROPUESTO", "PERIODO", "IMPUESTOS", "MUNICIPIO", "PRESUNTIVA", "REPRESENTANTE\nLEGAL"];
 
-      // Generador de filas con estilos (debe definirse antes de usar)
+      // Generador de filas con estilos
       const generarFilas = (lista, startIndex = 1) => {
         return lista.map((item, index) => {
-          const impuesto = item.impuesto || '';
-          const metodoPropuesto = !impuesto.startsWith('M-') ? 'VISITA' : 'CARTA';
+          const impuesto = (item.impuesto || '').trim().toUpperCase();
+          let metodoPropuesto = '';
+          if (impuesto.startsWith('M')) {
+            metodoPropuesto = 'CARTA';
+          } else if (impuesto.startsWith('G')) {
+            metodoPropuesto = 'GABINETE';
+          } else {
+            metodoPropuesto = 'VISITA';
+          }
 
           return [
             { v: startIndex + index, s: dataStyleCenter },
@@ -324,9 +347,9 @@ export default {
 
       // ===== SECCIÓN CRUCE =====
       if (cruceData.length > 0) {
-        ws_data.push([{ v: 'CRUCE', s: titleStyle }]);
-        sectionTitleRows.push(currentRow);
-        currentRow++;
+        //ws_data.push([{ v: 'CRUCE', s: titleStyle }]);
+        //sectionTitleRows.push(currentRow);
+        //currentRow++;
 
         ws_data.push(headers);
         headerRowIndexes.push(currentRow);
@@ -344,9 +367,9 @@ export default {
 
       // ===== SECCIÓN PROSPECTO =====
       if (prospectoData.length > 0) {
-        ws_data.push([{ v: 'PROSPECTO', s: titleStyle }]);
-        sectionTitleRows.push(currentRow);
-        currentRow++;
+        //ws_data.push([{ v: 'PROSPECTO', s: titleStyle }]);
+        //sectionTitleRows.push(currentRow);
+        //currentRow++;
 
         ws_data.push(headers);
         headerRowIndexes.push(currentRow);
@@ -519,7 +542,7 @@ export default {
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
-        const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
+        const response = await axios.get(api.sessionCheck);
         // Asignar la respuesta a sessionData
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso

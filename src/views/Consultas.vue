@@ -89,19 +89,18 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
-  import VueExcelXlsx from "vue-excel-xlsx";
   import FormCrearEditar from '@/components/formCrearEditar.vue';
+  import api from '@/services/apiUrls.js';
 
-  // var crud = "./backend/crud_prospectosie.php";
-  var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
-  var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
-  var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
-  var urlprogramadores = "http://10.10.120.228/siga/backend/programadores_listado.php";
-  var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
-  var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
-  var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  var urlgenerar_antecedente ="http://10.10.120.228/siga/backend/generar_antecedente.php";
-  var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
+  var crud = api.crud;
+  var urloficinas = api.oficinas;
+  var urlfuentes = api.fuentes;
+  var urlprogramadores = api.programadores;
+  var urlimpuestos = api.impuestos;
+  var urlantecedentes = api.antecedentes;
+  var urlpadron = api.padron;
+  var urlgenerar_antecedente = api.generarAntecedente;
+  var urlmunicipios = api.municipios;
 
 export default {
   name: "Consultas",
@@ -227,7 +226,7 @@ export default {
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
-        const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
+        const response = await axios.get(api.sessionCheck);
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso
         const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente

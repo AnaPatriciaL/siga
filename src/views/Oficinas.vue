@@ -111,6 +111,7 @@
 <script>
 import axios from "axios";
 import Swal from 'sweetalert2';
+import api from '@/services/apiUrls.js';
 
 export default {
   name: "Oficinas",
@@ -147,7 +148,7 @@ export default {
     obtenerOficinas() {
       try {
         axios
-          .get("http://10.10.120.228/siga/backend/oficinas_listado.php")
+          .get(api.oficinas)
           .then((response) => {
             this.oficinas = response.data;
           });
@@ -174,7 +175,7 @@ export default {
       };
 
       axios
-        .put("http://10.10.120.228/siga/backend/oficinas.php", dataToSave)
+        .put(api.oficinas, dataToSave)
         .then((response) => {
           Swal.fire("¡Actualizado!", response.data.mensaje, "success");
           this.obtenerOficinas(); // Recargamos la lista por si hubo cambios

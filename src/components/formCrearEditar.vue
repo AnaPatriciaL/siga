@@ -215,8 +215,9 @@
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import { vMaska } from "maska";
+import api from '@/services/api';
 
-var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
+var urlpadron = api.padron;
 
 export default {
   name: "FormCrearEditar",
@@ -412,6 +413,8 @@ export default {
             this.prospectoie.cp = data.cp;
             this.prospectoie.localidad = data.localidad;
             this.prospectoie.giro = data.giro;
+            this.prospectoie.municipio_id = data.municipio_id;
+            this.prospectoie.oficina_id = data.oficina_id;
           } else {
             Swal.fire('Info', `No se encontró información para el RFC: ${this.prospectoie.rfc}`, 'info');
           }
