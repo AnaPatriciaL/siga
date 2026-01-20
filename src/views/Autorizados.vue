@@ -37,22 +37,43 @@
         </v-col>
       </v-row>
       <!-- Contador de folios y órdenes -->
-      <v-row align="center" class="mb-2">
-        <v-spacer></v-spacer>
-        <v-col cols="auto" class="text-right">
-          <span class="mr-4 font-weight-bold">Órdenes Generadas: {{ ordenesGeneradasCount }}</span>
-          <span class="mr-4 font-weight-bold">Órdenes Pendientes: {{ ordenesPendientesCount }}</span>
-          <span class="mr-4 font-weight-bold">Folios Disponibles: {{ foliosDisponiblesCount }}</span>
+      <v-row align="center" class="mb-4">
+        <!-- CARDS -->
+        <v-col>
+          <v-row dense>
+            <!-- ÓRDENES GENERADAS -->
+            <v-col cols="12" md="2">
+              <v-card color="light-green darken-4" dark elevation="6" class="pa-4 text-center">
+                <div class="text-subtitle-2 font-weight-medium">Órdenes Generadas</div>
+                <div class="text-h3 font-weight-bold">{{ ordenesGeneradasCount }}</div>
+              </v-card>
+            </v-col>
+            <!-- ÓRDENES PENDIENTES -->
+            <v-col cols="12" md="2">
+              <v-card color="pink darken-4" dark elevation="6" class="pa-4 text-center">
+                <div class="text-subtitle-2 font-weight-medium">Órdenes Pendientes</div>
+                <div class="text-h3 font-weight-bold">{{ ordenesPendientesCount }}</div>
+              </v-card>
+            </v-col>
+            <!-- FOLIOS DISPONIBLES -->
+            <v-col cols="12" md="2">
+              <v-card color="light-blue darken-3" dark elevation="6" class="pa-4 text-center">
+                <div class="text-subtitle-2 font-weight-medium">Folios Disponibles</div>
+                <div class="text-h3 font-weight-bold">{{ foliosDisponiblesCount }}</div>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-col>
+        <!-- FECHA -->
         <v-col cols="auto">
+          <v-card  color="grey lighten-4" elevation="6" class="pa-4">
             <v-menu v-model="menuFechaOrden" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto">
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="fechaOrdenFormateada" label="Fecha de la Orden" prepend-icon="mdi-calendar" readonly
-                v-bind="attrs" v-on="on" dense outlined hide-details style="width: 200px;"></v-text-field>
-            </template>
-            <v-date-picker v-model="fechaOrden" @input="menuFechaOrden = false" no-title locale="es-es"></v-date-picker>
-          </v-menu>
+              <template v-slot:activator="{ on, attrs }">
+                <v-text-field v-model="fechaOrdenFormateada" label="Fecha de la Orden" prepend-icon="mdi-calendar" readonly v-bind="attrs" v-on="on" outlined hide-details class="fecha-grande"/>
+              </template>
+              <v-date-picker v-model="fechaOrden" @input="menuFechaOrden = false" no-title locale="es-es"/>
+            </v-menu>
+          </v-card>
         </v-col>
       </v-row>
       <!-- Tabla y formulario -->
@@ -162,17 +183,18 @@
   import * as XLSX from 'xlsx-js-style';
   import FormCrearEditar from '@/components/formCrearEditar.vue';
   import DialogAntecedente from '@/components/dialogoNoAutorizado.vue';
+  import api from '@/services/apiUrls.js';
 
-  var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
-  var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
-  var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
-  var urlprogramadores = "http://10.10.120.228/siga/backend/programadores_listado.php";
-  var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
-  var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
-  var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
-  var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
-  var urlfolios_oficios ="http://10.10.120.228/siga/backend/folios_oficios.php";
+  var crud = api.crud;
+  var urloficinas = api.oficinas;
+  var urlfuentes = api.fuentes;
+  var urlprogramadores = api.programadores;
+  var urlimpuestos = api.impuestos;
+  var urlantecedentes = api.antecedentes;
+  var urlpadron = api.padron;
+  var urlmunicipios = api.municipios;
+  var urlgenerar_ordenes = api.generarOrdenes;
+  var urlfolios_oficios = api.foliosOficios;
 
 export default {
   name: "Autorizadas",
@@ -270,9 +292,10 @@ export default {
       cargando: false,
       operacion: "",
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
-        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
-        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 5,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
+        fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
+        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, origen_id:null, 
+        representante_legal: null, estatus: 5,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -350,11 +373,12 @@ export default {
       /* ==== DATOS ==== */
       const prospecto_ids = this.selectedProspectos.map(p => p.id);
       const { data: prospectosOrdenados } = await axios.post(urlgenerar_ordenes, { opcion: 5, prospecto_ids });
-
+      prospectosOrdenados.sort((a, b) => (a.num_oficio || 0) - (b.num_oficio || 0));
       const nombreJefe = prospectosOrdenados[0]?.nombre_jefe || "";
       const nombreFirmante = prospectosOrdenados[0]?.nombre_firmante || "";
 
-      const hoy = new Date();
+      const [year, month, day] = this.fechaOrden.split('-').map(Number);
+      const hoy = new Date(year, month - 1, day);
       const fechaFormateada = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
       const año = hoy.getFullYear();
       const encabezadoFecha = `CULIACÁN, SINALOA A ${fechaFormateada}`;
@@ -529,6 +553,21 @@ export default {
       });
     },
     prospectoPendiente(item) {
+      if (this.tieneOrdenGenerada(item)) {
+        Swal.fire({
+          title: 'Acción no permitida',
+          text: 'El prospecto tiene una orden generada, es necesario cancelar la orden para realizar esta acción.',
+          icon: 'warning',
+          showCancelButton: false,
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          allowEnterKey: false
+        });
+        return;
+      }
       this.prospectoSeleccionado = item;
       this.dialogAntecedente = true;
     },
@@ -583,6 +622,9 @@ export default {
     async generarDocumentosSeleccionados() {
       if (this.selectedProspectos.length === 0) return;
 
+      // Ordenar los prospectos seleccionados por oficina_id
+      this.selectedProspectos.sort((a, b) => (a.oficina_id || 0) - (b.oficina_id || 0));
+
       const { value: numCopias } = await Swal.fire({
         title: 'Número de impresiones',
         input: 'number',
@@ -636,7 +678,7 @@ export default {
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
-        const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
+        const response = await axios.get(api.sessionCheck);
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso
         const nivel = Number(this.sessionData?.nivel); // Convertir nivel a número directamente
@@ -912,6 +954,10 @@ export default {
             programador_id:prospectoieData.programador_id,
             representante_legal:representante_legal,
             retenedor:prospectoieData.retenedor,
+            cambio_domicilio:prospectoieData.cambio_domicilio,
+            domicilio_anterior:prospectoieData.domicilio_anterior,
+            notificador:prospectoieData.notificador,
+            fecha_acta:prospectoieData.fecha_acta,
             origen_id: prospectoieData.origen_id,
             observaciones:observaciones,
             estatus:prospectoieData.estatus
@@ -1070,6 +1116,10 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
+      this.prospectoie.notificador=objeto.notificador;
+      this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
       this.prospectoie.origen_id=objeto.origen_id;
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
@@ -1077,8 +1127,11 @@ export default {
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
     },
     convertirFecha(fechaCaptura) {
+    if (!fechaCaptura || fechaCaptura === '0000-00-00') return null;
+
     // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
+    if (isNaN(fecha.getTime())) return null;
 
     // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');
@@ -1170,5 +1223,14 @@ tbody tr:nth-of-type(odd) {
 
 .center-header {
   text-align: center;
+}
+
+.fecha-grande input {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.fecha-grande .v-label {
+  font-size: 0.95rem;
 }
 </style>

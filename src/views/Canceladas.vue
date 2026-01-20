@@ -77,8 +77,9 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
+  import api from '@/services/apiUrls.js';
 
-  var url_canceladas ="http://10.10.120.228/siga/backend/canceladas.php";
+  var url_canceladas = api.canceladas;
 
 export default {
     name: "Folios",

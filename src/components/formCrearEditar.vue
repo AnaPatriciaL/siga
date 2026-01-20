@@ -98,7 +98,7 @@
                   <v-text-field reverse readonly disabled dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
                 </v-col>
                 <!-- Usuario -->
-                <v-col class="my-0 py-0" cols="12" md="4">
+                <v-col class="my-0 py-0" cols="12" md="3">
                   <template v-if="esUsuarioNivel1()">
                     <v-text-field
                       v-model="prospectoie.programador_descripcion"
@@ -120,15 +120,31 @@
                 </v-col>
                 <!-- Retenedor -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor"></v-switch>
+                  <v-switch color="pink darken-4" class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor"></v-switch>
+                </v-col>
+                <!-- Cambio Domicilio -->
+                <v-col class="my-0 py-0" cols="12" md="2">
+                  <v-checkbox color="pink darken-4" class="my-0 py-0" v-model="prospectoie.cambio_domicilio" :true-value="1" :false-value="0" label="Cambio Domicilio"/>
+                </v-col>
+                <!-- Domicilio Anterior -->
+                <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="6">
+                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.domicilio_anterior" @blur="prospectoie.domicilio_anterior = prospectoie.domicilio_anterior?.trim()" label="Domicilio Anterior" outlined/>
+                </v-col>
+                <!-- Notificador / Visitador -->
+                <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="4">
+                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.notificador" @blur="prospectoie.notificador = prospectoie.notificador?.trim()" label="Notificador / Visitador" outlined/>
+                </v-col>
+                <!-- Fecha Acta -->
+                <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="2">
+                  <v-text-field v-model="prospectoie.fecha_acta" label="Fecha acta" outlined dense maxlength="10" placeholder="DD/MM/YYYY" @input="formatearFechaActa" :rules="[rules.dateFormat]"/>
                 </v-col>
                 <!-- Representante Legal -->
-                <v-col v-if="prospectoie.rfc && prospectoie.rfc.length === 12" class="my-0 py-0" cols="12" md="10">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" @blur="prospectoie.representante_legal = prospectoie.representante_legal?.trim()" label="Representante Legal" item-text="" outlined maxlengt></v-text-field>
+                <v-col v-if="prospectoie.rfc && prospectoie.rfc.length === 12" class="my-0 py-0" cols="12" md="12">
+                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" @blur="prospectoie.representante_legal = prospectoie.representante_legal?.trim()" label="Representante Legal" item-text="" outlined maxlengt></v-text-field>
                 </v-col>
                 <!-- Origen -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-switch class="my-0 py-0 mayusculas" v-model="prospectoie.origen_id" inset :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"></v-switch>
+                  <v-switch color="pink darken-4"class="my-0 py-0 mayusculas" v-model="prospectoie.origen_id" inset :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"></v-switch>
                 </v-col>
                 <!-- Observaciones -->
                 <v-col class="my-0 py-0" cols="12" md="10">
@@ -199,8 +215,9 @@
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import { vMaska } from "maska";
+import api from '@/services/api';
 
-var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
+var urlpadron = api.padron;
 
 export default {
   name: "FormCrearEditar",
@@ -325,6 +342,30 @@ export default {
     
   },
   methods: {
+    formatearFechaActa(valor) {
+      if (!valor) {
+        this.prospectoie.fecha_acta = '';
+        return;
+      }
+
+      // Quitar todo lo que no sea número
+      let numeros = valor.replace(/\D/g, '');
+
+      // Limitar a 8 dígitos (DDMMYYYY)
+      numeros = numeros.substring(0, 8);
+
+      let fecha = '';
+
+      if (numeros.length <= 2) {
+        fecha = numeros;
+      } else if (numeros.length <= 4) {
+        fecha = `${numeros.substring(0, 2)}/${numeros.substring(2)}`;
+      } else {
+        fecha = `${numeros.substring(0, 2)}/${numeros.substring(2, 4)}/${numeros.substring(4)}`;
+      }
+
+      this.prospectoie.fecha_acta = fecha;
+    },
     nobloquearBasicos(e) {
       // Permitir teclas especiales
       const permitidas = [
@@ -372,6 +413,8 @@ export default {
             this.prospectoie.cp = data.cp;
             this.prospectoie.localidad = data.localidad;
             this.prospectoie.giro = data.giro;
+            this.prospectoie.municipio_id = data.municipio_id;
+            this.prospectoie.oficina_id = data.oficina_id;
           } else {
             Swal.fire('Info', `No se encontró información para el RFC: ${this.prospectoie.rfc}`, 'info');
           }

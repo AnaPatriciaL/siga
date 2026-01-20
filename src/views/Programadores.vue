@@ -99,6 +99,7 @@
 
 <script>
 import axios from "axios";
+import api from '@/services/apiUrls.js';
 
 export default {
 name: "Programadores",
@@ -157,7 +158,7 @@ name: "Programadores",
     obtenerProgramadores() {
       try {
         axios
-          .get("http://10.10.120.228/siga/backend/programadores.php")
+          .get(api.programadoresListado)
           .then((response) => (this.programadores = response.data));
       } catch (error) {
         console.error("Error al obtener los programadores:", error);
@@ -203,7 +204,7 @@ name: "Programadores",
 
       const endpoint = this.operacion === "crear" ? "post" : "put";
       axios[endpoint](
-        "http://10.10.120.228/siga/backend/programadores.php",
+        api.programadoresListado,
         programadorData
       )
         .then(() => {
@@ -223,7 +224,7 @@ name: "Programadores",
       }).then((result) => {
         if (result.isConfirmed) {
           axios
-            .delete("http://10.10.120.228/siga/backend/programadores.php", {
+            .delete(api.programadoresListado, {
               data: { id },
             })
             .then(() => {

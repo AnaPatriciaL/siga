@@ -40,5 +40,4 @@ export default {
   guardarCobranza(cobranza){
     return apiClient.post('guardar_cobranza.php', cobranza);
   }
-  // ...otros endpoints
 };

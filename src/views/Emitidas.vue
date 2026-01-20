@@ -108,17 +108,17 @@
   import axios from 'axios';
   import VueExcelXlsx from "vue-excel-xlsx";
   import FormCrearEditar from '@/components/formCrearEditar.vue';
+  import api from '@/services/apiUrls.js';
 
-  // var crud = "./backend/crud_prospectosie.php";
-  var crud = "http://10.10.120.228/siga/backend/crud_prospectosie.php";
-  var urloficinas = "http://10.10.120.228/siga/backend/oficinas_listado.php";
-  var urlfuentes = "http://10.10.120.228/siga/backend/fuentes_listado.php";
-  var urlprogramadores = "http://10.10.120.228/siga/backend/programadores_listado.php";
-  var urlimpuestos = "http://10.10.120.228/siga/backend/impuestos_listado.php";
-  var urlantecedentes = "http://10.10.120.228/siga/backend/antecedentes_listado.php";
-  var urlpadron = "http://10.10.120.228/siga/backend/padron_contribuyentes.php";
-  var urlmunicipios ="http://10.10.120.228/siga/backend/municipios_listado.php";
-  var urlgenerar_ordenes ="http://10.10.120.228/siga/backend/generar_ordenes.php";
+  var crud = api.crud;
+  var urloficinas = api.oficinas;
+  var urlfuentes = api.fuentes;
+  var urlprogramadores = api.programadores;
+  var urlimpuestos = api.impuestos;
+  var urlantecedentes = api.antecedentes;
+  var urlpadron = api.padron;
+  var urlmunicipios = api.municipios;
+  var urlgenerar_ordenes = api.generarOrdenes;
 
 export default {
   name: "Emitidas",
@@ -203,9 +203,10 @@ export default {
       cargando: false,
       operacion: "",
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
-        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, // Agregado para mostrar la descripción de la oficina
-        oficina_id: null, fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0,
-        programador_id: null, retenedor:null, origen_id:null, representante_legal: null, estatus: 6,
+        colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
+        fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
+        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, origen_id:null,  
+        representante_legal: null, estatus: 6,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -281,7 +282,7 @@ export default {
     async obtenerPermisos() {
       try {
         // Hacer la solicitud al endpoint PHP
-        const response = await axios.get('http://10.10.120.228/siga/backend/session_check.php');
+        const response = await axios.get(api.sessionCheck);
         // Asignar la respuesta a sessionData
         this.sessionData = response.data;
         // Verificar la propiedad 'nivel' para establecer el permiso
@@ -355,6 +356,10 @@ export default {
             programador_id:prospectoieData.programador_id,
             representante_legal:representante_legal,
             retenedor:prospectoieData.retenedor,
+            cambio_domicilio:prospectoieData.cambio_domicilio,
+            domicilio_anterior:prospectoieData.domicilio_anterior,
+            notificador:prospectoieData.notificador,
+            fecha_acta:prospectoieData.fecha_acta,
             origen_id: prospectoieData.origen_id,
             observaciones:observaciones,
             estatus:prospectoieData.estatus
@@ -482,6 +487,10 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
+      this.prospectoie.notificador=objeto.notificador;
+      this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
       this.prospectoie.origen_id=objeto.origen_id;
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
@@ -490,8 +499,11 @@ export default {
     },
     
     convertirFecha(fechaCaptura) {
+    if (!fechaCaptura || fechaCaptura === '0000-00-00') return null;
+
     // Convertir a objeto Date
     const fecha = new Date(fechaCaptura);
+    if (isNaN(fecha.getTime())) return null;
 
     // Obtener día, mes y año
     const day = String(fecha.getDate()).padStart(2, '0');

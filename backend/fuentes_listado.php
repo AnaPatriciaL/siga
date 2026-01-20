@@ -10,7 +10,7 @@ try {
     $conexion = $objeto->Conectar();
 
     // Consulta
-    $sql = "SELECT id, nombre FROM siga_prospectosie_fuentes"; 
+    $sql = "SELECT id, nombre FROM siga_prospectos_fuentes"; 
     $stmt = $conexion->prepare($sql);
     $stmt->execute();
 
@@ -30,11 +30,3 @@ try {
     // Cerrar conexión
     $conexion = null;
 }
-
-    // $consulta = "SELECT * FROM prospectosie_oficinas";
-    // $resultado = $conexion->prepare($consulta);
-    // $resultado->execute();
-    // $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
-
-    // print json_encode($data, JSON_UNESCAPED_UNICODE);
-    // $conexion = NULL;

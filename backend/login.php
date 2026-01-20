@@ -19,7 +19,7 @@ $contrasena = $data['contrasena'];
 
 try {
     // Consultar si el usuario existe y obtener la contraseña hasheada
-    $query = "SELECT id, contrasena, nombre FROM siga_usuarios WHERE usuario = :usuario LIMIT 1";
+    $query = "SELECT id, contrasena, nombre, nivel FROM siga_usuarios WHERE usuario = :usuario LIMIT 1";
     $stmt = $conexion->prepare($query);
     $stmt->execute([':usuario' => $usuario]);
 
@@ -36,6 +36,7 @@ try {
                 "token"     =>  $token,
                 "nombre"    =>  $user['nombre'],
                 "id"        =>  $user['id'],
+                "nivel"     =>  $user['nivel'],
                 "message"   =>  "Inicio de sesión exitoso"
             ];
         } else {

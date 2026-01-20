@@ -53,6 +53,7 @@
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css"; // SweetAlert2 styles
 import axios from "axios";
+import api from '@/services/apiUrls.js';
 
 export default {
   data() {
@@ -71,8 +72,7 @@ export default {
     },
     async login() {
       try {
-        const response = await axios.post(
-          "http://10.10.120.228/siga/backend/login.php",
+        const response = await axios.post(api.login,
           {
             usuario: this.usuario,
             contrasena: this.contrasena,

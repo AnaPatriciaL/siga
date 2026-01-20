@@ -77,6 +77,8 @@
   </v-container>
 </template>
 <script>
+  import axios from "axios";
+  import api from '@/services/apiUrls';
 export default {
   data() {
     return {
@@ -101,11 +103,11 @@ export default {
   },
   methods: {
     obtieneUsuarios() {
-      fetch('http://10.10.120.228/siga/backend/obtenerUsuarios.php')
+      fetch(api.obtenerUsuarios)
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
-            this.usuarios = data.usuarios;
+            this.usuarios = data.usuarios; // ← ARRAY, como antes
           } else {
             console.error(data.message);
           }
@@ -113,7 +115,7 @@ export default {
         .catch(error => console.error('Error al obtener usuarios:', error));
     },
     obtieneOpciones() {
-      fetch('http://10.10.120.228/siga/backend/obtenerOpciones.php')
+      fetch(api.obtenerOpciones)
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
@@ -124,25 +126,12 @@ export default {
         })
         .catch(error => console.error('Error al obtener opciones:', error));
     },
-    // async cargarOpcionesUsuario(usuario_id) {
-    //   try {
-    //     // Realiza una llamada al backend para obtener las opciones del usuario
-    //     const response = await fetch(`http://10.10.120.180/efos/backend/opciones_usuario.php?usuario_id=${usuario_id}`);
-    //     const opcionesAsignadas = await response.json();
-    //     console.log('Opciones Asignadas: ',opcionesAsignadas);
-    //     // Actualiza el array `opcionesSeleccionadas` con los IDs de las opciones asignadas
-    //     this.opcionesSeleccionadas = opcionesAsignadas.map(opcion => opcion.opcion_id);
-    //   } catch (error) {
-    //     console.error('Error al cargar opciones del usuario:', error);
-    //   }
-    // },
     async cargarOpcionesUsuario(usuario_id) {
       try {
-        const response = await fetch(`http://10.10.120.228/siga/backend/opciones_usuario.php?usuario_id=${usuario_id}`);
+        const response = await fetch(api.opcionesUsuario(usuario_id));
         const opcionesAsignadas = await response.json();
-        // console.log('Opciones Asignadas: ', opcionesAsignadas);
 
-        // Como el array ya contiene los IDs directamente, simplemente asigna el array
+        // el backend ya devuelve [1,2,3]
         this.opcionesSeleccionadas = opcionesAsignadas;
       } catch (error) {
         console.error('Error al cargar opciones del usuario:', error);
@@ -158,7 +147,7 @@ export default {
       // Aquí podrías cargar las opciones asignadas al usuario desde el servidor si es necesario
     },
     guardar() {
-      fetch('http://10.10.120.228/siga/backend/asignarOpciones.php', {
+      fetch(api.asignarOpciones, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,11 +158,10 @@ export default {
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
-            // console.log('Opciones asignadas correctamente');
             this.obtieneUsuarios();
             this.dialog = false;
-            this.usuarioSeleccionado= null,
-            this.opcionesSeleccionadas= []
+            this.usuarioSeleccionado = null;
+            this.opcionesSeleccionadas = [];
           } else {
             console.error(data.message);
           }

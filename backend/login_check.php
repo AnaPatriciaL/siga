@@ -13,7 +13,7 @@
 	$data=null;
 
 	$consulta = "SELECT id,usuario,pass,nombre,nivel
-                FROM siga_prospectosie_usuarios 
+                FROM siga_prospectos_usuarios 
                 WHERE usuario = '$user' AND pass = '$pass' AND estatus = 1";		
 	$resultado = $conexion->prepare($consulta);
 	$resultado->execute();     

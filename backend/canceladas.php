@@ -19,8 +19,8 @@ switch ($opcion) {
             $anio = (isset($_POST['anio'])) ? $_POST['anio'] : '';
             $conexion = getConexion();
             $consulta = "SELECT a.id_orden, a.num_orden, a.num_oficio, b.rfc, b.nombre, b.id AS id_prospecto
-                        FROM siga_prospectosie_ordenes a
-                        LEFT JOIN siga_prospectosie b ON a.id_prospecto = b.id 
+                        FROM siga_prospectos_ordenes a
+                        LEFT JOIN siga_prospectos b ON a.id_prospecto = b.id 
                         WHERE a.num_orden = ? AND a.estatus = 1 AND a.anio = ?";
             $sentencia = $conexion->prepare($consulta);
             $sentencia->execute([$num_orden, $anio]);
@@ -54,17 +54,17 @@ switch ($opcion) {
             $stmt_insert_orden->execute([$num_orden, date('Y')]);
 
             // Actualizar estatus de la orden a cancelada (estatus = 2) y limpiar num_orden
-            $consulta = "UPDATE siga_prospectosie_ordenes SET estatus = 2, num_orden = NULL, observaciones = ?, fecha_cancelacion = CURDATE() WHERE id_orden = ?";
+            $consulta = "UPDATE siga_prospectos_ordenes SET estatus = 2, num_orden = NULL, observaciones = ?, fecha_cancelacion = CURDATE() WHERE id_orden = ?";
             $sentencia = $conexion->prepare($consulta);
             $sentencia->execute([$observaciones, $id_orden]);
 
             // Liberar el folio para que esté disponible (estatus = 0)
-            $consulta_liberar_folio = "UPDATE siga_prospectosie_folios_oficios SET estatus = 0 WHERE num_folio = ?";
+            $consulta_liberar_folio = "UPDATE siga_prospectos_folios_oficios SET estatus = 0 WHERE num_folio = ?";
             $sentencia_liberar_folio = $conexion->prepare($consulta_liberar_folio);
             $sentencia_liberar_folio->execute([$num_oficio]);
 
             // Actualizar estatus del prospecto a pendiente (estatus = 7) y colocar la observación de cancelada
-            $consulta_prospecto = "UPDATE siga_prospectosie SET estatus = 7, observaciones = ? WHERE id = ?";
+            $consulta_prospecto = "UPDATE siga_prospectos SET estatus = 7, observaciones = ? WHERE id = ?";
             $sentencia_prospecto = $conexion->prepare($consulta_prospecto);
             $sentencia_prospecto->execute([$observaciones, $id_prospecto]);
 
