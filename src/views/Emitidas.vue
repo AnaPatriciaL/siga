@@ -257,7 +257,7 @@ export default {
 
       try {
         const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 4, 
+          opcion: 6, 
           prospecto: item,
           usuario_id: this.sessionData.id_usuario
         }, {

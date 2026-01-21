@@ -210,6 +210,7 @@ export default {
       progresoMensaje: "",
       dialogAntecedente: false,
       prospectoSeleccionado: null,
+      impresoraPredeterminada: '',
       encabezados: [
         {
           text: "", // El texto del encabezado del checkbox puede ser vacío
@@ -334,8 +335,21 @@ export default {
     this.obtieneantecedentes(),
     this.obtienemunicipios(),
     this.obtienefoliosoficios();
+    this.obtenerImpresora();
   },
  methods: {
+    async obtenerImpresora() {
+      try {
+        const { data } = await axios.post(api.generarOrdenes, {
+          opcion: 7
+        });
+
+        this.impresoraPredeterminada = data.impresora || 'No detectada';
+      } catch (e) {
+        console.error('No se pudo obtener la impresora', e);
+        this.impresoraPredeterminada = 'No disponible';
+      }
+    },
     formatearFechaDMY(fecha) {
       if (!fecha) return "";
 
@@ -584,6 +598,12 @@ export default {
     async generarDocumentoUnico(item, event, tipo) {      
       const { value: numCopias } = await Swal.fire({
         title: 'Número de impresiones',
+        html: `
+          <p style="margin-bottom:6px">
+            El documento se enviará a la impresora predeterminada del servidor:
+          </p>
+          <b>${this.impresoraPredeterminada}</b>
+        `,
         input: 'number',
         inputLabel: '¿Cuántas juegos desea imprimir?',
         inputValue: 1,
