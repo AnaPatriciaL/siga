@@ -52,13 +52,15 @@
           <div class="seccion">
             <p class="subtitulo">Tecnologías utilizadas</p>
             <p class="texto-secundario">
-              Vue.js | Vuetify | MySQL
+              <v-icon small color="#880e4f">mdi-vuejs</v-icon> Vue.js ·
+              <v-icon small color="#880e4f">mdi-vuetify</v-icon> Vuetify ·
+              <v-icon small color="#880e4f">mdi-database</v-icon> MySQL
             </p>
           </div>
 
           <!-- FOOTER -->
           <p class="footer-text">
-            © 2026 SATES · Todos los derechos reservados
+            © {{ currentYear }} SATES · Todos los derechos reservados
           </p>
 
         </div>
@@ -67,6 +69,16 @@
     </v-row>
   </v-container>
 </template>
+<script>
+  export default {
+    name: "Acercade",
+    data() {
+      return {
+        currentYear: new Date().getFullYear(),
+      };
+    },
+  };
+</script>
 <style scoped>
 .about-wrapper {
   background-color: transparent;
@@ -91,7 +103,7 @@
 
 /* Secciones */
 .seccion {
-  margin-top: 28px;
+  margin-top: 32px;
 }
 
 /* Subtítulos */
@@ -128,5 +140,11 @@
   margin-top: 40px;
   font-size: 0.75rem;
   color: #777;
+}
+
+@media print {
+  .about-wrapper {
+    display: none;
+  }
 }
 </style>

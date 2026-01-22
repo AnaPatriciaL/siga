@@ -4,12 +4,8 @@
       <!-- Botón Crear y Exportar -->
       <v-row class="center">
         <v-spacer></v-spacer>
-        <v-col cols="8"  class="text-center">
+        <v-col cols="12"  class="text-center">
           <h1>PROSPECTOS AUTORIZADOS PARA EMITIR</h1>
-        </v-col>
-        <v-spacer></v-spacer>
-        <v-col cols="1" class="text-right">
-            <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
         </v-col>
       </v-row>
        <v-row class="mb-4" align="center">
@@ -1116,20 +1112,6 @@ export default {
       axios.post(urlmunicipios).then((response) => {
         this.municipios_listado = response.data;
       });
-    },
-    
-    salir: function(){
-      // Redirigir al usuario a la vista de login
-      localStorage.removeItem("id");
-      localStorage.removeItem("token");
-      localStorage.removeItem("nombre");
-      localStorage.removeItem("nivel");
-      this.$user.id = null;
-      this.$user.nombre = null;
-      this.isAuthenticated = false;
-      this.usuarioLogueado = "";
-      this.opcionesMenu = [];
-      this.$router.push("/login");
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {

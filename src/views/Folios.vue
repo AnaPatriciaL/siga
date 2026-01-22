@@ -2,14 +2,8 @@
   <v-container>
     <v-row class="center">
       <v-spacer></v-spacer>
-      <v-col cols="8" class="text-center">
+      <v-col cols="12" class="text-center">
         <h1>ALTA DE FOLIOS</h1>
-      </v-col>
-      <v-spacer></v-spacer>
-      <v-col cols="1" class="text-right">
-        <v-btn color="pink darken-4" dark @click="salir()">
-          <v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir
-        </v-btn>
       </v-col>
     </v-row>
 
@@ -145,19 +139,6 @@ export default {
     this.obtienefoliosoficios();
   },
   methods: {
-    salir: function(){
-      // Redirigir al usuario a la vista de login
-      localStorage.removeItem("id");
-      localStorage.removeItem("token");
-      localStorage.removeItem("nombre");
-      localStorage.removeItem("nivel");
-      this.$user.id = null;
-      this.$user.nombre = null;
-      this.isAuthenticated = false;
-      this.usuarioLogueado = "";
-      this.opcionesMenu = [];
-      this.$router.push("/login");
-    },
     guardarFolios() {
       if (!this.folioInicial || !this.cantidadFolios) {
         Swal.fire('Error', 'Debe especificar el folio inicial y la cantidad.', 'warning');
