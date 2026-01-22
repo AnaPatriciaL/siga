@@ -278,6 +278,17 @@ export default {
     }
   },
   watch: {
+    programadoresListado: {
+      immediate: true,
+      handler(list) {
+        if (!Array.isArray(list)) return;
+        list.forEach(p => {
+          p.id = Number(p.id);
+          p.nivel = Number(p.nivel);
+          p.programador_id = Number(p.programador_id);
+        });
+      }
+    },
     value(val) {
       if (val) {
         this.periodosParaAgregar = [{
@@ -290,11 +301,12 @@ export default {
     dialog(val) {
       if (val) { // Si el diálogo se abre
         this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));
+        this.prospectoie.programador_id = Number(this.prospectoie.programador_id);
         const usuarioId = Number(localStorage.getItem('id'));
-          const usuarioActual = this.programadoresListado.find(u => u.id === usuarioId);
+          const usuarioActual = this.programadoresListado.find(u => Number(u.id) === usuarioId);
           if (usuarioActual) {
             // Asignamos siempre el ID y la descripción
-            this.prospectoie.programador_id = usuarioActual.programador_id;
+            this.prospectoie.programador_id = Number(usuarioActual.programador_id);
             this.prospectoie.programador_descripcion = usuarioActual.usuario;  
         }
       }
@@ -318,11 +330,11 @@ export default {
     // Observa cambios en el municipio para auto-seleccionar la oficina
      'prospectoie.municipio_id'(id_municipio) {      
       if (id_municipio && this.municipiosListado && this.oficinasListado) {
-        const municipioSeleccionado = this.municipiosListado.find(m => m.municipio_id === id_municipio);
+        const municipioSeleccionado = this.municipiosListado.find(m => Number(m.municipio_id) === Number(id_municipio));
         this.prospectoie.oficina_descripcion = null;
         if (municipioSeleccionado) {
           this.prospectoie.oficina_id = municipioSeleccionado.oficina_id;
-          const oficina = this.oficinasListado.find(o => o.id === this.prospectoie.oficina_id);
+          const oficina = this.oficinasListado.find(o => Number(o.id) === Number(this.prospectoie.oficina_id));
           if (oficina) {
             this.prospectoie.oficina_descripcion = oficina.nombre;
           }
@@ -388,7 +400,7 @@ export default {
     esUsuarioNivel1() {
       const idUsuario = Number(localStorage.getItem('id'));
       if (!idUsuario || !this.programadoresListado) return false;
-      const usuario = this.programadoresListado.find(p => p.id === idUsuario);
+      const usuario = this.programadoresListado.find(p => Number(p.id) === idUsuario);
       if (usuario && usuario.nivel === 1) {
         return true;
       }

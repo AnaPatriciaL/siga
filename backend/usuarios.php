@@ -45,7 +45,7 @@ try {
                 throw new Exception('Faltan datos para actualizar el usuario');
             }
 
-            $consulta = "UPDATE siga_usuarios SET nombre = :nombre, usuario = :usuario, contrasena = :contrasena, activo = :activo WHERE id = :id";
+            $consulta = "UPDATE siga_usuarios SET nombre = :nombre, usuario = :usuario, contrasena = :contrasena, activo = :activo, nivel= :nivel, programador_id= :programador_id, iniciales= :iniciales WHERE id = :id";
             $resultado = $conexion->prepare($consulta);
             $resultado->execute([
                 ':id' => $data['id'],
@@ -53,6 +53,9 @@ try {
                 ':nombre' => $data['nombre'],
                 ':contrasena' => password_hash($data['contrasena'], PASSWORD_BCRYPT),
                 ':activo' => $data['activo'],
+                ':nivel' => $data['nivel'],
+                ':programador_id' => $data['programador_id'],
+                ':iniciales' => $data['iniciales']
             ]);
 
             $response['mensaje'] = 'Usuario actualizado correctamente';

@@ -4,12 +4,8 @@
       <!-- Botón Crear y Exportar -->
       <v-row class="center">
         <v-spacer></v-spacer>
-        <v-col cols="8"  class="text-center">
+        <v-col cols="12"  class="text-center">
           <h1>PROSPECTOS AUTORIZADOS PARA EMITIR</h1>
-        </v-col>
-        <v-spacer></v-spacer>
-        <v-col cols="1" class="text-right">
-            <v-btn color="pink darken-4" dark @click="salir()"><v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir</v-btn>
         </v-col>
       </v-row>
        <v-row class="mb-4" align="center">
@@ -80,8 +76,8 @@
       <v-data-table v-model="selectedProspectos" :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" 
       :search="busca" show-select>
         <template v-slot:item.tipo="{ item }">
-          <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
-          <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
+          <v-icon v-if="Number(item.antecedente_id) === 6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
+          <v-icon v-else-if="Number(item.antecedente_id) === 7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
           <v-icon v-else large class="mr-2" color="teal accent-4" dark dense>mdi-progress-check </v-icon>
         </template>
         <!-- Acciones -->
@@ -308,8 +304,7 @@ export default {
       dialogVistaPrevia: false, // Controla la visibilidad del diálogo de vista previa
       cargandoVistaPrevia: false, // Controla el estado de carga de la vista previa
       pdfSrc: '', // Contendrá la URL del PDF para el embed
-      vistaPreviaRFC: '', // Para mostrar el RFC en el título del diálogo de vista previa
-      foliosDisponibles: 0,
+      vistaPreviaRFC: '', 
       fechaOrden: new Date().toISOString().substr(0, 10),
       menuFechaOrden: false,
     };
@@ -326,14 +321,14 @@ export default {
     DialogAntecedente 
   },
   created() {
-    this.obtenerPermisos(),
-    this.mostrar(),
-    this.obtieneoficinas(),
-    this.obtienefuentes(),
-    this.obtieneimpuestos(),
-    this.obtieneusuarios(),
-    this.obtieneantecedentes(),
-    this.obtienemunicipios(),
+    this.obtenerPermisos();
+    this.mostrar();
+    this.obtieneoficinas();
+    this.obtienefuentes();
+    this.obtieneimpuestos();
+    this.obtieneusuarios();
+    this.obtieneantecedentes();
+    this.obtienemunicipios();
     this.obtienefoliosoficios();
     this.obtenerImpresora();
   },
@@ -647,13 +642,19 @@ export default {
 
       const { value: numCopias } = await Swal.fire({
         title: 'Número de impresiones',
+        html: `
+          <p style="margin-bottom:6px">
+            El documento se enviará a la impresora predeterminada del servidor:
+          </p>
+          <b>${this.impresoraPredeterminada}</b>
+        `,
         input: 'number',
-        inputLabel: '¿Cuántas juegos desea imprimir de cada documento?',
+        inputLabel: '¿Cuántas juegos desea imprimir?',
         inputValue: 1,
         showCancelButton: true,
         inputValidator: (value) => {
           if (!value || value < 1) {
-            return '¡Necesitas ingresar un número válido de impresiones!';
+            return '¡Necesitas ingresar un número válido de impresiones!'
           }
         }
       });
@@ -775,9 +776,8 @@ export default {
 
         // Si la respuesta es un blob (PDF) con contenido, asumimos que fue exitoso
         if (response.data.size > 0) {
-          this.obtienefoliosoficios(); // <-- AÑADIDO: Actualiza el contador de folios
+          this.obtienefoliosoficios(); 
           this.mostrar();
-          this.actualizarOrdenesCount();
           return { success: true, impreso: true };
         } else {
           return { success: false, impreso: false };
@@ -823,40 +823,68 @@ export default {
     async actualizarOrdenesCount() {
       this.ordenesGeneradasCount = 0;
       this.ordenesPendientesCount = 0;
-      if (this.prospectosie.length === 0) {
+
+      if (!Array.isArray(this.prospectosie) || this.prospectosie.length === 0) {
         return;
       }
       const prospectoIds = this.prospectosie.map(p => p.id);
-
       try {
         const response = await axios.post(urlgenerar_ordenes, {
-          opcion: 2, // Opción para obtener conteos de órdenes
+          opcion: 2, // Conteo de órdenes
           prospecto_ids: prospectoIds
         });
 
-        if (response.data && !response.data.error) {
-          this.ordenesGeneradasCount = response.data.ordenes_generadas_count || 0;
-          this.ordenesPendientesCount = response.data.ordenes_pendientes_count || 0;
-          this.prospectosConOrdenGenerada = new Set(response.data.ids_con_orden || []);
-          if (this.ordenesPendientesCount > 0 && this.foliosDisponiblesCount < this.ordenesPendientesCount) {
-            Swal.fire({
-              title: 'Folios no suficientes',
-              text: 'No tienes folios suficientes para generar todas las órdenes pendientes.',
-              icon: 'warning',
-              showCancelButton: false,
-              showConfirmButton: false,
-              timer: 2000,
-              timerProgressBar: true,
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              allowEnterKey: false
-            });
-          }
-        } else {
-          console.error('Error al obtener conteo de órdenes:', response.data.error);
+        if (!response.data || response.data.error) {
+          console.error(
+            'Error al obtener conteo de órdenes:',
+            response.data?.error || 'Respuesta inválida'
+          );
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo obtener el conteo de órdenes.',
+            timer: 2500,
+            showConfirmButton: false
+          });
+
+          return;
         }
+
+        const idsConOrden = response.data.ids_con_orden || [];
+
+        this.ordenesGeneradasCount = Number(response.data.ordenes_generadas_count) || 0;
+        this.ordenesPendientesCount = Number(response.data.ordenes_pendientes_count) || 0;
+        this.prospectosie = this.prospectosie.map(p => ({...p,tieneOrden: idsConOrden.includes(p.id) }));
+        this.prospectosConOrdenGenerada = new Set(idsConOrden);
+        if (
+          this.ordenesPendientesCount > 0 &&
+          this.foliosDisponiblesCount < this.ordenesPendientesCount
+        ) {
+          Swal.fire({
+            title: 'Folios no suficientes',
+            text: 'No tienes folios suficientes para generar todas las órdenes pendientes.',
+            icon: 'warning',
+            showCancelButton: false,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
+          });
+        }
+
       } catch (error) {
-        console.error('Error en la solicitud para conteo de órdenes:', error);
+        console.error('Error en la solicitud de conteo de órdenes:', error);
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de conexión',
+          text: 'No se pudo comunicar con el servidor para obtener el conteo de órdenes.',
+          timer: 2000,
+          showConfirmButton: false
+        });
       }
     },
     seleccionarProspecto: function (item) {
@@ -916,27 +944,25 @@ export default {
         }
       });
     },
-    mostrar: function () {
-      axios
-        .post(crud, { opcion: 1, estatus_prospecto:5 })
-        .then((response) => {
-          if (Array.isArray(response.data)) {
-            this.prospectosie = response.data;
-            this.prospectosie_no_localizados = this.prospectosie
-            .filter(item => Number(item.antecedente_id) === 7) // fuerza a número por si viene como string
-            .map(item => ({ ...item }));
-            //this.actualizarOrdenesCount();
-          } else if (response.data.error) {
-            console.error('Error desde el servidor:', response.data.error);
-            Swal.fire('Error', response.data.error, 'error');
-          } else {
-            console.warn('Respuesta inesperada:', response.data);
-          }
-        })
-        .catch((error) => {
-          console.error('Error en la solicitud:', error);
-          Swal.fire('Error de conexión', 'No se pudo obtener la información', 'error');
-        });
+    async mostrar() {
+      try {
+        const response = await axios.post(crud, { opcion: 1, estatus_prospecto: 5 });
+
+        if (Array.isArray(response.data)) {
+          this.prospectosie = response.data.map(p => ({
+            ...p,
+            tieneOrden: false 
+          }));
+
+          this.prospectosie_no_localizados = this.prospectosie
+            .filter(p => Number(p.antecedente_id) === 7);
+
+          await this.actualizarOrdenesCount();
+        }
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Error', 'No se pudo cargar la información', 'error');
+      }
     },
     async editar(prospectoieData, periodosParaAgregar) {
       let nombre = prospectoieData.nombre != null && prospectoieData.nombre !== '' ? prospectoieData.nombre.toUpperCase() : prospectoieData.nombre;
@@ -1086,20 +1112,6 @@ export default {
       axios.post(urlmunicipios).then((response) => {
         this.municipios_listado = response.data;
       });
-    },
-    
-    salir: function(){
-      // Redirigir al usuario a la vista de login
-      localStorage.removeItem("id");
-      localStorage.removeItem("token");
-      localStorage.removeItem("nombre");
-      localStorage.removeItem("nivel");
-      this.$user.id = null;
-      this.$user.nombre = null;
-      this.isAuthenticated = false;
-      this.usuarioLogueado = "";
-      this.opcionesMenu = [];
-      this.$router.push("/login");
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {

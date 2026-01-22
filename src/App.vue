@@ -61,6 +61,15 @@
             >
           </v-list-item-content>
         </v-list-item>
+        <!-- Acerca de (opción fija al final del menú) -->
+        <v-list-item link :to="{ name: 'Acercade' }" @click="cerrarOpcion" active-class="menu-item--active" class="grey--text">
+          <v-list-item-icon>
+            <v-icon :color="isActive('Acercade') ? 'white' : 'blue-grey'">mdi-information</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title :class="{ 'white--text': isActive('Acercade') }">Acerca de</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
 
         <v-spacer></v-spacer>
         <div class="bottom-item">

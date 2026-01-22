@@ -15,7 +15,7 @@ $estatus_prospecto = isset($datos['estatus_prospecto']) ? intval($datos['estatus
 $id = isset($datos['id']) ? $datos['id'] : null;
 
 
-// 🔹 Campos comunes
+// Campos comunes
 $rfc = $datos['rfc'] ?? '';
 $nombre = $datos['nombre'] ?? '';
 $calle= $datos['calle'] ?? '';
@@ -36,7 +36,14 @@ $determinado = $datos['determinado'] ?? '';
 $programador_id = $datos['programador_id'] ?? '';
 $retenedor = $datos['retenedor'] ?? '';
 $representante_legal = $datos['representante_legal'] ?? '';
-$retenedor = $datos['retenedor'] ?? '';
+$cambio_domicilio = $datos['cambio_domicilio'] ?? '';
+$domicilio_anterior = $datos['domicilio_anterior'] ?? '';
+if (!empty($domicilio_anterior)) {
+    $domicilio_anterior = mb_strtoupper($domicilio_anterior, 'UTF-8');
+    $domicilio_anterior = str_replace('NO.', 'No.', $domicilio_anterior);
+}
+$notificador = $datos['notificador'] ?? '';
+$fecha_acta = $datos['fecha_acta'] ?? '';
 $origen_id = $datos['origen_id'] ?? '';
 $observaciones = $datos['observaciones'] ?? '';
 $estatus = $datos['estatus'] ?? '';
@@ -44,7 +51,7 @@ $estatus = $datos['estatus'] ?? '';
 $data = [];
 
 switch ($opcion) {
-  case 1: // 🔹 Consulta Dinámica por Estatus
+  case 1: // Consulta Dinámica por Estatus
     $consulta = "SELECT
                   a.*,
                   b.impuesto AS impuesto,
@@ -120,7 +127,7 @@ switch ($opcion) {
     break;
 
 
-  case 2: // 🔹 Alta
+  case 2: // Alta
     // Verificar si el RFC ya existe con antecedente 6 o 7
     $consulta_verificacion = "SELECT antecedente_id FROM siga_prospectos WHERE rfc = ? AND antecedente_id IN (6, 7)";
     $stmt_verificacion = $conexion->prepare($consulta_verificacion);
@@ -138,44 +145,67 @@ switch ($opcion) {
         $data = ['success' => false, 'mensaje' => $mensaje];
         break;
     }
+    // Convertir DD/MM/YYYY a YYYY-MM-DD para la base de datos
+    if (!empty($fecha_acta)) {
+        $dateObj = DateTime::createFromFormat('d/m/Y', $fecha_acta);
+        if ($dateObj) {
+            $fecha_acta = $dateObj->format('Y-m-d');
+        }
+    } else {
+        $fecha_acta = null;
+    }
+
     $consulta = "INSERT INTO siga_prospectos
       (rfc, nombre, calle, num_exterior, num_interior, colonia, cp, localidad, municipio_id, oficina_id, fuente_id,  giro, periodos,
-      antecedente_id, impuesto_id, determinado, programador_id, representante_legal, retenedor, origen_id, observaciones, estatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      antecedente_id, impuesto_id, determinado, programador_id, representante_legal, retenedor, origen_id, observaciones, estatus, 
+      cambio_domicilio, domicilio_anterior, notificador, fecha_acta)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($consulta);
     $stmt->execute([
       $rfc, $nombre, $calle, $num_exterior, $num_interior, $colonia, $cp, $localidad, $municipio_id, $oficina_id, 
       $fuente_id, $giro, $periodos, $antecedente_id, $impuesto_id, 
-      $determinado, $programador_id,  $representante_legal, $retenedor, $origen_id, $observaciones, $estatus
+      $determinado, $programador_id,  $representante_legal, $retenedor, $origen_id, $observaciones, $estatus, $cambio_domicilio, $domicilio_anterior, $notificador, $fecha_acta
     ]);
     $data = ['mensaje' => 'Registro insertado correctamente'];
     $last_id = $conexion->lastInsertId();
     $data = ['success' => true, 'id' => $last_id, 'mensaje' => 'Registro insertado correctamente'];
     break;
 
-  case 3: // 🔹 Cambios
+  case 3: // Cambios
+    // Convertir DD/MM/YYYY a YYYY-MM-DD para la base de datos
+    if (!empty($fecha_acta)) {
+        $dateObj = DateTime::createFromFormat('d/m/Y', $fecha_acta);
+        if ($dateObj) {
+            $fecha_acta = $dateObj->format('Y-m-d');
+        }
+    } else {
+        $fecha_acta = null;
+    }
+    if (strlen($rfc) === 13) {
+        $representante_legal = '';
+    }
     $consulta = "UPDATE siga_prospectos SET
       rfc = ?, nombre = ?, calle = ?, num_exterior = ?, num_interior = ?, colonia = ?, cp = ?, localidad = ?, municipio_id = ?, oficina_id = ?, 
-      fuente_id = ?, giro = ?, periodos = ?, antecedente_id = ?, impuesto_id = ?, 
-      determinado = ?, programador_id = ?, representante_legal = ?, retenedor = ?, origen_id = ?, observaciones = ?, estatus = ?
+      fuente_id = ?, giro = ?, periodos = ?, antecedente_id = ?, impuesto_id = ?, determinado = ?, programador_id = ?, representante_legal = ?, 
+      retenedor = ?, origen_id = ?, observaciones = ?, estatus = ?, cambio_domicilio = ?, domicilio_anterior = ?, notificador = ?, fecha_acta = ?
       WHERE id = ?";
     $stmt = $conexion->prepare($consulta);
     $stmt->execute([      
       $rfc, $nombre, $calle, $num_exterior, $num_interior, $colonia, $cp, $localidad, $municipio_id, $oficina_id, 
-      $fuente_id, $giro, $periodos, $antecedente_id, $impuesto_id, 
-      $determinado, $programador_id,  $representante_legal, $retenedor, $origen_id, $observaciones, $estatus, $id
+      $fuente_id, $giro, $periodos, $antecedente_id, $impuesto_id, $determinado, $programador_id,  $representante_legal, 
+      $retenedor, $origen_id, $observaciones, $estatus, $cambio_domicilio, $domicilio_anterior, $notificador, $fecha_acta, $id
     ]);
     $data = ['mensaje' => 'Registro actualizado correctamente'];
     break;
 
-  case 4: // 🔹 Baja lógica
+  case 4: // Baja lógica
     $consulta = "UPDATE siga_prospectos SET estatus = 0 WHERE id = ?";
     $stmt = $conexion->prepare($consulta);
     $stmt->execute([$id]);
     $data = ['mensaje' => 'Registro eliminado (baja lógica)'];
     break;
 
-  case 5: // 🔹 Cambio de Estatus
+  case 5: // Cambio de Estatus
     $estatus_nuevo = $datos['estatus'] ?? null;
     $observaciones = $datos['observaciones'] ?? null;
     $antecedente_id = $datos['antecedente_id'] ?? null;
