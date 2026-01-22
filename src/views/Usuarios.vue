@@ -14,22 +14,61 @@
         </v-card-title>
         <v-card-text class="mt-3 mb-1 pb-1">
           <v-form ref="form">
-            <v-text-field
-              v-model="usuario.usuario"
-              label="Usuario"
-              required
-            ></v-text-field>
-            <v-text-field
-              v-model="usuario.nombre"
-              label="Nombre Completo"
-              required
-            ></v-text-field>
-            <v-text-field
-              v-model="usuario.contrasena"
-              label="Contraseña"
-              type="contrasena"
-              :required="operacion === 'crear'"
-            ></v-text-field>
+            <v-row>
+              <v-col cols="4">
+                <v-text-field
+                  v-model="usuario.usuario"
+                  label="Usuario"
+                  :disabled="operacion === 'editar'"
+                  @input="usuario.usuario = usuario.usuario.toLowerCase()"
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="8">
+                <v-text-field
+                  v-model="usuario.nombre"
+                  label="Nombre Completo"
+                  required
+                ></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6">
+                <v-select
+                  v-model="usuario.nivel"
+                  :items="niveles"
+                  label="Nivel de Usuario"
+                  required
+                ></v-select>
+              </v-col>
+              <v-col cols="6">
+                <v-select
+                  v-if="usuario.nivel === 1"
+                  v-model="usuario.programador_id"
+                  :items="programadores"
+                  label="Programador"
+                  item-text="usuario"
+                  item-value="id"
+                  @change="actualizarNombreCompleto"
+                ></v-select>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="usuario.iniciales"
+                  label="Iniciales"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="usuario.contrasena"
+                  label="Contraseña"
+                  type="password"
+                  :required="operacion === 'crear'"
+                ></v-text-field>
+              </v-col>
+            </v-row>
             <v-switch
               v-model="usuario.activo"
               inset
@@ -54,7 +93,7 @@
       </v-card>
     </v-dialog>
 
-    <v-data-table :headers="headers" :items="usuarios" :items-per-page="5">
+    <v-data-table :headers="headers" :items="usuarios" :items-per-page="20" sort-by="nombre">
       <template v-slot:item.acciones="{ item }">
         <v-icon large color="warning" @click="editarUsuario(item)"
           >mdi-pencil</v-icon
@@ -93,9 +132,17 @@ export default {
       usuario: {
         usuario: "",
         nombre: "",
+        iniciales: "",
         contrasena: "",
         activo: true,
+        nivel: null,
+        programador_id: null,
       },
+      niveles: [
+        { text: "Supervisor", value: 0 },
+        { text: "Programador", value: 1 },
+      ],
+      programadores: [],
       usuarios: [],
       headers: [
         {
@@ -125,6 +172,7 @@ export default {
 
   mounted() {
     this.obtenerUsuarios();
+    this.obtenerProgramadores();
   },
   methods: {
     obtenerUsuarios() {
@@ -140,18 +188,33 @@ export default {
           console.error("Error al obtener los usuarios:", error);
         });
     },
+    obtenerProgramadores() {
+      axios.post(api.programadores, { opcion: 1 }).then((response) => {
+        this.programadores = response.data;
+      });
+    },
+    actualizarNombreCompleto(id) {
+      const programador = this.programadores.find((p) => p.id === id);
+      if (programador) {
+        this.usuario.nombre = programador.nombre_completo;
+      }
+    },
     abrirFormulario() {
       this.dialog = true;
       this.operacion = "crear";
-      this.usuario = { usuario: "", nombre: "", contrasena: "", activo: true };
+      this.usuario = { usuario: "", nombre: "", iniciales: "", contrasena: "", activo: true, nivel: null, programador_id: null };
     },
     editarUsuario(item) {
       // editarUsuario(item) {
       // Cargar el usuario seleccionado
       this.usuario = {
         ...item,
+        usuario: (item.usuario || "").toLowerCase(),
         contrasena: "",
+        nivel: Number(item.nivel), // Asegurar que sea número para que coincida con el select
+        programador_id: item.programador_id ? Number(item.programador_id) : null,
         activo: item.activo > 0, // Asegura que activo sea booleano
+        iniciales: item.iniciales || "",
       };
       this.dialog = true;
       this.operacion = "editar";
@@ -166,10 +229,20 @@ export default {
     //     .catch(error => console.error(error));
     // },
     guardarUsuario() {
+      if (this.operacion === "crear" && !this.usuario.contrasena) {
+        this.$Swal.fire("Atención", "La contraseña es obligatoria al crear un usuario.", "warning");
+        return;
+      }
+
       const usuarioData = {
         ...this.usuario,
+        usuario: this.usuario.usuario.toLowerCase(),
         activo: this.usuario.activo ? 1 : 0,
       };
+
+      if (usuarioData.nivel === 0) {
+        usuarioData.programador_id = 0;
+      }
 
       const endpoint = this.operacion === "crear" ? "post" : "put";
 
