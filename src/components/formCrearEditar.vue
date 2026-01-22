@@ -290,11 +290,12 @@ export default {
     dialog(val) {
       if (val) { // Si el diálogo se abre
         this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));
+        this.prospectoie.programador_id = Number(this.prospectoie.programador_id);
         const usuarioId = Number(localStorage.getItem('id'));
-          const usuarioActual = this.programadoresListado.find(u => u.id === usuarioId);
+          const usuarioActual = this.programadoresListado.find(u => Number(u.id) === usuarioId);
           if (usuarioActual) {
             // Asignamos siempre el ID y la descripción
-            this.prospectoie.programador_id = usuarioActual.programador_id;
+            this.prospectoie.programador_id = Number(usuarioActual.programador_id);
             this.prospectoie.programador_descripcion = usuarioActual.usuario;  
         }
       }
@@ -389,7 +390,7 @@ export default {
       const idUsuario = Number(localStorage.getItem('id'));
       if (!idUsuario || !this.programadoresListado) return false;
       const usuario = this.programadoresListado.find(p => p.id === idUsuario);
-      if (usuario && usuario.nivel === 1) {
+      if (usuario && usuario.nivel === "1") {
         return true;
       }
       return false;
