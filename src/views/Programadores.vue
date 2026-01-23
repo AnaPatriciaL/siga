@@ -188,7 +188,7 @@ name: "Programadores",
         nombre_completo: item.nombre_completo,
         cargo: item.cargo,
         estatus: item.estatus,
-        tipo_programador: item.tipo_programador == 1
+        tipo_programador: item.tipo_programador == 2
       };
       this.dialog = true;
       this.operacion = "editar";
@@ -203,7 +203,7 @@ name: "Programadores",
         programador: this.programador.usuario.toUpperCase(),
         nombre_completo: this.programador.nombre_completo,
         estatus: this.programador.estatus ? 1 : 0, // Convierte true a 1 (Activo) y false a 0 (Inactivo)
-        tipo_programador: this.programador.tipo_programador ? 1 : 2, // Convierte true a 1 (Federal) y false a 2 (Estatal)
+        tipo_programador: this.programador.tipo_programador ? 2 : 1, // Convierte true a 2 (Estatal) y false a 1 (Federal)
       };
 
       if (this.operacion === 'editar') {
