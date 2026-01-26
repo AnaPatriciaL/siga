@@ -181,17 +181,6 @@
   import DialogAntecedente from '@/components/dialogoNoAutorizado.vue';
   import api from '@/services/apiUrls.js';
 
-  var crud = api.crud;
-  var urloficinas = api.oficinas;
-  var urlfuentes = api.fuentes;
-  var urlprogramadores = api.programadores;
-  var urlimpuestos = api.impuestos;
-  var urlantecedentes = api.antecedentes;
-  var urlpadron = api.padron;
-  var urlmunicipios = api.municipios;
-  var urlgenerar_ordenes = api.generarOrdenes;
-  var urlfolios_oficios = api.foliosOficios;
-
 export default {
   name: "Autorizadas",
   data() {
@@ -381,7 +370,7 @@ export default {
 
       /* ==== DATOS ==== */
       const prospecto_ids = this.selectedProspectos.map(p => p.id);
-      const { data: prospectosOrdenados } = await axios.post(urlgenerar_ordenes, { opcion: 5, prospecto_ids });
+      const { data: prospectosOrdenados } = await axios.post(api.generarOrdenes, { opcion: 5, prospecto_ids });
       prospectosOrdenados.sort((a, b) => (a.num_oficio || 0) - (b.num_oficio || 0));
       const nombreJefe = prospectosOrdenados[0]?.nombre_jefe || "";
       const nombreFirmante = prospectosOrdenados[0]?.nombre_firmante || "";
@@ -528,7 +517,7 @@ export default {
     confirmarPendiente({ antecedente_id, observaciones }) {
       if (!this.prospectoSeleccionado) return;
 
-      axios.post(crud, {
+      axios.post(api.crud, {
         opcion: 5,
         id: this.prospectoSeleccionado.id,
         estatus: 7,
@@ -710,7 +699,7 @@ export default {
     },
     async obtienefoliosoficios() {
       try {
-        const response = await axios.post(urlfolios_oficios, { opcion: 1 });
+        const response = await axios.post(api.foliosOficios, { opcion: 1 });
         if (Array.isArray(response.data)) {
           this.folios_oficios = response.data;
           const foliosConEstatusDisponible = this.folios_oficios.filter(item => Number(item.estatus) === 0);
@@ -771,7 +760,7 @@ export default {
         }
 
         // Tanto para generar como para reimprimir, esperamos un PDF directamente
-        const response = await axios.post(urlgenerar_ordenes, data, { responseType: 'blob' });
+        const response = await axios.post(api.generarOrdenes, data, { responseType: 'blob' });
         console.log("Respuesta del servidor (blob):", response);
 
         // Si la respuesta es un blob (PDF) con contenido, asumimos que fue exitoso
@@ -796,7 +785,7 @@ export default {
       this.dialogVistaPrevia = true;
 
       try {
-        const response = await axios.post(urlgenerar_ordenes, {
+        const response = await axios.post(api.generarOrdenes, {
           opcion: 1, // Opción para VISTA PREVIA
           prospecto: item,
           usuario_id: this.sessionData.id_usuario,
@@ -829,7 +818,7 @@ export default {
       }
       const prospectoIds = this.prospectosie.map(p => p.id);
       try {
-        const response = await axios.post(urlgenerar_ordenes, {
+        const response = await axios.post(api.generarOrdenes, {
           opcion: 2, // Conteo de órdenes
           prospecto_ids: prospectoIds
         });
@@ -917,7 +906,7 @@ export default {
         cancelButtonText: 'Cancelar'
       }).then((result) => {
         if (result.isConfirmed) {
-          axios.post(crud, {
+          axios.post(api.crud, {
             opcion: 5, // Opción para actualizar solo el estatus
             id: item.id,
             estatus: 6
@@ -946,7 +935,7 @@ export default {
     },
     async mostrar() {
       try {
-        const response = await axios.post(crud, { opcion: 1, estatus_prospecto: 5 });
+        const response = await axios.post(api.crud, { opcion: 1, estatus_prospecto: 5 });
 
         if (Array.isArray(response.data)) {
           this.prospectosie = response.data.map(p => ({
@@ -976,7 +965,7 @@ export default {
       let representante_legal = prospectoieData.representante_legal != null && prospectoieData.representante_legal !== '' ? prospectoieData.representante_legal.toUpperCase() : prospectoieData.representante_legal;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios
-        .post(crud, { // Objeto de datos
+        .post(api.crud, { // Objeto de datos
             // Cambios
             opcion: 3,
             // Campos a guardar
@@ -1024,7 +1013,7 @@ export default {
           this.sincronizarPeriodosDetalle(prospectoieData.id, periodosParaAgregar);
           // Si el prospecto ya tiene una orden generada, actualiza también la tabla de órdenes
           if (this.tieneOrdenGenerada(prospectoieData)) {
-            axios.post(urlgenerar_ordenes, {
+            axios.post(api.generarOrdenes, {
               opcion: 3, // Opción para actualizar datos en tabla de órdenes
               prospecto: prospectoieData
             });
@@ -1059,7 +1048,7 @@ export default {
         showCancelButton: true,
       }).then((result) => {
         if (result.isConfirmed) {
-          axios.post(crud, { opcion: 4, id: id }).then((response) => {
+          axios.post(api.crud, { opcion: 4, id: id }).then((response) => {
             Swal.fire(
               "¡Eliminado!",
               "se ha eliminado el prospecto",
@@ -1079,37 +1068,37 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(urloficinas).then((response) => {
+      axios.post(api.oficinas).then((response) => {
         this.oficinas_listado = response.data;
       });
     },
 
     obtienefuentes: function () {
-      axios.post(urlfuentes).then((response) => {
+      axios.post(api.fuentes).then((response) => {
         this.fuentes_listado = response.data;
       });
     },
 
     obtieneimpuestos: function () {
-      axios.post(urlimpuestos).then((response) => {
+      axios.post(api.impuestos).then((response) => {
         this.impuestos_listado = response.data;
       });
     },
 
     obtieneantecedentes: function () {
-      axios.post(urlantecedentes).then((response) => {
+      axios.post(api.antecedentes).then((response) => {
         this.antecedentes_listado = response.data;
       });
     },
 
     obtieneusuarios: function () {
-      axios.post(urlprogramadores, { opcion: 1 }).then((response) => {
+      axios.post(api.programadores, { opcion: 1 }).then((response) => {
         this.programadores_listado = response.data;
       });
     },
 
     obtienemunicipios: function () {
-      axios.post(urlmunicipios).then((response) => {
+      axios.post(api.municipios).then((response) => {
         this.municipios_listado = response.data;
       });
     },
@@ -1123,7 +1112,14 @@ export default {
     },
 
     updateProspectoie(updatedProspectoie) {
-      this.prospectoie = { ...this.prospectoie, ...updatedProspectoie };
+      const data = { ...updatedProspectoie };
+      if ('retenedor' in data) {
+        data.retenedor = Number(data.retenedor);
+      }
+      if ('origen_id' in data) {
+        data.origen_id = Number(data.origen_id);
+      }
+      this.prospectoie = { ...this.prospectoie, ...data };
     },
 
     formEditar: function (objeto) {
@@ -1147,12 +1143,12 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
-      this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
       this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
-      this.prospectoie.origen_id=objeto.origen_id;
+      this.prospectoie.origen_id=Number(objeto.origen_id ?? 0);
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
@@ -1190,7 +1186,7 @@ export default {
       }
       try {
         // 1. Eliminar periodos existentes para este prospecto en la BD.
-        await axios.post(crud, { // Objeto de datos
+        await axios.post(api.crud, { // Objeto de datos
           opcion: 6, // Nueva opción para eliminar periodos por prospecto_id
           prospecto_id: prospectoId
         });
@@ -1198,7 +1194,7 @@ export default {
         // 2. Insertar los nuevos periodos uno por uno desde el array.
         for (const periodo of periodsArray) {
           if (periodo.inicio && periodo.fin) {
-            await axios.post(crud, { // Objeto de datos
+            await axios.post(api.crud, { // Objeto de datos
               opcion: 7, // Nueva opción para insertar un periodo
               prospecto_id: prospectoId,
               fecha_inicial: periodo.inicio,
