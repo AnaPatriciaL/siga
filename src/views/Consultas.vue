@@ -88,16 +88,6 @@
   import FormCrearEditar from '@/components/formCrearEditar.vue';
   import api from '@/services/apiUrls.js';
 
-  var crud = api.crud;
-  var urloficinas = api.oficinas;
-  var urlfuentes = api.fuentes;
-  var urlprogramadores = api.programadores;
-  var urlimpuestos = api.impuestos;
-  var urlantecedentes = api.antecedentes;
-  var urlpadron = api.padron;
-  var urlgenerar_antecedente = api.generarAntecedente;
-  var urlmunicipios = api.municipios;
-
 export default {
   name: "Consultas",
   data() {
@@ -233,13 +223,13 @@ export default {
     },
 
     mostrar33: function () {
-      axios.post(crud, { opcion: 1 }).then((response) => {
+      axios.post(api.crud, { opcion: 1 }).then((response) => {
         this.prospectosie = response.data;
       });
     },
     mostrar: function () {
       axios
-        .post(crud, { opcion: 1, estatus_prospecto:0 })
+        .post(api.crud, { opcion: 1, estatus_prospecto:0 })
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data;
@@ -267,7 +257,7 @@ export default {
     async crear(prospectoieData, periodosParaAgregar) {
       let periodos = prospectoieData.periodos != null && prospectoieData.periodos !== '' ? prospectoieData.periodos.toUpperCase() : prospectoieData.periodos;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
-      axios.post(crud,
+      axios.post(api.crud,
             {
               // Nuevo
               opcion:2, 
@@ -362,7 +352,7 @@ export default {
       let representante_legal = prospectoieData.representante_legal != null && prospectoieData.representante_legal !== '' ? prospectoieData.representante_legal.toUpperCase() : prospectoieData.representante_legal;
       let observaciones = prospectoieData.observaciones != null && prospectoieData.observaciones !== '' ? prospectoieData.observaciones.toUpperCase() : prospectoieData.observaciones;
       axios
-        .post(crud, { 
+        .post(api.crud, { 
             opcion: 3,
             rfc:prospectoieData.rfc,
             id:prospectoieData.id,
@@ -438,7 +428,7 @@ export default {
         showCancelButton: true,
       }).then((result) => {
         if (result.isConfirmed) {
-          axios.post(crud, { opcion: 4, id: id }).then((response) => {
+          axios.post(api.crud, { opcion: 4, id: id }).then((response) => {
             Swal.fire(
               "¡Eliminado!",
               "se ha eliminado el prospecto",
@@ -458,38 +448,38 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(urloficinas).then((response) => {
+      axios.post(api.oficinas).then((response) => {
         this.oficinas_listado = response.data;
       });
     },
 
     obtienefuentes: function () {
-      axios.post(urlfuentes).then((response) => {
+      axios.post(api.fuentes).then((response) => {
         this.fuentes_listado = response.data;
       });
     },
 
     obtieneimpuestos: function () {
-      axios.post(urlimpuestos).then((response) => {
+      axios.post(api.impuestos).then((response) => {
         this.impuestos_listado = response.data;
       });
     },
 
     obtieneantecedentes: function () {
-      axios.post(urlantecedentes).then((response) => {
+      axios.post(api.antecedentes).then((response) => {
         this.antecedentes_listado = response.data;
       });
     },
 
     obtieneusuarios: function () {
       const usuarioId = localStorage.getItem('id');
-      axios.post(urlprogramadores, {  opcion: 2, id: usuarioId  }).then((response) => {
+      axios.post(api.programadores, {  opcion: 2, id: usuarioId  }).then((response) => {
         this.programadores_listado = response.data;
       });
     },
 
     obtienemunicipios: function () {
-      axios.post(urlmunicipios).then((response) => {
+      axios.post(api.municipios).then((response) => {
         this.municipios_listado = response.data;
       });   
     },
@@ -503,7 +493,14 @@ export default {
     },
 
     updateProspectoie(updatedProspectoie) {
-      this.prospectoie = { ...this.prospectoie, ...updatedProspectoie };
+      const data = { ...updatedProspectoie };
+      if ('retenedor' in data) {
+        data.retenedor = Number(data.retenedor);
+      }
+      if ('origen_id' in data) {
+        data.origen_id = Number(data.origen_id);
+      }
+      this.prospectoie = { ...this.prospectoie, ...data };
     },
 
     formNuevo: function () {
@@ -533,12 +530,12 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
-      this.prospectoie.retenedor=objeto.retenedor;
+      this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
       this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
-      this.prospectoie.origen_id=objeto.origen_id;
+      this.prospectoie.origen_id = Number(objeto.origen_id ?? 0);
       this.prospectoie.determinado=objeto.determinado;
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
@@ -578,7 +575,7 @@ export default {
       }
       try {
         // 1. Eliminar periodos existentes para este prospecto en la BD.
-        await axios.post(crud, { // Objeto de datos
+        await axios.post(api.crud, { // Objeto de datos
           opcion: 6, // Nueva opción para eliminar periodos por prospecto_id
           prospecto_id: prospectoId
         });
@@ -586,7 +583,7 @@ export default {
         // 2. Insertar los nuevos periodos uno por uno desde el array.
         for (const periodo of periodsArray) {
           if (periodo.inicio && periodo.fin) {
-            await axios.post(crud, { // Objeto de datos
+            await axios.post(api.crud, { // Objeto de datos
               opcion: 7, // Nueva opción para insertar un periodo
               prospecto_id: prospectoId,
               fecha_inicial: periodo.inicio,

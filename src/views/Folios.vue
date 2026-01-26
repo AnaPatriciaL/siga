@@ -113,8 +113,6 @@
   import axios from 'axios';
   import api from '@/services/apiUrls.js';
 
-  var urlfolios_oficios = api.foliosOficios;
-
 export default {
   name: "Folios",
   data() {
@@ -145,7 +143,7 @@ export default {
         return;
       }
 
-      axios.post(urlfolios_oficios, {
+      axios.post(api.foliosOficios, {
         opcion: 2,
         folio_inicial: this.folioInicial,
         cantidad: this.cantidadFolios,
@@ -164,7 +162,7 @@ export default {
     },
     obtienefoliosoficios: function () {
       axios
-        .post(urlfolios_oficios,{ opcion: 1})
+        .post(api.foliosOficios,{ opcion: 1})
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.folios_oficios = response.data;
