@@ -95,7 +95,7 @@
                 </v-col>
                 <!-- Fecha -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-text-field reverse readonly dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
+                  <v-text-field reverse readonly disabled dense outlined maxlength="10" v-model="prospectoie.fecha_captura" label="Fecha captura"></v-text-field>
                 </v-col>
                 <!-- Usuario -->
                 <v-col class="my-0 py-0" cols="12" md="3">
@@ -120,7 +120,7 @@
                 </v-col>
                 <!-- Retenedor -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-switch color="pink darken-4" v-model="prospectoie.retenedor" :true-value="1" :false-value="0" inset label="Retenedor"></v-switch>
+                  <v-switch color="pink darken-4" class="my-0 py-0 mayusculas" v-model="prospectoie.retenedor" inset label="Retenedor"></v-switch>
                 </v-col>
                 <!-- Cambio Domicilio -->
                 <v-col class="my-0 py-0" cols="12" md="2">
@@ -144,7 +144,7 @@
                 </v-col>
                 <!-- Origen -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-switch color="pink darken-4" class="my-0 py-0 mayusculas" v-model="prospectoie.origen_id" :true-value="1" :false-value="0" inset :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"></v-switch>
+                  <v-switch color="pink darken-4"class="my-0 py-0 mayusculas" v-model="prospectoie.origen_id" inset :label="prospectoie.origen_id ? 'Origen: Prospecto' : 'Origen: Cruce'"></v-switch>
                 </v-col>
                 <!-- Observaciones -->
                 <v-col class="my-0 py-0" cols="12" md="10">
@@ -215,8 +215,9 @@
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import { vMaska } from "maska";
-import api from '@/services/apiUrls.js';
+import api from '@/services/api';
 
+var urlpadron = api.padron;
 
 export default {
   name: "FormCrearEditar",
@@ -301,9 +302,6 @@ export default {
       if (val) { // Si el diálogo se abre
         this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));
         this.prospectoie.programador_id = Number(this.prospectoie.programador_id);
-        this.prospectoie.retenedor = Number(this.prospectoie.retenedor);
-        this.prospectoie.origen_id = Number(this.prospectoie.origen_id);
-        this.prospectoie.fecha_captura = this.resolverFechaCaptura();
         const usuarioId = Number(localStorage.getItem('id'));
           const usuarioActual = this.programadoresListado.find(u => Number(u.id) === usuarioId);
           if (usuarioActual) {
@@ -311,10 +309,6 @@ export default {
             this.prospectoie.programador_id = Number(usuarioActual.programador_id);
             this.prospectoie.programador_descripcion = usuarioActual.usuario;  
         }
-        if (this.operacion === 'crear') {
-        this.prospectoie.origen_id = 0;   // 0 = Cruce
-        this.prospectoie.retenedor = 0;
-      }
       }
     },
     operacion(val) {
@@ -360,27 +354,16 @@ export default {
     
   },
   methods: {
-    fechaactual() {
-      const hoy = new Date();
-      const day = String(hoy.getDate()).padStart(2, '0');
-      const month = String(hoy.getMonth() + 1).padStart(2, '0');
-      const year = hoy.getFullYear();
-      return `${day}/${month}/${year}`;
-    },
-    resolverFechaCaptura() {
-      if (this.operacion === 'crear') {
-        return this.fechaactual();
-      }
-      return this.convertirFecha(this.prospectoie.fecha_captura);
-    },
     formatearFechaActa(valor) {
       if (!valor) {
         this.prospectoie.fecha_acta = '';
         return;
       }
 
+      // Quitar todo lo que no sea número
       let numeros = valor.replace(/\D/g, '');
 
+      // Limitar a 8 dígitos (DDMMYYYY)
       numeros = numeros.substring(0, 8);
 
       let fecha = '';
@@ -429,13 +412,8 @@ export default {
         Swal.fire('Atención', 'El RFC debe tener entre 12 y 13 caracteres.', 'warning');
         return;
       }
-      if (!api.padron) {
-        console.error('api.padron es undefined');
-        Swal.fire('Error', 'Ruta del padrón no configurada.', 'error');
-        return;
-      }
       this.cargando = true;
-      axios.post(api.padron, { rfc: this.prospectoie.rfc }, { withCredentials: true })
+      axios.post(urlpadron, { rfc: this.prospectoie.rfc }, { withCredentials: true })
         .then(response => {
           if (response.data.length > 0) {
             const data = response.data[0];
@@ -524,18 +502,29 @@ export default {
       this.cerrarDialogoPeriodo(); // Limpia los periodos al cerrar el diálogo principal
     },
     // Métodos para el diálogo de periodos
-    convertirFecha(fechaCaptura) {
-      if (!fechaCaptura) {
-        return this.fechaactual();
-      }
-      const fecha = new Date(fechaCaptura);
-      if (isNaN(fecha.getTime())) {
-        return this.fechaactual();
-      }
-      const day = String(fecha.getDate()).padStart(2, '0');
-      const month = String(fecha.getMonth() + 1).padStart(2, '0');
-      const year = fecha.getFullYear();
-      return `${day}/${month}/${year}`;
+     convertirFecha(fechaCaptura) {
+    // Convertir a objeto Date
+    const fecha = new Date(fechaCaptura);
+
+    // Obtener día, mes y año
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const month = String(fecha.getMonth() + 1).padStart(2, '0'); // Meses empiezan en 0
+    const year = fecha.getFullYear();
+
+    // Formatear fecha en DD-MM-YYYY
+    const fechaFormateada = `${day}/${month}/${year}`;
+
+    return fechaFormateada;
+    },
+    fechaactual: function () {
+      let date = new Date();
+
+      let day = date.getDate();
+      let month = date.getMonth() + 1;
+      let year = date.getFullYear();
+      let fechaactual = day + "/" + month + "/" + year;
+
+      return fechaactual;
     },
     agregarFilaPeriodo() {
       this.periodosParaAgregar.push({ inicio: '', fin: '' });

@@ -73,6 +73,8 @@
   import axios from 'axios';
   import api from '@/services/apiUrls.js';
 
+  var url_canceladas = api.canceladas;
+
 export default {
     name: "Folios",
     data() {
@@ -92,7 +94,7 @@ export default {
                 return;
             }
             try {
-                const response = await axios.post(api.canceladas, {
+                const response = await axios.post(url_canceladas, {
                     opcion: 1,
                     num_orden: this.num_orden_cancelar,
                     anio: this.anio
@@ -116,7 +118,7 @@ export default {
                 return;
             }
             try {
-                await axios.post(api.canceladas, {
+                await axios.post(url_canceladas, {
                     opcion: 2,
                     id_prospecto: this.ordenParaCancelar.id_prospecto,
                     id_orden: this.ordenParaCancelar.id_orden,
