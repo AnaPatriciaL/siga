@@ -7,11 +7,11 @@
                 <h1>PROGRAMADORES</h1>
               </v-col>
               <v-spacer></v-spacer>
-              <v-col cols="1" class="text-right">
+              <!-- <v-col cols="1" class="text-right">
                   <v-btn color="pink darken-4" dark @click="salir()">
                     <v-icon class="mr-3">mdi-exit-to-app</v-icon> Salir
                   </v-btn>
-              </v-col>
+              </v-col> -->
             </v-row>
     <v-btn class="my-5 pink darken-4 white--text" @click="abrirFormulario()">
       <v-icon class="mr-2">mdi-account</v-icon>
@@ -28,6 +28,7 @@
         <v-card-text class="mt-3 mb-1 pb-1">
           <v-form ref="form">
             <v-text-field
+              v-if="operacion !== 'crear'"
               v-model="programador.programador"
               label="Programador"
               :disabled="operacion === 'editar'"
@@ -38,28 +39,36 @@
               label="Nombre Completo"
               required
             ></v-text-field>
-            <v-text-field
-              v-model="programador.usuario"
-              label="Nombre Corto"
-              type="usuario"
-              :required="operacion === 'crear'"
-            ></v-text-field>
-            <v-switch
-              v-model="programador.estatus"
-              inset
-              class="mt-1"
-              color="success"
-              :label="programador.estatus ? 'Activo' : 'Inactivo'"
-              :disabled="operacion === 'crear'"
-            ></v-switch>
-            <v-switch
-              v-model="programador.tipo_programador"
-              inset
-              class="mt-1"
-              color="success"
-              :label="programador.tipo_programador ? 'Federal' : 'Estatal'"
-              :disabled="operacion === 'crear'"
-            ></v-switch>
+            <v-row>
+              <v-col cols="4">
+                <v-text-field
+                  v-model="programador.usuario"
+                  label="Nombre Corto"
+                  type="usuario"
+                  :required="operacion === 'crear'"
+                  @input="programador.usuario = programador.usuario.toUpperCase()"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="4">
+                <v-switch
+                  v-model="programador.estatus"
+                  inset
+                  class="mt-1"
+                  color="success"
+                  :label="programador.estatus ? 'Activo' : 'Inactivo'"
+                  :disabled="operacion === 'crear'"
+                ></v-switch>
+              </v-col>
+              <v-col cols="4">
+                <v-switch
+                  v-model="programador.tipo_programador"
+                  inset
+                  class="mt-1"
+                  color="success"
+                  :label="programador.tipo_programador ? 'Estatal' : 'Federal'"
+                ></v-switch>
+              </v-col>
+            </v-row>
           </v-form>
         </v-card-text>
         <v-card-actions class="grey">
@@ -76,7 +85,7 @@
       </v-card>
     </v-dialog>
 
-    <v-data-table :headers="headers" :items="programadores" :items-per-page="5">
+    <v-data-table :headers="headers" :items="programadores" :items-per-page="20" :sort-by="['estatus', 'nombre_completo']" :sort-desc="[true, false]">
       <template v-slot:item.acciones="{ item }">
         <v-icon large color="warning" @click="editarProgramador(item)"
           >mdi-pencil</v-icon
@@ -90,7 +99,7 @@
       </template>
       <template v-slot:item.tipo_programador="{ item }">
         <v-chip :color="item.tipo_programador == 1 ? 'blue' : 'orange'" dark>
-        {{ item.tipo_programador == 1 ? "Federal" : "Estatal" }}
+        {{ item.tipo_programador == 1 ? "Federal" :  "Estatal"}}
         </v-chip>
       </template>
     </v-data-table>
@@ -175,26 +184,26 @@ name: "Programadores",
       this.programador = {
         ...item,
         programador: item.id,
-        usuario: item.usuario,
+        usuario: (item.usuario || "").toUpperCase(),
         nombre_completo: item.nombre_completo,
         cargo: item.cargo,
         estatus: item.estatus,
-        tipo_programador: item.tipo_programador
+        tipo_programador: item.tipo_programador == 2
       };
       this.dialog = true;
       this.operacion = "editar";
     },
-        salir: function(){
-      window.location.href = "logout.php";
-    },
+//       salir: function(){
+//     window.location.href = "logout.php";
+//   },
 
     guardarProgramador() {
       // Construir el objeto de datos explícitamente para asegurar que los campos son correctos
       let programadorData = {
-        programador: this.programador.usuario,
+        programador: this.programador.usuario.toUpperCase(),
         nombre_completo: this.programador.nombre_completo,
         estatus: this.programador.estatus ? 1 : 0, // Convierte true a 1 (Activo) y false a 0 (Inactivo)
-        tipo_programador: this.programador.tipo_programador ? 1 : 2, // Convierte true a 1 (Federal) y false a 2 (Estatal)
+        tipo_programador: this.programador.tipo_programador ? 2 : 1, // Convierte true a 2 (Estatal) y false a 1 (Federal)
       };
 
       if (this.operacion === 'editar') {
