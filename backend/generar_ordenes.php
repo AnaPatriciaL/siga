@@ -619,7 +619,7 @@ switch ($opcion) {
              echo json_encode(['error' => 'Error al actualizar la orden: ' . $e->getMessage()]);
          }
          break;
-    case 4: // VISTA PREVIA AUTORIZADA 
+    case 4: // VISTA PREVIA AUTORIZADA (reimpresion)
         $prospecto_id = $data['prospecto']['id'] ?? null;
         $fecha_orden_vista = $data['fecha_orden'] ?? date('Y-m-d');
         $copias = isset($data['copias']) ? intval($data['copias']) : 1;
@@ -633,13 +633,13 @@ switch ($opcion) {
             throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
         }
 
-        if (isset($prospecto['periodos'])) {
+        /*if (isset($prospecto['periodos'])) {
              $update_sql = "UPDATE siga_prospectos_ordenes 
                             SET fecha_orden = ? 
                             WHERE id_prospecto = ? AND periodos = ? AND estatus = 1";
              $stmt_update = $conexion->prepare($update_sql);
              $stmt_update->execute([$fecha_orden_vista, $prospecto_id, $prospecto['periodos']]);
-        }
+        }*/
 
         $impuesto_id = $prospecto['impuesto_id'];
         $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
@@ -671,14 +671,14 @@ switch ($opcion) {
         }
         $pdfFilePath = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_AUTORIZADA' . '.pdf';
 
-        /*file_put_contents(__DIR__ . "/impresion.log",
+        file_put_contents(__DIR__ . "/impresion.log",
             "Backend está a punto de imprimir (Case 4): $tmpDocx\n",
             FILE_APPEND
         );
         $impreso = imprimirPDF($pdfFilePath, $copias);
         if (!$impreso) {
             error_log("No se pudo imprimir el PDF (Case 4): $pdfFilePath");
-        }*/
+        }
 
         sendPdfInline($pdfFilePath, 'vista_previa.pdf');
         } catch (Exception $e) {
