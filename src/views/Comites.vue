@@ -26,7 +26,7 @@
           </v-tooltip>  
         </v-col>            
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>

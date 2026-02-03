@@ -154,17 +154,20 @@ switch ($opcion) {
     } else {
         $fecha_acta = null;
     }
+    if (empty($fecha_captura)) {
+        $fecha_captura = date('Y-m-d');
+    }
 
     $consulta = "INSERT INTO siga_prospectos
       (rfc, nombre, calle, num_exterior, num_interior, colonia, cp, localidad, municipio_id, oficina_id, fuente_id,  giro, periodos,
       antecedente_id, impuesto_id, determinado, programador_id, representante_legal, retenedor, origen_id, observaciones, estatus, 
-      cambio_domicilio, domicilio_anterior, notificador, fecha_acta)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      cambio_domicilio, domicilio_anterior, notificador, fecha_acta,fecha_captura)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($consulta);
     $stmt->execute([
       $rfc, $nombre, $calle, $num_exterior, $num_interior, $colonia, $cp, $localidad, $municipio_id, $oficina_id, 
       $fuente_id, $giro, $periodos, $antecedente_id, $impuesto_id, 
-      $determinado, $programador_id,  $representante_legal, $retenedor, $origen_id, $observaciones, $estatus, $cambio_domicilio, $domicilio_anterior, $notificador, $fecha_acta
+      $determinado, $programador_id,  $representante_legal, $retenedor, $origen_id, $observaciones, $estatus, $cambio_domicilio, $domicilio_anterior, $notificador, $fecha_acta,$fecha_captura
     ]);
     $data = ['mensaje' => 'Registro insertado correctamente'];
     $last_id = $conexion->lastInsertId();

@@ -120,7 +120,7 @@ const router = new Router({
 
 // Guard de navegación
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("siga_token");
 
   // Si el usuario está autenticado y quiere ir a /login, redirigir a la ruta principal
   if (token) {

@@ -46,7 +46,7 @@ new Vue({
   vuetify: new Vuetify(),
   render: (h) => h(App),
   created() {
-    this.$user.id = localStorage.getItem("id");
-    this.$user.nombre = localStorage.getItem("nombre");
+    this.$user.id = localStorage.getItem("siga_id");
+    this.$user.nombre = localStorage.getItem("siga_nombre");
   },
 }).$mount("#app");

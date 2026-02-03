@@ -28,7 +28,7 @@
           </v-tooltip>
         </v-col>             
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
@@ -589,7 +589,7 @@ export default {
           <b>${this.impresoraPredeterminada}</b>
         `,
         input: 'number',
-        inputLabel: '¿Cuántas juegos desea imprimir?',
+        inputLabel: '¿Cuántos juegos desea imprimir?',
         inputValue: 1,
         showCancelButton: true,
         inputValidator: (value) => {
@@ -638,7 +638,7 @@ export default {
           <b>${this.impresoraPredeterminada}</b>
         `,
         input: 'number',
-        inputLabel: '¿Cuántas juegos desea imprimir?',
+        inputLabel: '¿Cuántos juegos desea imprimir?',
         inputValue: 1,
         showCancelButton: true,
         inputValidator: (value) => {
@@ -744,7 +744,7 @@ export default {
             opcion: 4, // Opción para REIMPRIMIR
             prospecto: item,
             copias: numCopias,
-            usuario_id: this.sessionData.id,
+            usuario_id: this.sessionData.id_usuario,
             fecha_orden: this.fechaOrden,
           };
           console.log("Enviando datos para REIMPRESIÓN:", data);
@@ -752,7 +752,7 @@ export default {
           // Es una GENERACIÓN NUEVA
           data = {
             prospecto: item,
-            usuario_id: this.sessionData.id,
+            usuario_id: this.sessionData.id_usuario,
             fecha_orden: this.fechaOrden,
             copias: numCopias
           };
@@ -876,61 +876,58 @@ export default {
         });
       }
     },
-    seleccionarProspecto: function (item) {
-      // Validar si el prospecto tiene una orden generada
+    seleccionarProspecto(item) {
+
       if (!this.tieneOrdenGenerada(item)) {
         Swal.fire({
           title: 'Acción no permitida',
           text: 'Debe generar la orden para este prospecto antes de enviarlo a emitidas.',
           icon: 'warning',
-          confirmButtonText: 'Entendido',
-          showCancelButton: false,
-          showConfirmButton: false,
           timer: 2000,
-          timerProgressBar: true,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          allowEnterKey: false
+          showConfirmButton: false
         });
-        return; // Detener la ejecución si no hay orden
+        return;
       }
 
       Swal.fire({
         title: '¿Enviar este prospecto a emitidas?',
-        text: "Esta acción enviará el prospecto a emitidas.",
+        text: 'Esta acción enviará el prospecto a emitidas.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
         confirmButtonText: 'Enviar',
         cancelButtonText: 'Cancelar'
       }).then((result) => {
-        if (result.isConfirmed) {
-          axios.post(api.crud, {
-            opcion: 5, // Opción para actualizar solo el estatus
-            id: item.id,
-            estatus: 6
-          }).then(response => {
-            Swal.fire({
-              title:'¡Emitida!',
-              text:'El prospecto ha sido enviado a emitidas.',
-              icon:'success',
-              showCancelButton: false,
-              showConfirmButton: false,
-              timer: 2000,
-              timerProgressBar: true,
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              allowEnterKey: false
-            });
-            this.mostrar(); // Recargar la tabla para reflejar el cambio
-            this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
 
-          }).catch(error => {
-            Swal.fire('Error', 'No se pudo enviar el prospecto.', 'error');
-            console.error("Error al cambiar estatus:", error);
+        if (!result.isConfirmed) return;
+
+        // Emitir
+        axios.post(api.emitidas, {
+          opcion: 1,
+          prospecto_id: item.id
+        })
+        .then(resp => {
+          if (!resp.data.status) {
+            Swal.fire('Error', resp.data.msg, 'error');
+            return;
+          }
+
+          Swal.fire({
+            title: '¡Emitida!',
+            text: 'El prospecto ha sido enviado a emitidas.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
           });
-        }
+
+          this.mostrar();
+          this.actualizarOrdenesCount();
+
+        })
+        .catch(error => {
+          console.error(error);
+          Swal.fire('Error', 'No se pudo completar la operación', 'error');
+        });
+
       });
     },
     async mostrar() {

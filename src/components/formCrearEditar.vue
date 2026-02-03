@@ -304,7 +304,7 @@ export default {
         this.prospectoie.retenedor = Number(this.prospectoie.retenedor);
         this.prospectoie.origen_id = Number(this.prospectoie.origen_id);
         this.prospectoie.fecha_captura = this.resolverFechaCaptura();
-        const usuarioId = Number(localStorage.getItem('id'));
+        const usuarioId = Number(localStorage.getItem('siga_id'));
           const usuarioActual = this.programadoresListado.find(u => Number(u.id) === usuarioId);
           if (usuarioActual) {
             // Asignamos siempre el ID y la descripción
@@ -415,7 +415,7 @@ export default {
       }
     },
     esUsuarioNivel1() {
-      const idUsuario = Number(localStorage.getItem('id'));
+      const idUsuario = Number(localStorage.getItem('siga_id'));
       if (!idUsuario || !this.programadoresListado) return false;
       const usuario = this.programadoresListado.find(p => Number(p.id) === idUsuario);
       if (usuario && usuario.nivel === 1) {

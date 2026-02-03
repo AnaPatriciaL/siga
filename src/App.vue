@@ -113,8 +113,8 @@ export default {
   data() {
     return {
       drawer: false,
-      isAuthenticated: !!localStorage.getItem("token"),
-      usuarioLogueado: localStorage.getItem("nombre") || "",
+      isAuthenticated: !!localStorage.getItem("siga_token"),
+      usuarioLogueado: localStorage.getItem("siga_nombre") || "",
       opcionesMenu: [],
     };
   },
@@ -126,7 +126,7 @@ export default {
   methods: {
     async cargarOpcionesMenu() {
       try {
-        const usuarioId = localStorage.getItem("id");
+        const usuarioId = localStorage.getItem("siga_id");
         if (!usuarioId) {
           console.warn("No se encontró un ID de usuario en localStorage.");
           return;
@@ -177,10 +177,10 @@ export default {
     },
     logout() {
       // Redirigir al usuario a la vista de login
-      localStorage.removeItem("id");
-      localStorage.removeItem("token");
-      localStorage.removeItem("nombre");
-      localStorage.removeItem("nivel");
+      localStorage.removeItem("siga_id");
+      localStorage.removeItem("siga_token");
+      localStorage.removeItem("siga_nombre");
+      localStorage.removeItem("siga_nivel");
       this.$user.id = null;
       this.$user.nombre = null;
       this.$user.nivel = null;
@@ -191,10 +191,10 @@ export default {
     },
     
     checkAuthentication() {
-      const token = localStorage.getItem("token");
-      const id = localStorage.getItem("id");
-      const nombre = localStorage.getItem("nombre");
-      const nivel = localStorage.getItem("nivel");
+      const token = localStorage.getItem("siga_token");
+      const id = localStorage.getItem("siga_id");
+      const nombre = localStorage.getItem("siga_nombre");
+      const nivel = localStorage.getItem("siga_nivel");
 
       // Convierte el token en un valor booleano (true si existe, false si no)
       this.isAuthenticated = !!token; 

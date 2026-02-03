@@ -44,7 +44,7 @@
           </vue-excel-xlsx>
         </v-col>
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
@@ -198,7 +198,7 @@ export default {
   },
   methods: {
     esUsuarioNivel0() {
-      const nivel = Number(localStorage.getItem('nivel'));
+      const nivel = Number(localStorage.getItem('siga_nivel'));
       if (nivel === 0) {
         return true
       }else
@@ -472,7 +472,7 @@ export default {
     },
 
     obtieneusuarios: function () {
-      const usuarioId = localStorage.getItem('id');
+      const usuarioId = localStorage.getItem('siga_id');
       axios.post(api.programadores, {  opcion: 2, id: usuarioId  }).then((response) => {
         this.programadores_listado = response.data;
       });

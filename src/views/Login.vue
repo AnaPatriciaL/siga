@@ -80,13 +80,13 @@ export default {
         );
 
         if (response.data.success) {
-          localStorage.setItem("id", response.data.id);
-          localStorage.setItem("token", response.data.token);
-          localStorage.setItem("nombre", response.data.nombre);
-          localStorage.setItem("nivel", response.data.nivel);
-          this.$user.id = localStorage.getItem("id");
-          this.$user.nombre = localStorage.getItem("nombre");
-          this.$user.nivel = localStorage.getItem("nivel");
+          localStorage.setItem("siga_id", response.data.id);
+          localStorage.setItem("siga_token", response.data.token);
+          localStorage.setItem("siga_nombre", response.data.nombre);
+          localStorage.setItem("siga_nivel", response.data.nivel);
+          this.$user.id = localStorage.getItem("siga_id");
+          this.$user.nombre = localStorage.getItem("siga_nombre");
+          this.$user.nivel = localStorage.getItem("siga_nivel");
           this.$root.$emit("authenticated");
           this.$router.push("/");
         } else {
