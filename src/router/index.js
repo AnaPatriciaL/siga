@@ -17,6 +17,7 @@ import Programadores from "@/views/Programadores.vue";
 import Oficinas from "@/views/Oficinas.vue";
 import Acercade from "@/views/Acercade.vue";
 import Memorandum from "@/views/Memorandum.vue";
+import Dashboard from "@/views/Dashboard.vue";
 
 
 Vue.use(Router);
@@ -112,6 +113,12 @@ const router = new Router({
       path: "/memorandum",
       name: "Memorandum",
       component: Memorandum,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/dashboard",
+      name: "Dashboard",
+      component: Dashboard,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },

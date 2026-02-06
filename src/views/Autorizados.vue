@@ -935,10 +935,14 @@ export default {
         const response = await axios.post(api.crud, { opcion: 1, estatus_prospecto: 5 });
 
         if (Array.isArray(response.data)) {
-          this.prospectosie = response.data.map(p => ({
+          const datosNormalizados = response.data.map(p => ({
             ...p,
-            tieneOrden: false 
+            cambio_domicilio: Number(p.cambio_domicilio ?? 0),
+            retenedor: Number(p.retenedor ?? 0),
+            origen_id: Number(p.origen_id ?? 0),
+            tieneOrden: false
           }));
+          this.prospectosie = datosNormalizados;
 
           this.prospectosie_no_localizados = this.prospectosie
             .filter(p => Number(p.antecedente_id) === 7);
@@ -1141,7 +1145,7 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);

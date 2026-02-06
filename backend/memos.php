@@ -301,7 +301,7 @@ switch ($opcion) {
         $resultado->execute();
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        break;
+        exit;
     case 2: // ALTA DE MEMOS
         try {
             $conexion->beginTransaction();
@@ -376,7 +376,7 @@ switch ($opcion) {
                 'mensaje' => $e->getMessage()
             ]);
         }
-        break;
+        exit;
     case 3: // UPDATE MEMOS
         if (empty($data['id'])) {
             http_response_code(400);
@@ -401,7 +401,7 @@ switch ($opcion) {
             echo json_encode($data, JSON_UNESCAPED_UNICODE);
         }
        
-        break;
+        exit;
     case 4: // REIMPRIMIR MEMOS
         try {
             if (empty($data['memo_id'])) {
@@ -449,7 +449,7 @@ switch ($opcion) {
             http_response_code(400);
             echo json_encode(['success' => false, 'mensaje' => $e->getMessage()]);
         }
-        break;
+        exit;
     case 5: // CONSULTAR DEPARTAMENTOS
         $consulta = "SELECT * FROM memos_cat_deptos";
         $resultado = $conexion->prepare($consulta);
@@ -457,7 +457,7 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
 
-        break;
+        exit;
     case 6: // CONSULTAR DESTINATARIOS
         $consulta = "SELECT id, oficina_id, departamento_id, CONCAT(nombres,' ',apellido_paterno,' ',apellido_materno) AS nombre_completo  FROM memos_cat_destinatarios";
         $resultado = $conexion->prepare($consulta);
@@ -465,7 +465,7 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
 
-        break;
+        exit;
     case 7: // CONSULTAR OFICINAS
         $consulta = "SELECT * FROM memos_cat_oficinas";
         $resultado = $conexion->prepare($consulta);
@@ -473,7 +473,7 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
 
-        break;
+        exit;
      case 8: // CONSULTAR PROSPECTOS PARA MEMOS
         $consulta = "SELECT p.id, p.rfc, p.nombre, p.oficina_id, o.nombre AS oficina, p.estatus, so.num_orden, so.num_oficio FROM siga_prospectos p
                 INNER JOIN siga_prospectos_ordenes so ON so.id_prospecto = p.id AND so.estatus = 1 AND so.memo_id IS NULL
@@ -483,11 +483,11 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
 
-        break;
+        exit;
     default:
         echo json_encode([
             'status' => false,
             'msg' => 'Opción no válida'
         ]);
-        break;
+        exit;
 }

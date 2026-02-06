@@ -598,7 +598,13 @@ export default {
               const impuestoB = b.impuesto || '';
               return impuestoA.localeCompare(impuestoB);
             });
-            this.prospectosie = datosOrdenados;
+            const datosNormalizados = datosOrdenados.map(item => ({
+              ...item,
+              cambio_domicilio: Number(item.cambio_domicilio ?? 0),
+              retenedor: Number(item.retenedor ?? 0),
+              origen_id: Number(item.origen_id ?? 0)
+            }));
+            this.prospectosie = datosNormalizados;;
             this.prospectosie_no_localizados = this.prospectosie
             .filter(item => Number(item.antecedente_id) === 7) 
             .map(item => ({ ...item }));
@@ -807,7 +813,7 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);

@@ -23,6 +23,7 @@ export default {
   oficinas_listado: `${API_BASE_URL}/oficinas.php`,
   emitidas: `${API_BASE_URL}/enviar_emitidas.php`,
   memos: `${API_BASE_URL}/memos.php`,
+  dashboard: `${API_BASE_URL}/dashboard.php`,
   opcionesUsuario: (usuario_id) => `${API_BASE_URL}/opciones_usuario.php?usuario_id=${usuario_id}`,
   obtenerOpcionesMenu: (usuarioId) => `${API_BASE_URL}/obtener_opciones.php?usuario_id=${usuarioId}`,
 };

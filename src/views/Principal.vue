@@ -1,6 +1,9 @@
 <template>
-  <v-container fill-height>
-    <v-row justify="center" align="center" class="text-center">
+  <v-container fluid v-if="esNivel0">
+    <dashboard></dashboard>
+  </v-container>
+  <v-container fill-height  v-else>
+    <v-row  justify="center" align="center" class="text-center">
       <v-col cols="12" class="d-flex flex-column align-center">
         <v-img
           src="@/assets/img/logo_sates_digital.png"
@@ -13,8 +16,18 @@
 </template>
 
 <script>
+  import Dashboard from "@/views/Dashboard.vue";
+
 export default {
   name: "Principal",
+  components: {
+    Dashboard
+  },
+  computed: {
+    esNivel0() {
+      return Number(localStorage.getItem("siga_nivel")) === 0;
+    }
+  }
 };
 </script>
 

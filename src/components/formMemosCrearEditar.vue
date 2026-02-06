@@ -21,11 +21,11 @@
                                 </v-col>
                                 <!-- Oficina -->
                                 <v-col class="my-0 py-0" cols="12" md="4">
-                                    <v-select v-model.number="memo.oficina_id" :items="oficinas" item-text="nombre" item-value="id" label="Oficina" outlined dense></v-select>
+                                    <v-select v-model="memo.oficina_id" :items="oficinas" item-text="nombre" item-value="id" label="Oficina" outlined dense></v-select>
                                 </v-col>
                                 <!-- Departamento -->
                                 <v-col class="my-0 py-0" v-if="memo.oficina_id === 4" cols="12" md="5">
-                                   <v-select v-model.number="memo.departamento_id" :items="departamentosFiltrados" item-text="nombre" item-value="id" label="Departamento" outlined dense/>
+                                   <v-select v-model="memo.departamento_id" :items="departamentosFiltrados" item-text="nombre" item-value="id" label="Departamento" outlined dense/>
                                 </v-col>
                                 <!-- Destinatario -->
                                 <v-col class="my-0 py-0" cols="12" md="6">

@@ -251,7 +251,12 @@ export default {
         .post(api.crud, { opcion: 1, estatus_prospecto:2 })
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.prospectosie = response.data;
+            this.prospectosie = response.data.map(item => ({
+              ...item,
+              cambio_domicilio: Number(item.cambio_domicilio ?? 0),
+              retenedor: Number(item.retenedor ?? 0),
+              origen_id: Number(item.origen_id ?? 0)
+            }));
 
             // Filtrar los registros con antecedente_id = 7
             this.prospectosie_no_localizados = this.prospectosie
@@ -463,7 +468,7 @@ export default {
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
       this.prospectoie.retenedor=Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);

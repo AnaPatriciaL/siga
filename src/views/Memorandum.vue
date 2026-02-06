@@ -165,23 +165,29 @@ export default {
         console.error('Error al obtener los datos de la sesión:', error);
       }
     },
-    mostrar: function () {
-      axios
-        .post(api.memos, { opcion: 1})
+    mostrar() {
+      axios.post(api.memos, { opcion: 1 })
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.memos = response.data;
+            this.memos = response.data.map(m => ({
+              ...m,
+              destinatario: typeof m.destinatario === 'object'
+                ? m.destinatario?.nombre_completo || ''
+                : m.destinatario,
 
-          } else if (response.data.error) {
-            console.error('Error desde el servidor:', response.data.error);
-            Swal.fire('Error', response.data.error, 'error');
-          } else {
-            console.warn('Respuesta inesperada:', response.data);
+              oficina_descripcion: typeof m.oficina_descripcion === 'object'
+                ? m.oficina_descripcion?.nombre || ''
+                : m.oficina_descripcion,
+
+              departamento_descripcion: typeof m.departamento_descripcion === 'object'
+                ? m.departamento_descripcion?.nombre || ''
+                : m.departamento_descripcion,
+
+              usuario_nombre: typeof m.usuario_nombre === 'object'
+                ? m.usuario_nombre?.nombre || ''
+                : m.usuario_nombre,
+            }));
           }
-        })
-        .catch((error) => {
-          console.error('Error en la solicitud:', error);
-          Swal.fire('Error de conexión', 'No se pudo obtener la información', 'error');
         });
     },
     
@@ -294,21 +300,32 @@ export default {
       
     },
 
-    obtienedepartamentos: function () {
-      axios.post(api.memos,{opcion:5}).then((response) => {
-        this.departamentos = response.data;
+    obtienedepartamentos() {
+      axios.post(api.memos,{ opcion:5 }).then(response => {
+        this.departamentos = response.data.map(d => ({
+          ...d,
+          id: Number(d.id),
+          oficina_id: Number(d.oficina_id)
+        }));
       });
     },
 
-    obtienedestinatarios: function () {
-      axios.post(api.memos,{opcion:6}).then((response) => {
-        this.destinatarios = response.data;
+    obtienedestinatarios() {
+      axios.post(api.memos,{ opcion:6 }).then(response => {
+        this.destinatarios = response.data.map(d => ({
+          ...d,
+          oficina_id: Number(d.oficina_id),
+          departamento_id: Number(d.departamento_id)
+        }));
       });
     },
 
-    obtieneoficinas: function() {
+    obtieneoficinas() {
       axios.post(api.memos, { opcion: 7 }).then(response => {
-        this.oficinas = response.data;
+        this.oficinas = response.data.map(o => ({
+          ...o,
+          id: Number(o.id)
+        }));
       });
     },
 
