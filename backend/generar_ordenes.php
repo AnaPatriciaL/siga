@@ -9,6 +9,7 @@ require_once __DIR__ . '/vendor/tecnickcom/tcpdf/tcpdf.php';
 \PhpOffice\PhpWord\Settings::setPdfRendererPath(__DIR__ . '/vendor/tecnickcom/tcpdf');
 \PhpOffice\PhpWord\Settings::setPdfRendererName('TCPDF');
 use PhpOffice\PhpWord\TemplateProcessor;
+use PhpOffice\PhpWord\Shared\Xml;
 
 function getConexion() {
     $objeto = new Conexion();
@@ -143,13 +144,14 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
 
     $anio_orden = date('Y', strtotime($fecha_orden ?? 'now'));
 
-    // Verificar si ya existe una orden para el mismo prospecto, con los mismos periodos y en el mismo año.
+    // Verificar si ya existe una orden para el mismo prospecto, con los mismos periodos.
     $stmt_orden = $conexion->prepare(
         "SELECT * FROM siga_prospectos_ordenes 
          WHERE id_prospecto = ? AND periodos = ? AND estatus = 1"
     );
     $stmt_orden->execute([$prospecto_id, $periodos_prospecto]);
     $orden_existente = $stmt_orden->fetch(PDO::FETCH_ASSOC);
+
     if ($orden_existente) {
         $stmt_folio = $conexion->prepare("SELECT * FROM siga_prospectos_folios_oficios WHERE num_folio = ?");
         $stmt_folio->execute([$orden_existente['num_oficio']]);
@@ -158,6 +160,7 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
         $folio['num_folio'] = str_pad($folio['num_folio'], 5, '0', STR_PAD_LEFT);
         return $folio;
     }
+    
     if (!$create) {
         // Para la vista previa, generamos un número de orden temporal sin guardarlo
         return ['num_folio' => 'XXXXX', 'anio' => date('Y'), 'num_orden' => 'XXXX'];
@@ -375,6 +378,17 @@ function getDocumentacion($conexion, $rfc) {
     return $documentacion;                
 }
 
+function setSafeWordValue($tp, $key, $value)
+{
+    $safe = htmlspecialchars(
+        (string)($value ?? ''),
+        ENT_QUOTES | ENT_XML1,
+        'UTF-8'
+    );
+
+    $tp->setValue($key, $safe, 1, false);
+}
+
 function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, array $firmas, $fecha_orden_str, $prefix) {
     $fecha_formateada = formatDateToSpanish($fecha_orden_str);
     $template_file = "{$prefix}.docx";
@@ -412,7 +426,8 @@ function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, arr
     $templateProcessor->setValue('anio', $folio['anio'] ?? date('Y'));
     $templateProcessor->setValue('anio2', substr($folio['anio'] ?? date('Y'), -2));
     $templateProcessor->setValue('rfc', $prospecto['rfc'] ?? '');
-    $templateProcessor->setValue('nombre', $prospecto['nombre'] ?? '');
+    setSafeWordValue($templateProcessor, 'nombre', $prospecto['nombre']);
+    //$templateProcessor->setValue('nombre',$prospecto['nombre'] ?? '');              
     $templateProcessor->setValue('domicilio_completo', $prospecto['domicilio_completo'] ?? '');
     $templateProcessor->setValue('calle_numero', $prospecto['calle_numero'] ?? '');
     $templateProcessor->setValue('ciudad_estado', $prospecto['ciudad_estado'] ?? '');    
@@ -739,8 +754,8 @@ switch ($opcion) {
             throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
         }
 
-        $stmt_fecha = $conexion->prepare("SELECT fecha_orden FROM siga_prospectos_ordenes WHERE id_prospecto = ? AND periodos = ? AND estatus = 1");
-        $stmt_fecha->execute([$prospecto_id, $prospecto['periodos']]);
+        $stmt_fecha = $conexion->prepare("SELECT fecha_orden FROM siga_prospectos_ordenes WHERE id_prospecto = ? AND estatus = 1");
+        $stmt_fecha->execute([$prospecto_id]);
         $orden_data = $stmt_fecha->fetch(PDO::FETCH_ASSOC);
         
         $fecha_orden_vista = $orden_data['fecha_orden'] ?? ($data['fecha_orden'] ?? date('Y-m-d'));

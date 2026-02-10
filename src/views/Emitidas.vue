@@ -33,7 +33,7 @@
         </v-col>
       </v-row>
       <!-- Tabla y formulario -->
-      <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
+      <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" :search="busca" class="tabla-emitidas">
         <template v-slot:item.tipo="{ item }">
           <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
           <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
@@ -114,53 +114,65 @@ export default {
       progresoVisible: false,
       progresoMensaje: "",
       encabezados: [
-        {
+         {
           text: "RFC",
           value: "rfc",
           class: "pink darken-4 white--text elevation-1 center-header",
-          width:"70"
+          width: "70"
+        },
+         {
+          text: "OFICIO",
+          value: "num_oficio",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "70"
+        },
+        {
+          text: "ORDEN",
+          value: "num_orden",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "100"
+        },
+        {
+          text: "FECHA DE ORDEN",
+          value: "fecha_orden",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "120"
         },
         {
           text: "NOMBRE",
           value: "nombre",
-          class: "pink darken-4 white--text elevation-1",
-          width:"250"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "250"
         },
         {
           text: "DOMICILIO COMPLETO",
           value: "domicilio_completo",
-          class: "pink darken-4 white--text elevation-1",
-          width: "500"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "350"
         },
         {
           text: "PERIODOS",
           value: "periodos",
-          class: "pink darken-4 white--text elevation-1",
-          width:"150"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "100"
         },
         {
           text: "IMPUESTO",
           value: "impuesto",
-          class: "pink darken-4 white--text elevation-1",
-          width:"70"
-        },
-        {
-          text: "TIPO",
-          value: "tipo",
-          class: "pink darken-4 white--text elevation-1",
+          class: "pink darken-4 white--text elevation-1 center-header",
           width: "50"
         },
         {
           text: "PROGRAMADOR",
           value: "programador_descripcion",
-          class: "pink darken-4 white--text elevation-1",
-          width:"70"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "40"
         },
         {
           text: "ACCIONES",
           value: "actions",
-          class: "pink darken-4 white--text elevation-1",
-          width:"140"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "100"
         },
       ],
       columnas: [
@@ -281,7 +293,7 @@ export default {
     },
     mostrar: function () {
       axios
-        .post(api.crud, { opcion: 1, estatus_prospecto:6 })
+        .post(api.emitidas, { opcion: 2})
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data.map(item => ({
@@ -570,7 +582,17 @@ tbody tr:nth-of-type(odd) {
   text-transform: uppercase
 }
 
-.center-header {
-  text-align: center;
+.tabla-emitidas thead th {
+  align-items: center !important;   
+  justify-content: center !important;
+  text-align: center !important;
+  height: 64px;             
+  padding: 0 8px !important;
+}
+
+.tabla-emitidas thead th .v-data-table-header__text {
+  display: block;
+  line-height: 1.2;
+  white-space: normal;
 }
 </style>

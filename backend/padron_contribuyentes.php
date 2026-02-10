@@ -10,7 +10,7 @@ $rfc = (isset($_POST['rfc'])) ? $_POST['rfc'] : '';
 
 $consulta1 = "SELECT rfc, nombre, calle, num_exterior, num_interior, colonia, localidad, cp, municipio_id, giro, oficina_id
 			FROM siga_prospectos 
-			WHERE rfc = :rfc";
+			WHERE rfc = :rfc ORDER BY id DESC LIMIT 1";
 $stmt = $conexion->prepare($consulta1);
 $stmt->bindParam(':rfc', $rfc);
 $stmt->execute();
