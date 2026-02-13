@@ -7,48 +7,33 @@
                 <h1>DASHBOARD ÓRDENES</h1>
             </v-col>
         </v-row>
-        <v-row class="my-6">
-            <v-col cols="12"></v-col>
+        <v-row class="mb-6">
+            <v-col cols="12">
+                <v-card elevation="2">
+                    <v-card-title class="font-weight-bold">COMPARATIVO DE ÓRDENES EMITIDAS POR MES</v-card-title>
+                    <v-card-text style="height: 350px"><canvas ref="barChart"></canvas></v-card-text>
+                </v-card>
+            </v-col>
         </v-row>
+        <v-card elevation="2">
         <div class="dashboard-estatales">
-            <v-row class="mb-4" align="center">
-                <!-- Select años -->
-                <v-col class="d-flex align-center" cols="12" md="2">
-                    <v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/> 
-                </v-col>
-                <!-- Select meses -->
-                <V-col cols="12" md="2">
-                    <v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/>
-                </v-col>
-                <!-- Boton consultar -->
-                <v-col cols="12" md="5">
-                    <v-btn color="pink darken-4 white--text" @click="consultar">MOSTRAR</v-btn>
-                </v-col>
-                <v-col cols="12" md="3" class="text-right">
-                    <v-btn v-if="estatales.length" color="success white--text" dark @click="exportarExcelEstatales">EXPORTAR A EXCEL</v-btn>
-                </v-col>
+            <v-row class="mb-4 mt-2" align="center">
+                <v-col class="d-flex align-center" cols="12" md="2"><v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/></v-col>
+                <V-col cols="12" md="2"><v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/></v-col>
+                <v-col cols="12" md="2"><v-btn color="pink darken-4 white--text" @click="consultar">MOSTRAR</v-btn></v-col>
+                <v-col cols="12" md="4"><v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense hide-details readonly/></v-col>
+                <v-col cols="12" md="2" class="text-right"><v-btn v-if="puedeExportar" color="success white--text" dark @click="exportarExcelEstatales">EXPORTAR A EXCEL</v-btn></v-col>
             </v-row>
-            <v-row class="mb-2">
-                <v-col cols="12" md="4">
-                    <v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense readonly/>
-                </v-col>
-            </v-row>
-            <!-- Tabla invertida -->
             <v-data-table :headers="encabezadosInvertidos" :items="tablaInvertida" hide-default-header hide-default-footer :items-per-page="-1" dense class="elevation-1">
                 <template v-slot:header>
                     <thead>
                         <tr class="grey darken-1">
-                            <th v-for="h in encabezadosInvertidos" :key="h.value" class="white--text text-center">
-                            {{ h.text }}
-                            </th>
+                            <th v-for="h in encabezadosInvertidos" :key="h.value" class="white--text text-center">{{ h.text }}</th>
                         </tr>
                     </thead>
                 </template>
                 <template v-slot:item.tipo="{ item }">
-                    <td v-if="item.tipo"
-                        class="pink darken-4 white--text font-weight-bold text-center">
-                        {{ item.tipo }}
-                    </td>
+                    <td v-if="item.tipo" class="pink darken-4 white--text font-weight-bold text-center">{{ item.tipo }}</td>
                 </template>
                 <template v-slot:item="{ item }">
                     <tr :class="item.tipo === 'TOTALES' ? 'grey lighten-3 font-weight-bold' : ''">
@@ -64,6 +49,7 @@
                 </template>           
             </v-data-table>
         </div>
+        </v-card>
     </v-container>
 </template>
 <script>
@@ -71,88 +57,44 @@
     import axios from 'axios';
     import api from '@/services/apiUrls.js';
     import * as XLSX from 'xlsx-js-style';
+    import Chart from 'chart.js/auto';
+    import ChartDataLabels from 'chartjs-plugin-datalabels';
+    Chart.register(ChartDataLabels);
 
 export default {
     name: "Dashboard",
     data() {
         return {
-            filtros: {
-            anio: null,
-            mes: null,
-            },
+            anioConsultado: null,
+            mesConsultado: null,
+            barChart: null,
+            filtros: {anio: null, mes: null},
             anios: [],
             estatales: [],
-            totales_oficina:{
-                mochis:0,
-                guasave:0,
-                guamuchil:0,
-                culiacan:0,
-                mazatlan:0,
-                total:0
-            },
-            totales: {
-            nomina: 0,
-            obtencionPremios: 0,
-            sorteosyjuegos: 0,
-            predialRustico: 0,
-            hospedaje: 0,
-            casasEmpeno: 0,
-            erogaciones: 0,
-            cartaNomina: 0,
-            cartaHospedaje: 0,
-            cartaPremios: 0,
-            cartasorteosyjuegos: 0,
-            cartacasasEmpeno: 0,
-            cartapredialRustico: 0,
-            cartaerogaciones: 0,
-            gabineteNomina: 0
-            },
-            meses: [
-            { text: 'ENERO', value: 1 },
-            { text: 'FEBRERO', value: 2 },
-            { text: 'MARZO', value: 3 },
-            { text: 'ABRIL', value: 4 },
-            { text: 'MAYO', value: 5 },
-            { text: 'JUNIO', value: 6 },
-            { text: 'JULIO', value: 7 },
-            { text: 'AGOSTO', value: 8 },
-            { text: 'SEPTIEMBRE', value: 9 },
-            { text: 'OCTUBRE', value: 10 },
-            { text: 'NOVIEMBRE', value: 11 },
-            { text: 'DICIEMBRE', value: 12 },
-            { text: 'TODOS', value: 0 }
-            ],
-            encabezados: [
-            {value: 'oficina_descripcion', align: 'left', width: '200px' },
-            {value: 'visitas_nomina', align: 'center' },
-            {value: 'visitas_obtencionPremios', align: 'center' },
-            {value: 'visitas_sorteosyjuegos', align: 'center' },
-            {value: 'visitas_predialRustico', align: 'center' },
-            {value: 'visitas_hospedaje', align: 'center' },
-            {value: 'visitas_casasEmpeno', align: 'center' },
-            {value: 'visitas_erogaciones', align: 'center' },
-            {value: 'cartaInvitacion_impuestoNomina', align: 'center' },
-            {value: 'cartaInvitacion_impuestoHospedaje', align: 'center' },
-            {value: 'cartaInvitacion_obtencionPremios', align: 'center' },
-            {value: 'cartaInvitacion_sorteosyjuegos', align: 'center' },
-            {value: 'cartaInvitacion_casasEmpeno', align: 'center' },
-            {value: 'cartaInvitacion_predialRustico', align: 'center' },
-            {value: 'cartaInvitacion_erogaciones', align: 'center' },
-            {value: 'gabineteNomina', align: 'center' }
-            ],
-            encabezadosInvertidos: [
-            { text: 'TIPO', value: 'tipo', class: 'col-tipo'},
-            { text: 'IMPUESTO', value: 'impuesto' },
-            { text: 'LOS MOCHIS', value: 'los_mochis' },
-            { text: 'GUASAVE', value: 'guasave' },
-            { text: 'GUAMÚCHIL', value: 'guamuchil' },
-            { text: 'CULIACÁN', value: 'culiacan' },
-            { text: 'MAZATLÁN', value: 'mazatlan' },
-            { text: 'TOTAL', value: 'total' }
-            ]
+            totales_oficina:{mochis:0, guasave:0, guamuchil:0, culiacan:0, mazatlan:0, total:0},
+            totales: {nomina: 0, obtencionPremios: 0, sorteosyjuegos: 0, predialRustico: 0, hospedaje: 0, casasEmpeno: 0, erogaciones: 0, cartaNomina: 0,
+            cartaHospedaje: 0, cartaPremios: 0, cartasorteosyjuegos: 0, cartacasasEmpeno: 0, cartapredialRustico: 0, cartaerogaciones: 0, gabineteNomina: 0},
+            meses: [{ text: 'ENERO', value: 1 }, { text: 'FEBRERO', value: 2 }, { text: 'MARZO', value: 3 }, { text: 'ABRIL', value: 4 }, 
+            { text: 'MAYO', value: 5 }, { text: 'JUNIO', value: 6 }, { text: 'JULIO', value: 7 }, { text: 'AGOSTO', value: 8 }, { text: 'SEPTIEMBRE', value: 9 }, 
+            { text: 'OCTUBRE', value: 10 }, { text: 'NOVIEMBRE', value: 11 }, { text: 'DICIEMBRE', value: 12 }, { text: 'TODOS', value: 0 }],
+            encabezados: [{value: 'oficina_descripcion', align: 'left', width: '200px' },
+            {value: 'visitas_nomina', align: 'center' }, {value: 'visitas_obtencionPremios', align: 'center' }, {value: 'visitas_sorteosyjuegos', align: 'center' },
+            {value: 'visitas_predialRustico', align: 'center' }, {value: 'visitas_hospedaje', align: 'center' }, {value: 'visitas_casasEmpeno', align: 'center' },
+            {value: 'visitas_erogaciones', align: 'center' }, {value: 'cartaInvitacion_impuestoNomina', align: 'center' }, {value: 'cartaInvitacion_impuestoHospedaje', align: 'center' },
+            {value: 'cartaInvitacion_obtencionPremios', align: 'center' }, {value: 'cartaInvitacion_sorteosyjuegos', align: 'center' }, {value: 'cartaInvitacion_casasEmpeno', align: 'center' },
+            {value: 'cartaInvitacion_predialRustico', align: 'center' }, {value: 'cartaInvitacion_erogaciones', align: 'center' }, {value: 'gabineteNomina', align: 'center' }],
+            encabezadosInvertidos: [{ text: 'TIPO', value: 'tipo', class: 'col-tipo'}, { text: 'IMPUESTO', value: 'impuesto' }, { text: 'LOS MOCHIS', value: 'los_mochis' },
+            { text: 'GUASAVE', value: 'guasave' }, { text: 'GUAMÚCHIL', value: 'guamuchil' }, { text: 'CULIACÁN', value: 'culiacan' }, { text: 'MAZATLÁN', value: 'mazatlan' }, { text: 'TOTAL', value: 'total' }]
         };
     },
     computed: {
+        puedeExportar() {
+            return (
+            this.estatales.length > 0 &&
+            this.filtros.anio === this.anioConsultado &&
+            this.filtros.mes === this.mesConsultado
+            )
+        },
         tablaInvertida () {
             const grupos = {
                 'VISITAS DOMICILIARIAS': [
@@ -178,14 +120,7 @@ export default {
                 ]
             }
             const filas = []
-            const totales = {
-                los_mochis: 0,
-                guasave: 0,
-                guamuchil: 0,
-                culiacan: 0,
-                mazatlan: 0,
-                total: 0
-            }
+            const totales = {los_mochis: 0, guasave: 0, guamuchil: 0, culiacan: 0, mazatlan: 0, total: 0}
             Object.entries(grupos).forEach(([tipo, impuestos]) => {
                 impuestos.forEach((imp, index) => {
                 const fila = {
@@ -228,12 +163,83 @@ export default {
     components:{
 
     },
-    created() {
+    async created() {
         this.obtenerPermisos();
-        this.obtenerAnios();
-        this.consultarMesActual()
+        await this.obtenerAnios();
+        this.consultarMesActual();
+        await this.cargarBarChartComparativo();
     },
     methods: {
+        async cargarBarChartComparativo() {
+            try {
+                const { data } = await axios.post(api.dashboard, {opcion: 3});
+
+                const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO', 'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+                const anios = [...new Set(data.map(d => d.anio))].sort();
+                const anioActual = Math.max(...anios);
+                const anioAnterior = anioActual - 1;
+                const totalesActual = Array(12).fill(0);
+                const totalesAnterior = Array(12).fill(0);
+                data.forEach(row => {
+                const mesIndex = row.mes - 1;
+                const total = Number(row.total) || 0;
+
+                if (row.anio === anioActual) {
+                    totalesActual[mesIndex] = total;
+                }
+
+                if (row.anio === anioAnterior) {
+                    totalesAnterior[mesIndex] = total;
+                }
+                });
+
+                if (this.barChart) {
+                this.barChart.destroy();
+                }
+
+                this.barChart = new Chart(this.$refs.barChart, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                    {
+                        label: anioAnterior.toString(),
+                        data: totalesAnterior
+                    },
+                    {
+                        label: anioActual.toString(),
+                        data: totalesActual
+                    }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            },
+                            formatter: value => value > 0 ? value : ''
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }  
+                }
+            });
+
+            } catch (e) {
+                console.error('Error al cargar gráfica comparativa', e);
+            }
+        },
         normalizarOficina(nombre) {
             return (nombre || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_')
         },
@@ -249,16 +255,14 @@ export default {
             const rows = []
             rows.push([{ v: `REPORTE DE ÓRDENES ESTATALES | ${this.periodoSeleccionado}`, s: titleStyle }])
             rows.push([])
-            rows.push([
-                { v: 'TIPO', s: headerStyle },
+            rows.push([{ v: 'TIPO', s: headerStyle },
                 { v: 'IMPUESTO', s: headerStyle },
                 { v: 'LOS MOCHIS', s: headerStyle },
                 { v: 'GUASAVE', s: headerStyle },
                 { v: 'GUAMÚCHIL', s: headerStyle },
                 { v: 'CULIACÁN', s: headerStyle },
                 { v: 'MAZATLÁN', s: headerStyle },
-                { v: 'TOTAL', s: headerStyle }
-            ])
+                { v: 'TOTAL', s: headerStyle }])
             this.tablaInvertida.forEach(row => {
                 const isTotal = row.tipo === 'TOTALES'
                 rows.push([
@@ -299,8 +303,8 @@ export default {
         },
         async obtenerAnios() {
             try {
-                const { data } = await axios.post(api.dashboard, {opcion: 1});
-                this.anios = data.map(item => item.anio);
+                const { data } = await axios.post(api.dashboard, { opcion: 1 });
+                this.anios = data.map(item => Number(item.anio));
             } catch (e) {
                 console.error('No se pudieron obtener los años', e);
                 this.anios = [];
@@ -318,7 +322,9 @@ export default {
                     mes: this.filtros.mes
                 });
                 this.estatales = this.mapearDatosDashboard(data);
-                this.calcularTotales();              
+                this.calcularTotales();
+                this.anioConsultado = this.filtros.anio;
+                this.mesConsultado = this.filtros.mes;              
             }catch (e)
             {
                 console.error('Error al consultar los datos del dashboard', e);
@@ -326,9 +332,15 @@ export default {
             }
         },
         async consultarMesActual() {
-            if (this.filtros.anio !== null && this.filtros.mes !== null) return;
             const fechaActual = new Date();
-            this.filtros.anio = fechaActual.getFullYear();
+            const anioActual = fechaActual.getFullYear();
+
+            if (this.anios.includes(anioActual)) {
+                this.filtros.anio = anioActual;
+            } else if (this.anios.length) {
+                this.filtros.anio = this.anios[0];
+            }
+
             this.filtros.mes = fechaActual.getMonth() + 1;
             await this.consultar();
         }, 

@@ -106,6 +106,14 @@ switch ($opcion) {
             echo json_encode($data, JSON_UNESCAPED_UNICODE);
         }
         break;
+    case 3: // CONSULTAR EMITIDAS PARA GRAFICA
+        $consulta = "SELECT anio, MONTH(fecha_orden) AS mes, COUNT(orden) AS total FROM emitidas WHERE tipo = 'E' 
+        AND (anio = YEAR(NOW()) OR anio = YEAR(NOW())-1) GROUP BY anio, MONTH(fecha_orden) ORDER BY anio DESC, MONTH(fecha_orden) ASC";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
     default:
         echo json_encode([
             'status' => false,

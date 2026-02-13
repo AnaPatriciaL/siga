@@ -171,8 +171,8 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
         fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
-        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta: '', origen_id:null, 
-        representante_legal: null, estatus: 1,
+        programador_descripcion: null, retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta: '', 
+        origen_id:null, representante_legal: null, estatus: 1,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -490,10 +490,12 @@ export default {
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {
+      const periodosClonados = Array.isArray(periodosParaAgregar) ? [...periodosParaAgregar] : [];
+
       if (this.operacion === "crear") {
-        await this.crear(prospectoieData, periodosParaAgregar);
+        await this.crear(prospectoieData, periodosClonados);
       } else if (this.operacion === "editar") {
-        await this.editar(prospectoieData, periodosParaAgregar);
+        await this.editar(prospectoieData, periodosClonados);
       }
     },
 
@@ -535,6 +537,7 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
+      this.prospectoie.programador_descripcion = objeto.programador_descripcion;
       this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
       this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
@@ -545,7 +548,7 @@ export default {
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
-      this.prospectoie.estatus=objeto.estatus;
+      this.prospectoie.estatus = Number(objeto.estatus);
     },
     
     convertirFecha(fechaCaptura) {

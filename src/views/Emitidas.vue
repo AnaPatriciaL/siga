@@ -41,12 +41,12 @@
         </template>
         <!-- Acciones -->
         <template v-slot:item.actions="{ item }">
-          <v-tooltip top>
+          <!-- <v-tooltip top>
             <template v-slot:activator="{ on, attrs }">
               <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
             </template>
             <span>Editar Prospecto</span>
-          </v-tooltip>
+          </v-tooltip> -->
           <v-tooltip top>
             <template v-slot:activator="{ on, attrs }">
               <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">mdi-file-eye</v-icon>
@@ -203,8 +203,8 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
         fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
-        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, origen_id:null,  
-        representante_legal: null, estatus: 6,
+        programador_descripcion: null, retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, 
+        origen_id:null, representante_legal: null, estatus: 6,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -482,6 +482,7 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
+      this.prospectoie.programador_descripcion = objeto.programador_descripcion;
       this.prospectoie.retenedor=Number(objeto.retenedor ?? 0);
       this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;

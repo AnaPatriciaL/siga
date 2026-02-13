@@ -3,7 +3,7 @@
     <!-- Componente de Diálogo para CREAR y EDITAR -->
   <v-dialog v-model="dialog" max-width="1100px" persistent >
       <v-card>
-        <v-form>
+        <v-form :disabled="estaBloqueado">
           <v-card-title class="pink darken-4 white--text py-2">PROSPECTO DE IMPUESTOS ESTATALES
             <v-spacer></v-spacer>
             <span class="text-h6">
@@ -12,6 +12,11 @@
               <template v-else>{{ operacion.toUpperCase() }}</template>
             </span>
           </v-card-title>
+          <v-alert v-if="estaBloqueado" type="warning" border="left" colored-border elevation="2" class="ma-3">
+            <strong>No es posible editar este prospecto.</strong><br>
+            El prospecto se encuentra en estatus <b>{{ prospectoie.estatus_descripcion }}</b>.<br>
+            Para continuar, es necesario <b>crear un nuevo prospecto</b> utilizando el mismo RFC.
+          </v-alert>
           <v-card-text class="mb-2 py-0">
             <v-container>
               <v-row class="my-2 pt-4">
@@ -27,11 +32,11 @@
                 </v-col>
                 <!-- Nombre -->
                 <v-col class="my-0 py-0" cols="12" md="8">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" @blur="prospectoie.nombre = prospectoie.nombre?.trim()" label="Nombre" outlined maxlength="300" dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.nombre" @blur="trimCampo('nombre')" label="Nombre" outlined maxlength="300" dense></v-text-field>
                 </v-col>
                 <!-- Calle -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" @blur="prospectoie.calle = prospectoie.calle?.trim()" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.calle" @blur="trimCampo('calle')" label="Calle/Avenida/Vialidad" maxlength="250" outlined dense></v-text-field>
                 </v-col>
                 <!-- Numero exterior -->
                 <v-col class="my-0 py-0" cols="12" md="2">
@@ -39,19 +44,19 @@
                 </v-col>
                 <!-- Numero interior -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" @blur="prospectoie.num_interior = prospectoie.num_interior?.trim()" label="No. interior" maxlength="250" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.num_interior" @blur="trimCampo('num_interior')" label="No. interior" maxlength="250" outlined dense></v-text-field>
                 </v-col>
                 <!-- Colonia -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" @blur="prospectoie.colonia = prospectoie.colonia?.trim()" label="Colonia" maxlength="150" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.colonia" @blur="trimCampo('colonia')" label="Colonia" maxlength="150" outlined dense></v-text-field>
                 </v-col>
                 <!-- CP -->
                 <v-col class="my-0 py-0" cols="12" md="2">
-                  <v-text-field class="my-0 py-0" v-model="prospectoie.cp" @blur="prospectoie.cp = prospectoie.cp?.trim()" label="C.P." outlined maxlength="5" minlength="5" dense type="number"></v-text-field>
+                  <v-text-field class="my-0 py-0" v-model="prospectoie.cp" @blur="trimCampo('cp')" label="C.P." outlined maxlength="5" minlength="5" dense type="number"></v-text-field>
                 </v-col>
                 <!-- Localidad -->
                 <v-col class="my-0 py-0" cols="12" md="4">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" @blur="prospectoie.localidad = prospectoie.localidad?.trim()" label="Localidad" maxlength="100" outlined dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.localidad" @blur="trimCampo('localidad')" label="Localidad" maxlength="100" outlined dense></v-text-field>
                 </v-col>
                 <!-- Municipio -->
                 <v-col class="my-0 py-0" cols="12" md="3">
@@ -63,7 +68,7 @@
                 </v-col>
                 <!-- Giro -->
                 <v-col class="my-0 py-0" cols="12" md="6">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.giro" label="Giro/Actividad" item-text="" outlined maxlength="250" dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.giro" @blur="trimCampo('giro')" label="Giro/Actividad" item-text="" outlined maxlength="250" dense></v-text-field>
                 </v-col>
               <v-col class="my-0 py-0" cols="12" md="1">
                   <v-tooltip top>
@@ -74,7 +79,7 @@
                   </v-tooltip>
                 </v-col>
                 <v-col class="my-0 py-0" cols="12" md="5" >
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" @blur="prospectoie.periodos = prospectoie.periodos?.trim()" label="Periodos" outlined dense readonly></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.periodos" @blur="trimCampo('periodos')" label="Periodos" outlined dense readonly></v-text-field>
                 </v-col>
                 <!-- Antecedentes -->
                 <v-col class="my-0 py-0" cols="12" md="6">
@@ -128,11 +133,11 @@
                 </v-col>
                 <!-- Domicilio Anterior -->
                 <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="6">
-                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.domicilio_anterior" @blur="prospectoie.domicilio_anterior = prospectoie.domicilio_anterior?.trim()" label="Domicilio Anterior" outlined/>
+                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.domicilio_anterior" @blur="trimCampo('domicilio_anterior')" label="Domicilio Anterior" outlined/>
                 </v-col>
                 <!-- Notificador / Visitador -->
                 <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="4">
-                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.notificador" @blur="prospectoie.notificador = prospectoie.notificador?.trim()" label="Notificador / Visitador" outlined/>
+                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.notificador" @blur="trimCampo('notificador')" label="Notificador / Visitador" outlined/>
                 </v-col>
                 <!-- Fecha Acta -->
                 <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="2">
@@ -140,7 +145,7 @@
                 </v-col>
                 <!-- Representante Legal -->
                 <v-col v-if="prospectoie.rfc && prospectoie.rfc.length === 12" class="my-0 py-0" cols="12" md="12">
-                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" @blur="prospectoie.representante_legal = prospectoie.representante_legal?.trim()" label="Representante Legal" item-text="" outlined maxlengt></v-text-field>
+                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.representante_legal" @blur="trimCampo('representante_legal')" label="Representante Legal" item-text="" outlined maxlength="300"></v-text-field>
                 </v-col>
                 <!-- Origen -->
                 <v-col class="my-0 py-0" cols="12" md="2">
@@ -148,7 +153,7 @@
                 </v-col>
                 <!-- Observaciones -->
                 <v-col class="my-0 py-0" cols="12" md="10">
-                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" @blur="prospectoie.observaciones = prospectoie.observaciones?.trim()" label="Observaciones" item-text="" outlined  maxlength="200"dense></v-text-field>
+                  <v-text-field class="my-0 py-0 mayusculas" v-model="prospectoie.observaciones" @blur="trimCampo('observaciones')" label="Observaciones" item-text="" outlined  maxlength="200"dense></v-text-field>
                 </v-col>
               </v-row>
             </v-container>
@@ -156,8 +161,8 @@
           <v-divider></v-divider>
           <v-card-actions class="grey lighten-2 py-2">
             <v-spacer></v-spacer>
-            <v-btn v-if="mostrarBotonSupervisor && Number(prospectoie.estatus) === 1" class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
-            <v-btn class="my-1 ma-2 py-1" color="success" @click="validar(false)" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
+            <v-btn v-if="mostrarBotonSupervisor && Number(prospectoie.estatus) === 1 && !estaBloqueado" class="my-1 ma-2 py-1" color="blue-grey" @click="validar_supervisor" dark>Enviar a supervisor<v-icon dark right> mdi-account-tie-hat</v-icon></v-btn>
+            <v-btn  v-if="!estaBloqueado" class="my-1 ma-2 py-1" color="success" @click="validar(false)" dark>Guardar<v-icon dark right> mdi-checkbox-marked-circle </v-icon></v-btn>
             <v-btn class="ma-2" dark @click="dialog=false">Cancelar<v-icon dark left> mdi-cancel </v-icon></v-btn>
           </v-card-actions>
         </v-form>
@@ -267,6 +272,9 @@ export default {
       }
         return ''; // O maneja el caso donde uno o ambos están vacíos
     },
+    estaBloqueado() {
+      return Number(this.prospectoie?.estatus) === 6;
+    },
     dialog: {
       get() {
         return this.value;
@@ -298,23 +306,23 @@ export default {
     },
     // Cuando el diálogo se abre, copia los datos del prop al estado local.
     dialog(val) {
-      if (val) { // Si el diálogo se abre
+      if (val) {
         this.prospectoie = JSON.parse(JSON.stringify(this.prospectoieData));
         this.prospectoie.programador_id = Number(this.prospectoie.programador_id);
         this.prospectoie.retenedor = Number(this.prospectoie.retenedor);
         this.prospectoie.origen_id = Number(this.prospectoie.origen_id);
         this.prospectoie.fecha_captura = this.resolverFechaCaptura();
-        const usuarioId = Number(localStorage.getItem('siga_id'));
+        if (this.operacion === 'crear') {
+          const usuarioId = Number(localStorage.getItem('siga_id'));
           const usuarioActual = this.programadoresListado.find(u => Number(u.id) === usuarioId);
           if (usuarioActual) {
-            // Asignamos siempre el ID y la descripción
             this.prospectoie.programador_id = Number(usuarioActual.programador_id);
-            this.prospectoie.programador_descripcion = usuarioActual.usuario;  
+            this.prospectoie.programador_descripcion = usuarioActual.usuario;
+          }
+          this.prospectoie.origen_id = 0;
+          this.prospectoie.retenedor = 0;
         }
-        if (this.operacion === 'crear') {
-        this.prospectoie.origen_id = 0;   // 0 = Cruce
-        this.prospectoie.retenedor = 0;
-      }
+        
       }
     },
     operacion(val) {
@@ -360,6 +368,21 @@ export default {
     
   },
   methods: {
+    trimCampo(campo) {
+      if (typeof this.prospectoie[campo] === 'string') {
+        this.prospectoie[campo] = this.prospectoie[campo].trim();
+      }
+    },
+    limpiarEspaciosTexto(obj) {
+      const camposTexto = ['nombre', 'calle', 'num_exterior', 'num_interior', 'colonia', 'localidad', 'giro', 'periodos', 'domicilio_anterior', 
+      'notificador', 'representante_legal', 'observaciones'];
+
+      camposTexto.forEach(campo => {
+        if (typeof obj[campo] === 'string') {
+          obj[campo] = obj[campo].trim();
+        }
+      });
+    },
     fechaactual() {
       const hoy = new Date();
       const day = String(hoy.getDate()).padStart(2, '0');
@@ -511,6 +534,7 @@ export default {
           // Si la validación es para el supervisor, cambia el estatus aquí.
           this.prospectoie.estatus = 2;
         }
+        this.limpiarEspaciosTexto(this.prospectoie);
         this.$emit('guardar', this.prospectoie, this.periodosParaAgregar);
       this.cerrar();
       }
@@ -528,14 +552,12 @@ export default {
       if (!fechaCaptura) {
         return this.fechaactual();
       }
-      const fecha = new Date(fechaCaptura);
-      if (isNaN(fecha.getTime())) {
-        return this.fechaactual();
+      if (fechaCaptura.includes('/')) {
+        return fechaCaptura;
       }
-      const day = String(fecha.getDate()).padStart(2, '0');
-      const month = String(fecha.getMonth() + 1).padStart(2, '0');
-      const year = fecha.getFullYear();
-      return `${day}/${month}/${year}`;
+      const [anio, mes, dia] = fechaCaptura.substring(0, 10).split('-');
+
+      return `${dia}/${mes}/${anio}`;
     },
     agregarFilaPeriodo() {
       this.periodosParaAgregar.push({ inicio: '', fin: '' });
