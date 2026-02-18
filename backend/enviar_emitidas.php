@@ -85,6 +85,7 @@ switch ($opcion) {
         }
         break;
     case 2: // MOSTRAR EMITIDAS
+        $anio = isset($data['anio']) ? (int)$data['anio'] : 0;
         $consulta = "SELECT
                   a.*,
                   b.impuesto AS impuesto,
@@ -148,9 +149,10 @@ switch ($opcion) {
                 LEFT JOIN siga_prospectos_estatus_prospectos AS h ON a.estatus = h.id
                 LEFT JOIN siga_prospectos_municipios AS j ON a.municipio_id = j.municipio_id
                 LEFT JOIN siga_prospectos_ordenes AS o ON o.id_prospecto = a.id
-                WHERE a.estatus = 6";
+                WHERE a.estatus = 6 AND YEAR(o.fecha_orden) = :anio";
 
         $stmt = $conexion->prepare($consulta);
+        $stmt->bindParam(':anio', $anio, PDO::PARAM_INT);
         $stmt->execute();
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

@@ -32,6 +32,11 @@
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
+      <v-row class="mb-4" align="center">
+        <v-col class="d-flex align-center" cols="12" md="2"><v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/></v-col>
+        <v-col cols="12" md="2"><v-btn color="pink darken-4 white--text" @click="consultar">CONSULTAR</v-btn></v-col>       
+        <v-spacer></v-spacer>
+      </v-row>
       <!-- Tabla y formulario -->
       <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" :search="busca" class="tabla-emitidas">
         <template v-slot:item.tipo="{ item }">
@@ -111,16 +116,19 @@ export default {
   data() {
     return {
       busca: "",
+      filtros: {anio: null},
+      anios: [],
+      anioActual: new Date().getFullYear(),
       progresoVisible: false,
       progresoMensaje: "",
       encabezados: [
-         {
-          text: "RFC",
-          value: "rfc",
+        {
+          text: "ACCIONES",
+          value: "actions",
           class: "pink darken-4 white--text elevation-1 center-header",
-          width: "70"
+          width: "100"
         },
-         {
+        {
           text: "OFICIO",
           value: "num_oficio",
           class: "pink darken-4 white--text elevation-1 center-header",
@@ -137,6 +145,12 @@ export default {
           value: "fecha_orden",
           class: "pink darken-4 white--text elevation-1 center-header",
           width: "120"
+        },
+         {
+          text: "RFC",
+          value: "rfc",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "70"
         },
         {
           text: "NOMBRE",
@@ -167,12 +181,6 @@ export default {
           value: "programador_descripcion",
           class: "pink darken-4 white--text elevation-1 center-header",
           width: "40"
-        },
-        {
-          text: "ACCIONES",
-          value: "actions",
-          class: "pink darken-4 white--text elevation-1 center-header",
-          width: "100"
         },
       ],
       columnas: [
@@ -224,15 +232,47 @@ export default {
   },
   created() {
     this.obtenerPermisos();
-    this.mostrar(),
-    this.obtieneoficinas(),
-    this.obtienefuentes(),
-    this.obtieneimpuestos(),
-    this.obtieneusuarios(),
-    this.obtieneantecedentes()
-    this.obtienemunicipios()
+    this.obtieneoficinas();
+    this.obtienefuentes();
+    this.obtieneimpuestos();
+    this.obtieneusuarios();
+    this.obtieneantecedentes();
+    this.obtienemunicipios();
+    this.obtenerAnios();
   },
  methods: {
+  async obtenerAnios() {
+    try {
+        const { data } = await axios.post(api.dashboard, { opcion: 1 });
+        this.anios = data.map(item => Number(item.anio));
+        if (this.anios.includes(this.anioActual)) {
+          this.filtros.anio = this.anioActual;
+        } else if (this.anios.length) {
+          this.filtros.anio = this.anios[0];
+        }
+        this.mostrar();
+    } catch (e) {
+        console.error('No se pudieron obtener los años', e);
+        this.anios = [];
+    }
+  },
+  async consultar() {
+    if (this.filtros.anio == null) {
+        Swal.fire('Advertencia', 'Por favor, selecciona un año antes de consultar.', 'warning');
+        return;
+    }
+    try { 
+        const { data } = await axios.post(api.emitidas, {
+            opcion: 2,
+            anio: this.filtros.anio
+        });
+        this.anioConsultado = this.filtros.anio;           
+    }catch (e)
+    {
+        console.error('Error al consultar los datos de emitidas', e);
+        Swal.fire('Error', 'No se pudieron obtener los datos de emitidas', 'error');
+    }
+  },
   cerrarVistaPrevia() {
       this.dialogVistaPrevia = false;
       if (this.pdfSrc) {
@@ -293,7 +333,7 @@ export default {
     },
     mostrar: function () {
       axios
-        .post(api.emitidas, { opcion: 2})
+        .post(api.emitidas, { opcion: 2, anio: this.filtros.anio})
         .then((response) => {
           if (Array.isArray(response.data)) {
             this.prospectosie = response.data.map(item => ({
@@ -407,7 +447,7 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(api.oficinas).then((response) => {
+      axios.post(api.oficinas_listado).then((response) => {
         this.oficinas_listado = response.data;
       });
     },

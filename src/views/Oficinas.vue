@@ -131,24 +131,27 @@ export default {
     };
   },
   computed: {
-    isDataChanged() {
+   isDataChanged() {
       if (!this.selectedOfficeId) return false;
       return (
-        this.oficinaSeleccionada.grupo !== this.originalData.grupo ||
-        this.oficinaSeleccionada.domicilio !== this.originalData.domicilio ||
-        this.oficinaSeleccionada.fraccion !== this.originalData.fraccion ||
-        this.oficinaSeleccionada.telefono !== this.originalData.telefono
+        this.normalize(this.oficinaSeleccionada.grupo) !== this.normalize(this.originalData.grupo) ||
+        this.normalize(this.oficinaSeleccionada.domicilio) !== this.normalize(this.originalData.domicilio) ||
+        this.normalize(this.oficinaSeleccionada.fraccion) !== this.normalize(this.originalData.fraccion) ||
+        this.normalize(this.oficinaSeleccionada.telefono) !== this.normalize(this.originalData.telefono)
       );
-    },
+    }
   },
   mounted() {
     this.obtenerOficinas();
   },
   methods: {
+    normalize(val) {
+      return val === null || val === undefined ? '' : String(val).trim();
+    },
     obtenerOficinas() {
       try {
         axios
-          .get(api.oficinas)
+          .get(api.oficinas_listado)
           .then((response) => {
             this.oficinas = response.data;
           });
@@ -157,10 +160,17 @@ export default {
       }
     },
     onOfficeChange(officeId) {
-      const office = this.oficinas.find((o) => o.id === officeId);
+      const office = this.oficinas.find(o => o.id === officeId);
       if (office) {
-        this.oficinaSeleccionada = { ...office };
-        this.originalData = { ...office }; // Guardar estado original
+        const normalizedOffice = {
+          ...office,
+          grupo: this.normalize(office.grupo),
+          domicilio: this.normalize(office.domicilio),
+          fraccion: this.normalize(office.fraccion),
+          telefono: this.normalize(office.telefono),
+        };
+        this.oficinaSeleccionada = { ...normalizedOffice };
+        this.originalData = { ...normalizedOffice };
       }
     },
     guardarCambios() {
@@ -168,10 +178,10 @@ export default {
 
       const dataToSave = {
         id: this.oficinaSeleccionada.id,
-        grupo: this.oficinaSeleccionada.grupo,
-        domicilio: this.oficinaSeleccionada.domicilio,
-        fraccion: this.oficinaSeleccionada.fraccion,
-        telefono: this.oficinaSeleccionada.telefono,
+        grupo: this.normalize(this.oficinaSeleccionada.grupo),
+        domicilio: this.normalize(this.oficinaSeleccionada.domicilio),
+        fraccion: this.normalize(this.oficinaSeleccionada.fraccion),
+        telefono: this.normalize(this.oficinaSeleccionada.telefono),
       };
 
       axios

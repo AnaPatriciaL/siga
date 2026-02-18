@@ -16,40 +16,57 @@
             </v-col>
         </v-row>
         <v-card elevation="2">
-        <div class="dashboard-estatales">
-            <v-row class="mb-4 mt-2" align="center">
-                <v-col class="d-flex align-center" cols="12" md="2"><v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/></v-col>
-                <V-col cols="12" md="2"><v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/></v-col>
-                <v-col cols="12" md="2"><v-btn color="pink darken-4 white--text" @click="consultar">MOSTRAR</v-btn></v-col>
-                <v-col cols="12" md="4"><v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense hide-details readonly/></v-col>
-                <v-col cols="12" md="2" class="text-right"><v-btn v-if="puedeExportar" color="success white--text" dark @click="exportarExcelEstatales">EXPORTAR A EXCEL</v-btn></v-col>
-            </v-row>
-            <v-data-table :headers="encabezadosInvertidos" :items="tablaInvertida" hide-default-header hide-default-footer :items-per-page="-1" dense class="elevation-1">
-                <template v-slot:header>
-                    <thead>
-                        <tr class="grey darken-1">
-                            <th v-for="h in encabezadosInvertidos" :key="h.value" class="white--text text-center">{{ h.text }}</th>
+            <div class="dashboard-estatales">
+                <v-row class="mb-4 mt-2" align="center">
+                    <v-col class="d-flex align-center" cols="12" md="2"><v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/></v-col>
+                    <V-col cols="12" md="2"><v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/></v-col>
+                    <v-col cols="12" md="2"><v-btn color="pink darken-4 white--text" @click="consultar">MOSTRAR</v-btn></v-col>
+                    <v-col cols="12" md="4"><v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense hide-details readonly/></v-col>
+                    <v-col cols="12" md="2" class="text-right"><v-btn v-if="puedeExportar" color="success white--text" dark @click="exportarExcelEstatales">EXPORTAR A EXCEL</v-btn></v-col>
+                </v-row>
+                <v-data-table :headers="encabezadosInvertidos" :items="tablaInvertida" hide-default-header hide-default-footer :items-per-page="-1" dense class="elevation-1">
+                    <template v-slot:header>
+                        <thead>
+                            <tr class="grey darken-1">
+                                <th v-for="h in encabezadosInvertidos" :key="h.value" class="white--text text-center">{{ h.text }}</th>
+                            </tr>
+                        </thead>
+                    </template>
+                    <template v-slot:item.tipo="{ item }">
+                        <td v-if="item.tipo" class="pink darken-4 white--text font-weight-bold text-center">{{ item.tipo }}</td>
+                    </template>
+                    <template v-slot:item="{ item }">
+                        <tr :class="item.tipo === 'TOTALES' ? 'grey lighten-3 font-weight-bold' : ''">
+                            <td :class="item.tipo && item.tipo !== 'TOTALES' ? 'pink darken-4 white--text font-weight-bold text-center' : 'text-center font-weight-bold'">{{ item.tipo }}</td>
+                            <td :class="item.impuesto ? 'font-weight-bold text-left' : ''">{{ item.impuesto }}</td>
+                            <td>{{ item.los_mochis }}</td>
+                            <td>{{ item.guasave }}</td>
+                            <td>{{ item.guamuchil }}</td>
+                            <td>{{ item.culiacan }}</td>
+                            <td>{{ item.mazatlan }}</td>
+                            <td>{{ item.total }}</td>
                         </tr>
-                    </thead>
-                </template>
-                <template v-slot:item.tipo="{ item }">
-                    <td v-if="item.tipo" class="pink darken-4 white--text font-weight-bold text-center">{{ item.tipo }}</td>
-                </template>
-                <template v-slot:item="{ item }">
-                    <tr :class="item.tipo === 'TOTALES' ? 'grey lighten-3 font-weight-bold' : ''">
-                        <td :class="item.tipo && item.tipo !== 'TOTALES' ? 'pink darken-4 white--text font-weight-bold text-center' : 'text-center font-weight-bold'">{{ item.tipo }}</td>
-                        <td :class="item.impuesto ? 'font-weight-bold text-left' : ''">{{ item.impuesto }}</td>
-                        <td>{{ item.los_mochis }}</td>
-                        <td>{{ item.guasave }}</td>
-                        <td>{{ item.guamuchil }}</td>
-                        <td>{{ item.culiacan }}</td>
-                        <td>{{ item.mazatlan }}</td>
-                        <td>{{ item.total }}</td>
-                    </tr>
-                </template>           
-            </v-data-table>
-        </div>
+                    </template>           
+                </v-data-table>
+            </div>
         </v-card>
+        <v-dialog v-model="mostrarDetalleMes" max-width="1200px" persistent scrollable>
+            <v-card>
+                <v-card-title class="detalle-titulo">
+                    <span class="titulo-texto">ÓRDENES DEL MES: {{ mesDetalleTexto }} {{ anioDetalle }}</span>
+                    <v-spacer />
+                    <v-btn icon small @click="cerrarDetalleMes"><v-icon>mdi-close</v-icon></v-btn>
+                </v-card-title>
+                <v-divider/>
+                <v-card-text>
+                    <v-data-table :headers="headersDetalle" :items="ordenesMes" dense class="elevation-1"/>
+                </v-card-text>
+                <v-divider />
+                <v-card-actions class="justify-end">
+                    <v-btn text color="pink darken-4" @click="cerrarDetalleMes">Cerrar</v-btn>
+                </v-card-actions>
+            </v-card>
+            </v-dialog>
     </v-container>
 </template>
 <script>
@@ -65,6 +82,32 @@ export default {
     name: "Dashboard",
     data() {
         return {
+            mostrarDetalleMes: false,
+            mesDetalle: null,
+            anioDetalle: null,
+            ordenesMes: [],
+            headersDetalle: [
+                {text: "ORDEN",
+                value: "num_orden",
+                class: "pink darken-4 white--text elevation-1 center-header",
+                width: "100"},
+                {text: "FECHA DE ORDEN",
+                value: "fecha_orden",
+                class: "pink darken-4 white--text elevation-1 center-header",
+                width: "120"},
+                {text: "RFC",
+                value: "rfc",
+                class: "pink darken-4 white--text elevation-1 center-header",
+                width: "120"},
+                {text: "NOMBRE",
+                value: "nombre",
+                class: "pink darken-4 white--text elevation-1 center-header",
+                width: "250"},
+                {text: "PERIODOS",
+                value: "periodos",
+                class: "pink darken-4 white--text elevation-1 center-header",
+                width: "100"}
+            ],
             anioConsultado: null,
             mesConsultado: null,
             barChart: null,
@@ -88,6 +131,10 @@ export default {
         };
     },
     computed: {
+        mesDetalleTexto() {
+            const m = this.meses.find(x => x.value === this.mesDetalle)
+            return m ? m.text : ''
+        },
         puedeExportar() {
             return (
             this.estatales.length > 0 &&
@@ -170,29 +217,46 @@ export default {
         await this.cargarBarChartComparativo();
     },
     methods: {
+        cerrarDetalleMes() {
+            this.mostrarDetalleMes = false
+            this.ordenesMes = []
+            this.mesDetalle = null
+            this.anioDetalle = null
+        },
+        async cargarDetalleMes(anio, mes) {
+            try {
+                const { data } = await axios.post(api.dashboard, {opcion: 4, anio, mes})
+                this.ordenesMes = Array.isArray(data) ? data : [];
+                this.mesDetalle = mes;
+                this.anioDetalle = anio;
+                this.mostrarDetalleMes = true;
+            } catch (e) {
+                console.error('Error al cargar detalle del mes', e)
+                Swal.fire('Error', 'No se pudieron cargar las órdenes del mes', 'error')
+            }
+        },
         async cargarBarChartComparativo() {
             try {
+                this.mostrarDetalleMes = false;
+                this.ordenesMes = [];
                 const { data } = await axios.post(api.dashboard, {opcion: 3});
-
+                const normalizados = data.map(d => ({anio: Number(d.anio), mes: Number(d.mes), total: Number(d.total)}));
                 const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO', 'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-                const anios = [...new Set(data.map(d => d.anio))].sort();
+                const anios = [...new Set(normalizados.map(d => d.anio))].sort((a,b)=>a-b);
                 const anioActual = Math.max(...anios);
                 const anioAnterior = anioActual - 1;
                 const totalesActual = Array(12).fill(0);
                 const totalesAnterior = Array(12).fill(0);
-                data.forEach(row => {
-                const mesIndex = row.mes - 1;
-                const total = Number(row.total) || 0;
-
+                normalizados.forEach(row => {
+                const mesIndex = row.mes - 1
+                const total = row.total
                 if (row.anio === anioActual) {
-                    totalesActual[mesIndex] = total;
+                    totalesActual[mesIndex] = total
                 }
-
                 if (row.anio === anioAnterior) {
-                    totalesAnterior[mesIndex] = total;
+                    totalesAnterior[mesIndex] = total
                 }
                 });
-
                 if (this.barChart) {
                 this.barChart.destroy();
                 }
@@ -215,6 +279,14 @@ export default {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (!elements.length) return
+                        const index = elements[0].index
+                        const datasetIndex = elements[0].datasetIndex
+                        const mes = index + 1
+                        const anio = datasetIndex === 0 ? anioAnterior : anioActual
+                        this.cargarDetalleMes(anio, mes)
+                    },
                     plugins: {
                         legend: { position: 'top' },
                         datalabels: {
@@ -549,5 +621,8 @@ tbody tr:nth-of-type(odd) {
 .dashboard-estatales th:not(:first-child), .dashboard-estatales td:not(:first-child) {
   max-width: 120px;
   white-space: nowrap;
+}
+.v-data-table td {
+  text-align: center;
 }
 </style>

@@ -114,6 +114,19 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
+    case 4: // CONSULTAR DETALLE DE ORDENES POR MES
+        $anio = isset($data['anio']) ? (int)$data['anio'] : 0;
+        $mes = isset($data['mes']) ? (int)$data['mes'] : 0;
+
+        $consulta = "SELECT orden AS num_orden, fecha_orden, rfc, nombre,periodo AS periodos FROM emitidas WHERE tipo = 'E' 
+        AND anio = :anio AND MONTH(fecha_orden) = :mes ORDER BY fecha_orden ASC";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->bindParam(':anio', $anio, PDO::PARAM_INT);
+        $resultado->bindParam(':mes', $mes, PDO::PARAM_INT);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
     default:
         echo json_encode([
             'status' => false,
