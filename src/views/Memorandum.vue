@@ -35,9 +35,10 @@
               </template>
               <span>Editar Memorandum</span>
             </v-tooltip>
-            <v-tooltip top>
+            <v-tooltip top v-if="item.puede_reimprimir === 1">
               <template v-slot:activator="{ on, attrs }">
-                <v-icon v-bind="attrs" v-on="on" large class="ml-2" dark dense style="font-size: 32px" color="success" :disabled="cargando" :class="{ 'opacity-50': cargando }" @click="!cargando && generarDocumentoMemo(item)">mdi-file-word</v-icon>
+                <v-icon v-bind="attrs" v-on="on" large class="ml-2" dark dense style="font-size: 32px" color="success" :disabled="cargando"
+                  :class="{ 'opacity-50': cargando }" @click="!cargando && generarDocumentoMemo(item)">mdi-file-word</v-icon>
               </template>
               <span>Imprimir Memorandum</span>
             </v-tooltip>
@@ -166,11 +167,13 @@ export default {
       }
     },
     mostrar() {
-      axios.post(api.memos, { opcion: 1 })
+      axios.post(api.memos, { opcion: 9 })
         .then((response) => {
-          if (Array.isArray(response.data)) {
-            this.memos = response.data.map(m => ({
+          if (response.data.success && Array.isArray(response.data.data)) {
+            this.memos = response.data.data.map(m => ({
               ...m,
+              puede_reimprimir: m.puede_reimprimir == 1 ? 1 : 0,
+
               destinatario: typeof m.destinatario === 'object'
                 ? m.destinatario?.nombre_completo || ''
                 : m.destinatario,
@@ -190,7 +193,6 @@ export default {
           }
         });
     },
-    
     async crear(memoData) {
       try{
         const response = await axios.post(api.memos, {
@@ -296,6 +298,7 @@ export default {
         .finally(() => {
           this.mostrar();
           this.limpiar();
+          this.dialog = false;
         })
       
     },
@@ -355,15 +358,19 @@ export default {
     },
 
     formEditar: function (objeto) {
-      this.dialog = true;
       this.operacion = "editar";
-      this.memo.id = objeto.id;
-      this.memo.fecha_memo = objeto.fecha_memo;
-      this.memo.destinatario = objeto.destinatario;
-      this.memo.oficina_id = objeto.oficina_id;
-      this.memo.departamento_id = objeto.departamento_id;
-      this.memo.asunto = objeto.asunto;
-      this.memo.usuario = objeto.usuario_nombre;
+      this.memo = {
+        id: objeto.id,
+        fecha_memo: objeto.fecha_memo,
+        destinatario: objeto.destinatario,
+        oficina_id: objeto.oficina_id,
+        departamento_id: objeto.departamento_id,
+        asunto: objeto.asunto,
+        usuario: objeto.usuario_nombre
+      };
+      this.$nextTick(() => {
+        this.dialog = true;
+      });
     },
     async generarDocumentoMemo(item) {
       if (!this.impresoraPredeterminada || this.impresoraPredeterminada === 'No disponible') {

@@ -745,56 +745,56 @@ switch ($opcion) {
     case 6: // VISTA PREVIA EMITIDA (no crea folio ni inserta orden)
         $prospecto_id = $data['prospecto']['id'] ?? null;
         try {
-        if (!$prospecto_id) {
-            throw new Exception('No se proporcionó prospecto.id');
-        }
-        $conexion = getConexion();
-        $prospecto = getProspectoData($conexion, $prospecto_id);
-        if (!$prospecto) {
-            throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
-        }
+            if (!$prospecto_id) {
+                throw new Exception('No se proporcionó prospecto.id');
+            }
+            $conexion = getConexion();
+            $prospecto = getProspectoData($conexion, $prospecto_id);
+            if (!$prospecto) {
+                throw new Exception("No se encontró el prospecto con ID: $prospecto_id");
+            }
+            $stmt_fecha = $conexion->prepare("SELECT fecha_orden FROM siga_prospectos_ordenes WHERE id_prospecto = ? AND estatus = 1 ORDER BY id_orden DESC LIMIT 1");
+            $stmt_fecha->execute([$prospecto_id]);
+            $orden_data = $stmt_fecha->fetch(PDO::FETCH_ASSOC);
+            if (!$orden_data) {
+                throw new Exception("No existe una orden emitida para este prospecto.");
+            }
+            $fecha_orden = $orden_data['fecha_orden'];
+            $impuestoInfo = getImpuestoInfo($conexion, $prospecto['impuesto_id']);
+            if (!$impuestoInfo) {
+                throw new Exception("No se encontró información del impuesto.");
+            }
 
-        $stmt_fecha = $conexion->prepare("SELECT fecha_orden FROM siga_prospectos_ordenes WHERE id_prospecto = ? AND estatus = 1");
-        $stmt_fecha->execute([$prospecto_id]);
-        $orden_data = $stmt_fecha->fetch(PDO::FETCH_ASSOC);
-        
-        $fecha_orden_vista = $orden_data['fecha_orden'] ?? ($data['fecha_orden'] ?? date('Y-m-d'));
+            $prefix = $impuestoInfo['prefix'];
+            $nombre_documento = $prefix;
 
-        $impuesto_id = $prospecto['impuesto_id'];
-        $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
-        if (!$impuestoInfo) {
-            throw new Exception("No se encontró información para el impuesto_id: $impuesto_id");
-        }
-        $prefix = $impuestoInfo['prefix'];
-        $nombre_documento = $prefix;
-        $templateFile = "{$prefix}.docx";
-        if ($prospecto['cambio_domicilio'] == 1) {
-            $templateFile = "{$prefix} - CD.docx";
-            $nombre_documento = "{$prefix} - CD";
-        } elseif (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
-            $templateFile = "{$prefix} - NR.docx";
-            $nombre_documento = "{$prefix} - NR";
-        }
+            if ($prospecto['cambio_domicilio'] == 1) {
+                $nombre_documento = "{$prefix} - CD";
+            } elseif (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
+                $nombre_documento = "{$prefix} - NR";
+            }
 
-        $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
-        $firmas = getFirmas($conexion);
-        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
-        $savePath = __DIR__ . '/ordenes_generadas/';
-        if (!is_dir($savePath)) {
-            mkdir($savePath, 0777, true);
-        }
-        $tmpDocx = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_EMITIDA' . '.docx';
-        $templateProcessor->saveAs($tmpDocx);
-        if (!convertDocxToPdf($tmpDocx, $savePath)) {
-            throw new Exception("Error al convertir DOCX a PDF con LibreOffice.");
-        }
-        $pdfFilePath = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_EMITIDA' . '.pdf';
+            $rfc = strtoupper($prospecto['rfc']);
+            $basePath = __DIR__ . '/ordenes_generadas/';
+            $pdfAutorizado = "{$basePath}{$nombre_documento}_{$rfc}_{$fecha_orden}_AUTORIZADA.pdf";
+            $pdfDefault    = "{$basePath}{$nombre_documento}_{$rfc}_{$fecha_orden}.pdf";
+            $pdfEmitido = "{$basePath}{$nombre_documento}_{$rfc}_{$fecha_orden}_EMITIDA.pdf";
 
-        sendPdfInline($pdfFilePath, 'vista_previa.pdf');
+            if (file_exists($pdfAutorizado)) {
+                sendPdfInline($pdfAutorizado, 'vista_previa.pdf');
+            }
+
+            if (file_exists($pdfDefault)) {
+                sendPdfInline($pdfDefault, 'vista_previa.pdf');
+            }
+            if (file_exists($pdfEmitido)) {
+                sendPdfInline($pdfEmitido, 'vista_previa.pdf');
+            }
+            throw new Exception("No se encontró ningún documento generado para este prospecto.");
+
         } catch (Exception $e) {
             header("Content-Type: text/plain");
-            echo "Error al generar PDF:\n" . $e->getMessage() . "\n\n";
-            echo $e->getTraceAsString();
+            echo "Error en vista previa emitida:\n" . $e->getMessage();
         }
         break;
     case 7: // OBTENER IMPRESORA PREDETERMINADA

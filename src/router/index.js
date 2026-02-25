@@ -18,6 +18,7 @@ import Oficinas from "@/views/Oficinas.vue";
 import Acercade from "@/views/Acercade.vue";
 import Memorandum from "@/views/Memorandum.vue";
 import Dashboard from "@/views/Dashboard.vue";
+import Historial from "@/views/Historial.vue";
 
 
 Vue.use(Router);
@@ -119,6 +120,12 @@ const router = new Router({
       path: "/dashboard",
       name: "Dashboard",
       component: Dashboard,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/historial",
+      name: "Historial",
+      component: Historial,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },

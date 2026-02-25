@@ -42,13 +42,13 @@
                             </v-row>
                         </v-container>
                         <v-divider></v-divider>
-                        <v-container fluid>
+                        <v-container fluid v-if="operacion === 'crear'">
                             <v-row class="my-2 pt-4">
                                 <v-col cols="12">
-                                <v-data-table v-model="selectedProspectos" :headers="encabezadosProspectos" :items="prospectosie" item-key="id" show-select dense class="elevation-1" :loading="cargando" :disabled="cargando"/>
+                                    <v-data-table v-model="selectedProspectos" :headers="encabezadosProspectos" :items="prospectosie" item-key="id" show-select dense class="elevation-1" :loading="cargando" :disabled="cargando"/>
                                 </v-col>
                             </v-row>
-                            </v-container>
+                        </v-container>
                     </v-card-text>
                     <v-divider></v-divider>
                     <v-card-actions class="grey lighten-2 py-2" cols="12" md="12">
@@ -118,6 +118,9 @@ export default {
             this.cargando = false;
             this.selectedProspectos = [];
             }
+        },
+        operacion() {
+            this.cargando = false;
         },
         'memo.oficina_id'(val) {
             // Si cambia oficina y no es 4
@@ -221,7 +224,7 @@ export default {
                 });
                 return;
             }else{
-                if (!this.selectedProspectos.length) {
+                if (this.operacion === 'crear' && !this.selectedProspectos.length) {
                     await Swal.fire({
                         icon: 'warning',
                         title: 'Sin prospectos',
@@ -233,13 +236,14 @@ export default {
                 const payload = {
                     ...this.memo,
                     copias: numCopias,
-                    prospectos: this.selectedProspectos.map(p => ({
-                        id: p.id,
-                        num_oficio: p.num_oficio,
-                        num_orden: p.num_orden,
-                        oficina_id: p.oficina_id,
-                        rfc: p.rfc
-                    }))
+                    prospectos: this.operacion === 'crear'
+                        ? this.selectedProspectos.map(p => ({
+                            id: p.id,
+                            num_oficio: p.num_oficio,
+                            num_orden: p.num_orden,
+                            oficina_id: p.oficina_id,
+                            rfc: p.rfc}))
+                        : []
                 };
                 this.cargando = true;
                 this.$emit('guardar', payload);
