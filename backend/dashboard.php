@@ -127,6 +127,17 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
+    case 5: // CONSULTAR ORDENES POR PROGRAMADOR POR AÑO
+        $anio = isset($data['anio']) ? (int)$data['anio'] : 0;
+
+        $consulta = "SELECT pr.usuario,po.anio, count(*) AS total FROM siga_prospectos_ordenes po LEFT JOIN siga_prospectos p ON po.id_prospecto = p.id 
+        LEFT JOIN siga_prospectos_programadores pr ON p.programador_id = pr.id WHERE po.estatus = 1 AND anio = :anio GROUP BY pr.id, po.anio ORDER BY total DESC";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->bindParam(':anio', $anio, PDO::PARAM_INT);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
     default:
         echo json_encode([
             'status' => false,

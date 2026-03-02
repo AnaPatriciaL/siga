@@ -246,6 +246,12 @@ export default {
           width:"70"
         },
         {
+          text: "LISTADO",
+          value: "folio_listado",
+          class: "pink darken-4 white--text elevation-1",
+          width: "50"
+        },
+        {
           text: "ACCIONES",
           value: "actions",
           class: "pink darken-4 white--text elevation-1 text-center",

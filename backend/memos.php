@@ -25,7 +25,7 @@ function imprimirPDF($rutaPDF, $copias = 1) {
     $sumatra = "C:\\Program Files\\SumatraPDF\\SumatraPDF.exe";
     $logFile = __DIR__ . "/impresion.log";
     file_put_contents($logFile,
-        "------ IMPRESION MEMOS------\n" .
+        "------ IMPRESION ------\n" .
         date("Y-m-d H:i:s") . "\n" .
         "PDF recibido: $rutaPDF\n" .
         "Copias solicitadas: $copias\n",
@@ -118,15 +118,16 @@ function formatDateToSpanish($fecha_orden_str) {
 }
 function numeroATexto(int $numero): string
 {
+    if (!class_exists('NumberFormatter')) {
+        return (string)$numero;
+    }
     $formatter = new NumberFormatter("es", NumberFormatter::SPELLOUT);
     $texto = $formatter->format($numero);
-
     $texto = str_replace(
         ['-', '‐', '-', '–', '—'],
         ' ',
         $texto
-    );
-    echo $texto;                
+    );               
     return mb_strtoupper($texto, 'UTF-8');
 }
 function analizarProspectos(array $prospectos): array
@@ -141,11 +142,11 @@ function analizarProspectos(array $prospectos): array
     foreach ($prospectos as $p) {
         $num = strtoupper(trim($p['num_orden'] ?? ''));
 
-        if (str_starts_with($num, 'D-') || str_starts_with($num, 'G-')) {
+        if (strpos($num, 'D-') === 0 || strpos($num, 'G-') === 0) {
             $hayOrden = true;
         }
 
-        if (str_starts_with($num, 'M-')) {
+        if (strpos($num, 'M-') === 0) {
             $hayCarta = true;
         }
     }
@@ -153,13 +154,9 @@ function analizarProspectos(array $prospectos): array
     if ($hayOrden && $hayCarta) {
         $tipo = 'Órdenes y cartas invitación';
     } elseif ($hayOrden) {
-        $tipo = 'Órden';
-    }elseif ($hayOrden && $total > 1) {
-        $tipo = 'Órdenes';
+        $tipo = ($total > 1) ? 'Órdenes' : 'Órden';
     }elseif ($hayCarta) {
-        $tipo = 'Carta invitación';
-    }elseif ($hayCarta && $total > 1) {
-        $tipo = 'Cartas invitación';
+        $tipo = ($total > 1) ? 'Cartas invitación' : 'Carta invitación';
     } else {
         $tipo = '';
     }
@@ -197,8 +194,7 @@ function fillTemplateFromData(PDO $conexion,array $prospectos, array $infoProspe
     $template_file = "memo.docx";
     $oficinaId   = (int)$datos_memo['oficina_id'];
     $oficina     = $datos_memo['oficina_nombre'] ?? '';
-    $departamento = $datos_memo['departamento_nombre'] ?? '';
-    $mapaOficinas = getCatalogoOficinas($conexion);                 
+    $departamento = $datos_memo['departamento_nombre'] ?? '';               
     if ($oficinaId === 4) {
         // Oficina 4 → Jefe de departamento
         $puesto_destinatario = 'JEFE DE DEPARTAMENTO ' . $departamento;
@@ -236,19 +232,11 @@ function fillTemplateFromData(PDO $conexion,array $prospectos, array $infoProspe
     $templateProcessor->setValue('nombre_num', $infoProspectos['nombre_num'] ?? ''); 
     $templateProcessor->setValue('tipo_orden_carta', $infoProspectos['tipo_orden_carta'] ?? ''); 
     $contador = 1;
-    $oficinaAnterior = null;
     foreach ($prospectos as $index => $p) {
         $fila = $index + 1;
-        $oficinaIdActual = (int)($p['oficina_id'] ?? 0);
-        $nombreOficina = $mapaOficinas[$oficinaIdActual] ?? '';
         $templateProcessor->setValue("row_no#{$fila}", $contador);
-        if ($oficinaIdActual !== $oficinaAnterior) {
-            $templateProcessor->setValue("row_oficina#{$fila}",$nombreOficina);
-            $oficinaAnterior = $oficinaIdActual;
-        } else {
-            $templateProcessor->setValue("row_oficina#{$fila}", '');
-        }
-        $templateProcessor->setValue("row_orden#{$fila}",strtoupper($p['num_orden']) . '/' . $anio2);
+        $templateProcessor->setValue("row_localidad#{$fila}", $p['ciudad_estado'] ?? '');
+        $templateProcessor->setValue("row_orden#{$fila}", strtoupper($p['num_orden']) . '/' . $anio2);
         $contador++;
     }
     return $templateProcessor;
@@ -282,14 +270,40 @@ function convertDocxToPdf($docxPath, $outputDir)
     }
     return true;
 }
+function getCiudadEstadoByProspecto(PDO $conexion, int $prospectoId): string
+{
+    $sql = "SELECT CONCAT(IF(p.localidad != '' AND (m.nombre IS NULL OR TRIM(p.localidad) != TRIM(m.nombre)), CONCAT(' ', p.localidad, ','),''), IF(m.nombre != '', CONCAT(' ', m.nombre, ', '), ''),'SINALOA') AS municipio
+    FROM siga_prospectos p LEFT JOIN siga_prospectos_municipios m ON p.municipio_id = m.municipio_id
+    WHERE p.id = :id LIMIT 1";
 
+    $stmt = $conexion->prepare($sql);
+    $stmt->bindParam(':id', $prospectoId, PDO::PARAM_INT);
+    $stmt->execute();
 
+    return strtoupper($stmt->fetchColumn() ?: '');
+}
+function getMemoFolderByFecha(string $fecha): array
+{
+    $dt = new DateTime($fecha);
+    $year = $dt->format('Y');
+    $month = $dt->format('m');
+
+    $basePath = __DIR__ . "/memos/{$year}/{$month}/";
+
+    if (!is_dir($basePath)) {
+        mkdir($basePath, 0777, true);
+    }
+
+    return [
+        'path' => $basePath,
+        'year' => $year,
+        'month' => $month
+    ];
+}
 
 $conexion = getConexion();
 $data = json_decode(file_get_contents("php://input"), true);
 $opcion = isset($data['opcion']) ? (int)$data['opcion'] : 0;
-
-
 
 switch ($opcion) {
     case 1: // CONSULTAR MEMOS
@@ -336,6 +350,12 @@ switch ($opcion) {
             $stmt->execute();
             $folio_memo = $conexion->lastInsertId();
             $prospectos = $data['prospectos'] ?? [];
+            foreach ($prospectos as &$p) {
+                if (!isset($p['ciudad_estado'])) {
+                    $p['ciudad_estado'] = getCiudadEstadoByProspecto($conexion,(int)$p['id']);
+                }
+            }
+            unset($p);
             $sqlUpdOrden = "UPDATE siga_prospectos_ordenes SET memo_id = :memo_id WHERE id_prospecto = :prospecto_id AND estatus = 1";
             $stmtUpdOrden = $conexion->prepare($sqlUpdOrden);
             foreach ($prospectos as $p) {
@@ -345,7 +365,8 @@ switch ($opcion) {
             $firmas = getFirmas($conexion);
             $infoProspectos = analizarProspectos($prospectos);
             $templateProcessor = fillTemplateFromData($conexion, $prospectos, $infoProspectos, $folio_memo, $firmas, $fecha, $datos_memo);
-            $savePath = __DIR__ . '/memos/';
+            $folderInfo = getMemoFolderByFecha($fecha);
+            $savePath  = $folderInfo['path'] . 'generado/';
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
@@ -365,7 +386,7 @@ switch ($opcion) {
                     error_log("No se pudo imprimir el PDF del memo: $finalPdf");
                 }
                 $conexion->commit();
-                $pdf_url = getBaseUrl() . "/memos/" . $baseName . ".pdf";
+                $pdf_url = getBaseUrl() . "/memos/{$folderInfo['year']}/{$folderInfo['month']}/generado/{$baseName}.pdf";
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true,'pdf_url' => $pdf_url,"impreso" => $impreso]);
         } catch (Exception $e) {
@@ -384,7 +405,7 @@ switch ($opcion) {
             exit;
         }
 
-        $consulta = "UPDATE memos SET oficina_id = :oficina_id, departamento_id = :departamento_id, destinatario = :destinatario, asunto = :asunto WHERE id_orden = :id_orden AND memo_id IS NULL";
+        $consulta = "UPDATE memos SET oficina_id = :oficina_id, departamento_id = :departamento_id, destinatario = :destinatario, asunto = :asunto WHERE id = :id";
         $stmt = $conexion->prepare($consulta);
         $stmt->bindParam(':oficina_id', $data['oficina_id'], PDO::PARAM_INT);
         $stmt->bindParam(':departamento_id', $data['departamento_id'], PDO::PARAM_INT);
@@ -418,10 +439,14 @@ switch ($opcion) {
             $folio_memo = $datos_memo['folio_memo'];
             $sqlProspectos = "SELECT p.id, p.rfc, p.oficina_id, so.num_orden, so.num_oficio FROM siga_prospectos_ordenes so 
             INNER JOIN siga_prospectos p ON p.id = so.id_prospecto WHERE so.memo_id = :memo_id AND so.estatus = 1";
-           $stmt = $conexion->prepare($sqlProspectos);
+            $stmt = $conexion->prepare($sqlProspectos);
             $stmt->bindParam(':memo_id', $memoId, PDO::PARAM_INT);
             $stmt->execute();
             $prospectos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($prospectos as &$p) {
+                $p['ciudad_estado'] = getCiudadEstadoByProspecto($conexion, (int)$p['id']);
+            }
+            unset($p);
             if (!$prospectos) {
                 throw new Exception('El memo no tiene órdenes asociadas');
             }
@@ -429,11 +454,11 @@ switch ($opcion) {
             $infoProspectos = analizarProspectos($prospectos);
 
             $templateProcessor = fillTemplateFromData($conexion, $prospectos, $infoProspectos, $folio_memo, $firmas, $fecha, $datos_memo);
-            $savePath = __DIR__ . '/memos/';
+            $folderInfo = getMemoFolderByFecha($fecha);
+            $savePath  = $folderInfo['path'] . 'reimpresion/';
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
-
             $fechaArchivo = str_replace('-', '_', $fecha);
             $baseName = "memo_reimpresion_{$folio_memo}_{$fechaArchivo}";
             $finalDocx = $savePath . $baseName . '.docx';
@@ -444,7 +469,7 @@ switch ($opcion) {
                 throw new Exception('Error al convertir DOCX a PDF');
             }
             $impreso = imprimirPDF($finalPdf, $copias);
-            echo json_encode([ 'success' => true, 'pdf_url' => getBaseUrl() . "/memos/{$baseName}.pdf", 'impreso' => $impreso]);
+            echo json_encode([ 'success' => true, 'pdf_url' => getBaseUrl() . "/memos/{$folderInfo['year']}/{$folderInfo['month']}/reimpresion/{$baseName}.pdf", 'impreso' => $impreso]);
         } catch (Exception $e) {
             http_response_code(400);
             echo json_encode(['success' => false, 'mensaje' => $e->getMessage()]);
@@ -474,15 +499,33 @@ switch ($opcion) {
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
 
         exit;
-     case 8: // CONSULTAR PROSPECTOS PARA MEMOS
+    case 8: // CONSULTAR PROSPECTOS PARA MEMOS
         $consulta = "SELECT p.id, p.rfc, p.nombre, p.oficina_id, o.nombre AS oficina, p.estatus, so.num_orden, so.num_oficio FROM siga_prospectos p
                 INNER JOIN siga_prospectos_ordenes so ON so.id_prospecto = p.id AND so.estatus = 1 AND so.memo_id IS NULL
-                INNER JOIN siga_prospectos_oficinas o ON o.id = p.oficina_id WHERE p.estatus = 5 ORDER BY so.num_orden DESC";
+                INNER JOIN siga_prospectos_oficinas o ON o.id = p.oficina_id WHERE p.estatus = 6 ORDER BY so.num_orden DESC";
         $resultado = $conexion->prepare($consulta);
         $resultado->execute();
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
 
+        exit;
+    case 9: // CONSULTAR MEMOS CON PERMISO DE REIMPRESIÓN
+        try {
+            $usuarioSistemaId = 39; // Usuario SIGA
+            $sql = "SELECT m.id, m.id AS folio_memo, m.fecha AS fecha_memo, m.destinatario, m.asunto, m.oficina_id, m.departamento_id, 
+            o.nombre AS oficina_descripcion, d.nombre AS departamento_descripcion, u.nombres AS usuario_nombre,
+                    CASE WHEN m.usuario_id = :usuario_id AND EXISTS (SELECT 1 FROM siga_prospectos_ordenes so WHERE so.memo_id = m.id AND so.estatus = 1)
+                        THEN 1 ELSE 0 END AS puede_reimprimir FROM memos m LEFT JOIN memos_cat_oficinas o ON o.id = m.oficina_id
+                LEFT JOIN memos_cat_deptos d ON d.id = m.departamento_id LEFT JOIN memos_cat_usuarios u ON u.id = m.usuario_id ORDER BY m.id DESC";
+            $stmt = $conexion->prepare($sql);
+            $stmt->bindValue(':usuario_id', $usuarioSistemaId, PDO::PARAM_INT);
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'data' => $data], JSON_UNESCAPED_UNICODE);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'mensaje' => $e->getMessage()]);
+        }
         exit;
     default:
         echo json_encode([

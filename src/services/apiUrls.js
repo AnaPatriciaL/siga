@@ -25,6 +25,7 @@ export default {
   memos: `${API_BASE_URL}/memos.php`,
   dashboard: `${API_BASE_URL}/dashboard.php`,
   historial: `${API_BASE_URL}/historial.php`,
+  comites: `${API_BASE_URL}/comites.php`,
   opcionesUsuario: (usuario_id) => `${API_BASE_URL}/opciones_usuario.php?usuario_id=${usuario_id}`,
   obtenerOpcionesMenu: (usuarioId) => `${API_BASE_URL}/obtener_opciones.php?usuario_id=${usuarioId}`,
 };

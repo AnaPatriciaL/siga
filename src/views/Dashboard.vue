@@ -1,55 +1,91 @@
-<template> 
-    <v-container >
-        <!-- Botón Crear y Exportar fluid -->
-        <v-row class="center">
-            <v-spacer></v-spacer>
-            <v-col cols="12"  class="text-center">
+<template>
+    <v-container fluid class="pa-8">
+        <v-row class="center mb-4">
+            <v-col cols="12" class="text-center">
                 <h1>DASHBOARD ÓRDENES</h1>
             </v-col>
         </v-row>
         <v-row class="mb-6">
-            <v-col cols="12">
-                <v-card elevation="2">
+            <!-- COLUMNA IZQUIERDA -->
+            <v-col cols="12" md="9">
+                <!-- GRÁFICA -->
+                <v-card elevation="2" class="mb-6">
                     <v-card-title class="font-weight-bold">COMPARATIVO DE ÓRDENES EMITIDAS POR MES</v-card-title>
                     <v-card-text style="height: 350px"><canvas ref="barChart"></canvas></v-card-text>
                 </v-card>
+                <!-- TABLA INVERTIDA -->
+                <v-card elevation="2">
+                    <div class="dashboard-estatales">
+                        <v-row class="mb-4 mt-2" align="center">
+                            <v-col cols="12" md="2">
+                                <v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details/>
+                            </v-col>
+                            <v-col cols="12" md="2">
+                                <v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/>
+                            </v-col>
+                            <v-col cols="12" md="2">
+                                <v-btn color="pink darken-4 white--text" @click="consultar">MOSTRAR</v-btn>
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense hide-details readonly/>
+                            </v-col>
+                            <v-col cols="12" md="1" v-if="puedeExportar">
+                                <v-tooltip top color="green darken-3">
+                                    <template v-slot:activator="{ on, attrs }">
+                                        <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on" @click="exportarExcelEstatales"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+                                    </template>
+                                <span>Exportar a Excel</span>
+                                </v-tooltip>
+                            </v-col>
+                        </v-row>
+                        <!-- TABLA -->
+                        <v-data-table :headers="encabezadosInvertidos" :items="tablaInvertida" hide-default-header hide-default-footer :items-per-page="-1" dense class="elevation-1">
+                            <template v-slot:header>
+                                <thead>
+                                    <tr class="grey darken-1">
+                                        <th v-for="h in encabezadosInvertidos" :key="h.value" class="white--text text-center">{{ h.text }}</th>
+                                    </tr>
+                                </thead>
+                            </template>
+                            <template v-slot:item="{ item }">
+                                <tr :class="item.tipo === 'TOTALES' ? 'grey lighten-3 font-weight-bold' : ''">
+                                <td :class="item.tipo && item.tipo !== 'TOTALES' ? 'pink darken-4 white--text font-weight-bold text-center' : 'text-center font-weight-bold'">{{ item.tipo }}</td>
+                                <td :class="item.impuesto ? 'font-weight-bold text-left' : ''">{{ item.impuesto }}</td>
+                                <td>{{ item.los_mochis }}</td>
+                                <td>{{ item.guasave }}</td>
+                                <td>{{ item.guamuchil }}</td>
+                                <td>{{ item.culiacan }}</td>
+                                <td>{{ item.mazatlan }}</td>
+                                <td>{{ item.total }}</td>
+                                </tr>
+                            </template>
+                        </v-data-table>
+                    </div>
+                </v-card>
+            </v-col>
+            <!-- COLUMNA DERECHA -->
+            <v-col cols="12" md="3">
+                <v-card elevation="2">
+                    <v-card-title class="font-weight-bold">ÓRDENES PROGRAMADOR</v-card-title>
+                    <v-card-text>
+                        <v-skeleton-loader v-if="cargandoProgramadores" type="list-item-two-line"/>
+                        <v-list v-else dense>
+                            <v-list-item v-for="(p, i) in ordenesPorProgramador" :key="`${p.usuario}-${i}`">
+                                <v-list-item-content>
+                                    <v-list-item-title class="font-weight-bold">{{ p.usuario }}</v-list-item-title>
+                                    <v-list-item-subtitle>Total de órdenes: {{ p.total }}</v-list-item-subtitle>
+                                </v-list-item-content>
+                                <v-list-item-action>
+                                    <v-chip color="pink darken-4" text-color="white" small>{{ p.total }}</v-chip>
+                                </v-list-item-action>
+                            </v-list-item>
+                            <v-divider v-for="(p, i) in ordenesPorProgramador" :key="'divider-' + i" v-if="i < ordenesPorProgramador.length - 1"/>
+                        </v-list>
+                        <div v-if="!ordenesPorProgramador.length && !cargandoProgramadores" class="text-center grey--text">Sin información para este año</div>
+                    </v-card-text>
+                </v-card>
             </v-col>
         </v-row>
-        <v-card elevation="2">
-            <div class="dashboard-estatales">
-                <v-row class="mb-4 mt-2" align="center">
-                    <v-col class="d-flex align-center" cols="12" md="2"><v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/></v-col>
-                    <V-col cols="12" md="2"><v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/></v-col>
-                    <v-col cols="12" md="2"><v-btn color="pink darken-4 white--text" @click="consultar">MOSTRAR</v-btn></v-col>
-                    <v-col cols="12" md="4"><v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense hide-details readonly/></v-col>
-                    <v-col cols="12" md="2" class="text-right"><v-btn v-if="puedeExportar" color="success white--text" dark @click="exportarExcelEstatales">EXPORTAR A EXCEL</v-btn></v-col>
-                </v-row>
-                <v-data-table :headers="encabezadosInvertidos" :items="tablaInvertida" hide-default-header hide-default-footer :items-per-page="-1" dense class="elevation-1">
-                    <template v-slot:header>
-                        <thead>
-                            <tr class="grey darken-1">
-                                <th v-for="h in encabezadosInvertidos" :key="h.value" class="white--text text-center">{{ h.text }}</th>
-                            </tr>
-                        </thead>
-                    </template>
-                    <template v-slot:item.tipo="{ item }">
-                        <td v-if="item.tipo" class="pink darken-4 white--text font-weight-bold text-center">{{ item.tipo }}</td>
-                    </template>
-                    <template v-slot:item="{ item }">
-                        <tr :class="item.tipo === 'TOTALES' ? 'grey lighten-3 font-weight-bold' : ''">
-                            <td :class="item.tipo && item.tipo !== 'TOTALES' ? 'pink darken-4 white--text font-weight-bold text-center' : 'text-center font-weight-bold'">{{ item.tipo }}</td>
-                            <td :class="item.impuesto ? 'font-weight-bold text-left' : ''">{{ item.impuesto }}</td>
-                            <td>{{ item.los_mochis }}</td>
-                            <td>{{ item.guasave }}</td>
-                            <td>{{ item.guamuchil }}</td>
-                            <td>{{ item.culiacan }}</td>
-                            <td>{{ item.mazatlan }}</td>
-                            <td>{{ item.total }}</td>
-                        </tr>
-                    </template>           
-                </v-data-table>
-            </div>
-        </v-card>
         <v-dialog v-model="mostrarDetalleMes" max-width="1200px" persistent scrollable>
             <v-card>
                 <v-card-title class="detalle-titulo">
@@ -57,7 +93,7 @@
                     <v-spacer />
                     <v-btn icon small @click="cerrarDetalleMes"><v-icon>mdi-close</v-icon></v-btn>
                 </v-card-title>
-                <v-divider/>
+                <v-divider />
                 <v-card-text>
                     <v-data-table :headers="headersDetalle" :items="ordenesMes" dense class="elevation-1"/>
                 </v-card-text>
@@ -66,7 +102,7 @@
                     <v-btn text color="pink darken-4" @click="cerrarDetalleMes">Cerrar</v-btn>
                 </v-card-actions>
             </v-card>
-            </v-dialog>
+        </v-dialog>
     </v-container>
 </template>
 <script>
@@ -82,6 +118,8 @@ export default {
     name: "Dashboard",
     data() {
         return {
+            ordenesPorProgramador: [],
+            cargandoProgramadores: false,
             mostrarDetalleMes: false,
             mesDetalle: null,
             anioDetalle: null,
@@ -120,7 +158,7 @@ export default {
             meses: [{ text: 'ENERO', value: 1 }, { text: 'FEBRERO', value: 2 }, { text: 'MARZO', value: 3 }, { text: 'ABRIL', value: 4 }, 
             { text: 'MAYO', value: 5 }, { text: 'JUNIO', value: 6 }, { text: 'JULIO', value: 7 }, { text: 'AGOSTO', value: 8 }, { text: 'SEPTIEMBRE', value: 9 }, 
             { text: 'OCTUBRE', value: 10 }, { text: 'NOVIEMBRE', value: 11 }, { text: 'DICIEMBRE', value: 12 }, { text: 'TODOS', value: 0 }],
-            encabezados: [{value: 'oficina_descripcion', align: 'left', width: '200px' },
+            encabezados: [{value: 'oficina_descripcion', align: 'start', width: '200px' },
             {value: 'visitas_nomina', align: 'center' }, {value: 'visitas_obtencionPremios', align: 'center' }, {value: 'visitas_sorteosyjuegos', align: 'center' },
             {value: 'visitas_predialRustico', align: 'center' }, {value: 'visitas_hospedaje', align: 'center' }, {value: 'visitas_casasEmpeno', align: 'center' },
             {value: 'visitas_erogaciones', align: 'center' }, {value: 'cartaInvitacion_impuestoNomina', align: 'center' }, {value: 'cartaInvitacion_impuestoHospedaje', align: 'center' },
@@ -217,6 +255,21 @@ export default {
         await this.cargarBarChartComparativo();
     },
     methods: {
+        async cargarOrdenesPorProgramador(anio) {
+            try {
+                this.cargandoProgramadores = true
+                const { data } = await axios.post(api.dashboard, {
+                opcion: 5,
+                anio
+                })
+                this.ordenesPorProgramador = Array.isArray(data) ? data : []
+            } catch (e) {
+                console.error('Error al cargar órdenes por programador', e)
+                this.ordenesPorProgramador = []
+            } finally {
+                this.cargandoProgramadores = false
+            }
+        },
         cerrarDetalleMes() {
             this.mostrarDetalleMes = false
             this.ordenesMes = []
@@ -245,6 +298,7 @@ export default {
                 const anios = [...new Set(normalizados.map(d => d.anio))].sort((a,b)=>a-b);
                 const anioActual = Math.max(...anios);
                 const anioAnterior = anioActual - 1;
+                await this.cargarOrdenesPorProgramador(anioActual);
                 const totalesActual = Array(12).fill(0);
                 const totalesAnterior = Array(12).fill(0);
                 normalizados.forEach(row => {
@@ -396,7 +450,8 @@ export default {
                 this.estatales = this.mapearDatosDashboard(data);
                 this.calcularTotales();
                 this.anioConsultado = this.filtros.anio;
-                this.mesConsultado = this.filtros.mes;              
+                this.mesConsultado = this.filtros.mes;  
+                await this.cargarOrdenesPorProgramador(this.filtros.anio);            
             }catch (e)
             {
                 console.error('Error al consultar los datos del dashboard', e);

@@ -524,6 +524,26 @@ if (isset($_POST['data'])) {
 }
 $opcion = isset($data['opcion']) ? $data['opcion'] : 0;
 
+function getDocumentoBasePath(string $prefix, string $impuesto, string $fechaOrden, string $tipoDocumento) {
+    $base = __DIR__ . '/ordenes_generadas/';
+    $anio = date('Y', strtotime($fechaOrden));
+    $mes  = date('m', strtotime($fechaOrden));
+
+    if (strpos($prefix, 'G') === 0) {
+        $tipo = 'gabinete';
+    } elseif (strpos($prefix, 'M') === 0) {
+        $tipo = 'cartas';
+    } else {
+        $tipo = 'visitas';
+    }
+
+    $path = "{$base}{$anio}/{$mes}/{$tipo}/{$impuesto}/{$tipoDocumento}/";
+    if (!is_dir($path)) {
+        mkdir($path, 0777, true);
+    }
+    return rtrim($path, '/') . '/';
+}
+
 switch ($opcion) {
     case 1: // VISTA PREVIA (no crea folio ni inserta orden)
         $prospecto_id = $data['prospecto']['id'] ?? null;
@@ -556,8 +576,8 @@ switch ($opcion) {
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
         $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
-        $savePath = __DIR__ . '/ordenes_generadas/';
-        if (!is_dir($savePath)) {
+        $savePath = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden_vista, 'vista_previa');
+            if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
         }
         $tmpDocx = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_VP.docx';
@@ -647,15 +667,6 @@ switch ($opcion) {
         if (!$prospecto) {
             throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
         }
-
-        /*if (isset($prospecto['periodos'])) {
-             $update_sql = "UPDATE siga_prospectos_ordenes 
-                            SET fecha_orden = ? 
-                            WHERE id_prospecto = ? AND periodos = ? AND estatus = 1";
-             $stmt_update = $conexion->prepare($update_sql);
-             $stmt_update->execute([$fecha_orden_vista, $prospecto_id, $prospecto['periodos']]);
-        }*/
-
         $impuesto_id = $prospecto['impuesto_id'];
         $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
         if (!$impuestoInfo) {
@@ -675,7 +686,7 @@ switch ($opcion) {
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
         $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
-        $savePath = __DIR__ . '/ordenes_generadas/';
+        $savePath = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden_vista, 'reimpresion');
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
         }
@@ -775,10 +786,11 @@ switch ($opcion) {
             }
 
             $rfc = strtoupper($prospecto['rfc']);
-            $basePath = __DIR__ . '/ordenes_generadas/';
-            $pdfAutorizado = "{$basePath}{$nombre_documento}_{$rfc}_{$fecha_orden}_AUTORIZADA.pdf";
-            $pdfDefault    = "{$basePath}{$nombre_documento}_{$rfc}_{$fecha_orden}.pdf";
-            $pdfEmitido = "{$basePath}{$nombre_documento}_{$rfc}_{$fecha_orden}_EMITIDA.pdf";
+            $basePathEmitidas = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'emitidas');
+            $basePathReimpresion = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'reimpresion');
+            $pdfAutorizado = "{$basePathReimpresion}{$nombre_documento}_{$rfc}_{$fecha_orden}_AUTORIZADA.pdf";
+            $pdfDefault    = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}.pdf";
+            $pdfEmitido = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}_EMITIDA.pdf";
 
             if (file_exists($pdfAutorizado)) {
                 sendPdfInline($pdfAutorizado, 'vista_previa.pdf');
@@ -837,7 +849,7 @@ switch ($opcion) {
             $folio = getFolioOrCreate($conexion, $prospecto_id, true, $id_generador, $fecha_orden);
             $firmas = getFirmas($conexion);
             $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden, $prefix);
-            $savePath = __DIR__ . '/ordenes_generadas/';
+            $savePath = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'emitidas');
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
