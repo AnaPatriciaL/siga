@@ -319,7 +319,7 @@ switch ($opcion) {
     case 2: // ALTA DE MEMOS
         try {
             $conexion->beginTransaction();
-            
+            $copias = isset($data['copias']) ? (int)$data['copias'] : 1;
             if (empty($data['oficina_id'])) {
                 throw new Exception('La oficina es obligatoria');
             }
@@ -334,7 +334,6 @@ switch ($opcion) {
             $fecha = fechaFrontendToDB($data['fecha'] ?? null);
             $destinatario = !empty($data['destinatario'])? strtoupper($data['destinatario']): null;
             $asunto = !empty($data['asunto'])? strtoupper($data['asunto']): null;
-            $copias = isset($data['copias']) ? intval($data['copias']) : 1;
             $memosUsuarioId = 39; //ESE ES EL ID DEL USUARIO DE SIGA
 
             $consulta = "INSERT INTO memos (fecha, destinatario, oficina_id, departamento_id, asunto, usuario_id) 
@@ -342,10 +341,10 @@ switch ($opcion) {
 
             $stmt = $conexion->prepare($consulta);
             $stmt->bindParam(':fecha', $fecha);
-            $stmt->bindParam(':destinatario', $data['destinatario']);
+            $stmt->bindParam(':destinatario', $destinatario);
+            $stmt->bindParam(':asunto', $asunto);
             $stmt->bindParam(':oficina_id', $data['oficina_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':departamento_id', $data['departamento_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':asunto', $data['asunto']);
+            $stmt->bindParam(':departamento_id', $departamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':usuario_id', $memosUsuarioId, PDO::PARAM_INT);
             $stmt->execute();
             $folio_memo = $conexion->lastInsertId();

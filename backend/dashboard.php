@@ -84,7 +84,7 @@ switch ($opcion) {
         $mes = isset($data['mes']) ? (int)$data['mes'] : 0;
 
         if ($mes === 0) {
-            $consulta = "SELECT COUNT(o.id_orden) AS total, p.oficina_id, p.impuesto_id, o.anio, of.nombre, pi.impuesto FROM siga_prospectos p 
+            $consulta = "SELECT COUNT(o.id_orden) AS total, p.oficina_id, p.impuesto_id, o.anio, of.nombre, pi.impuesto, pi.nombre_corto FROM siga_prospectos p 
             INNER JOIN siga_prospectos_ordenes o ON o.id_prospecto = p.id INNER JOIN siga_prospectos_oficinas of ON of.id = p.oficina_id 
             INNER JOIN siga_prospectos_impuestos pi ON pi.id = p.impuesto_id  WHERE p.estatus = 6 AND o.estatus = 1 AND o.anio = :anio
             GROUP BY p.oficina_id, p.impuesto_id ORDER BY p.oficina_id";
@@ -94,7 +94,7 @@ switch ($opcion) {
             $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode($data, JSON_UNESCAPED_UNICODE);
         } else{
-            $consulta = "SELECT COUNT(o.id_orden) AS total, p.oficina_id, p.impuesto_id, o.anio, of.nombre, pi.impuesto FROM siga_prospectos p 
+            $consulta = "SELECT COUNT(o.id_orden) AS total, p.oficina_id, p.impuesto_id, o.anio, of.nombre, pi.impuesto, pi.nombre_corto FROM siga_prospectos p 
             INNER JOIN siga_prospectos_ordenes o ON o.id_prospecto = p.id INNER JOIN siga_prospectos_oficinas of ON of.id = p.oficina_id 
             INNER JOIN siga_prospectos_impuestos pi ON pi.id = p.impuesto_id  WHERE p.estatus = 6 AND o.estatus = 1 AND o.anio = :anio AND MONTH(o.fecha_orden) = :mes 
             GROUP BY p.oficina_id, p.impuesto_id ORDER BY p.oficina_id";
@@ -136,6 +136,26 @@ switch ($opcion) {
         $resultado->bindParam(':anio', $anio, PDO::PARAM_INT);
         $resultado->execute();
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
+    case 6: // CONSULTAR CATALOGO DE IMPUESTOS
+        $sql = "SELECT CASE WHEN impuesto LIKE 'M-%' THEN 'CARTA INVITACIÓN'
+                WHEN impuesto LIKE 'G-%' THEN 'GABINETE'
+                ELSE 'VISITAS DOMICILIARIAS'
+                END AS tipo, nombre_corto, impuesto
+                FROM siga_prospectos_impuestos ORDER BY id";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $data=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
+    case 7: // CONSULTAR CONSULTAR ORDENES POR PROGRAMADOR POR MES
+        $sql = "SELECT pr.usuario,MONTH(fecha_orden) AS mes,po.anio, count(*) AS total FROM siga_prospectos_ordenes po LEFT JOIN siga_prospectos p ON po.id_prospecto = p.id 
+                LEFT JOIN siga_prospectos_programadores pr ON p.programador_id = pr.id WHERE po.estatus = 1 AND anio = YEAR(NOW())
+                GROUP BY pr.id, po.anio,MONTH(fecha_orden) ORDER BY total DESC";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $data=$stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
     default:
