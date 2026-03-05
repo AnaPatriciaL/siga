@@ -62,6 +62,15 @@
                         </v-data-table>
                     </div>
                 </v-card>
+                <!-- NUEVA GRÁFICA PROGRAMADORES POR MES -->
+                <v-card elevation="2" class="mt-6">
+                    <v-card-title class="font-weight-bold">
+                        ÓRDENES POR PROGRAMADOR (MES A MES)
+                    </v-card-title>
+                    <v-card-text style="height: 350px">
+                        <canvas ref="chartProgramadoresMes"></canvas>
+                    </v-card-text>
+                </v-card>
             </v-col>
             <!-- COLUMNA DERECHA -->
             <v-col cols="12" md="3">
@@ -113,12 +122,34 @@
     import Chart from 'chart.js/auto';
     import ChartDataLabels from 'chartjs-plugin-datalabels';
     Chart.register(ChartDataLabels);
+    const mapaKeys = {
+        'ISN': 'visitas_nomina',
+        'IOP': 'visitas_obtencionPremios',
+        'ISJ': 'visitas_sorteosyjuegos',
+        'IPRM': 'visitas_predialRustico',
+        'ISH': 'visitas_hospedaje',
+        'ICE': 'visitas_casasEmpeno',
+        'IEJA': 'visitas_erogaciones',
+
+        'M-ISN': 'cartaInvitacion_impuestoNomina',
+        'M-ISH': 'cartaInvitacion_impuestoHospedaje',
+        'M-IOP': 'cartaInvitacion_obtencionPremios',
+        'M-ISJ': 'cartaInvitacion_sorteosyjuegos',
+        'M-ICE': 'cartaInvitacion_casasEmpeno',
+        'M-IPRM': 'cartaInvitacion_predialRustico',
+        'M-IEJA': 'cartaInvitacion_erogaciones',
+
+        'G-ISN': 'gabineteNomina'
+    };
 
 export default {
     name: "Dashboard",
     data() {
         return {
+            chartProgramadoresMes: null,
+            datosProgramadoresMes: [],
             ordenesPorProgramador: [],
+            catalogoImpuestos: [],
             cargandoProgramadores: false,
             mostrarDetalleMes: false,
             mesDetalle: null,
@@ -180,62 +211,58 @@ export default {
             this.filtros.mes === this.mesConsultado
             )
         },
-        tablaInvertida () {
-            const grupos = {
-                'VISITAS DOMICILIARIAS': [
-                { impuesto: 'D-ISN', key: 'visitas_nomina' },
-                { impuesto: 'D-IOP', key: 'visitas_obtencionPremios' },
-                { impuesto: 'D-ISJ', key: 'visitas_sorteosyjuegos' },
-                { impuesto: 'D-IPRM', key: 'visitas_predialRustico' },
-                { impuesto: 'D-ISH', key: 'visitas_hospedaje' },
-                { impuesto: 'D-ICE', key: 'visitas_casasEmpeno' },
-                { impuesto: 'D-IEJA', key: 'visitas_erogaciones' }
-                ],
-                'CARTA INVITACIÓN': [
-                { impuesto: 'M-ISN', key: 'cartaInvitacion_impuestoNomina' },
-                { impuesto: 'M-ISH', key: 'cartaInvitacion_impuestoHospedaje' },
-                { impuesto: 'M-IOP', key: 'cartaInvitacion_obtencionPremios' },
-                { impuesto: 'M-ISJ', key: 'cartaInvitacion_sorteosyjuegos' },
-                { impuesto: 'M-ICE', key: 'cartaInvitacion_casasEmpeno' },
-                { impuesto: 'M-IPRM', key: 'cartaInvitacion_predialRustico' },
-                { impuesto: 'M-IEJA', key: 'cartaInvitacion_erogaciones' }
-                ],
-                'GABINETE': [
-                { impuesto: 'G-ISN', key: 'gabineteNomina' }
-                ]
-            }
-            const filas = []
-            const totales = {los_mochis: 0, guasave: 0, guamuchil: 0, culiacan: 0, mazatlan: 0, total: 0}
+         tablaInvertida () {
+            if (!this.catalogoImpuestos.length) return [];
+
+            const filas = [];
+            const totales = {
+                los_mochis: 0,
+                guasave: 0,
+                guamuchil: 0,
+                culiacan: 0,
+                mazatlan: 0,
+                total: 0
+            };
+
+            const grupos = this.catalogoImpuestos.reduce((acc, imp) => {
+                if (!acc[imp.tipo]) acc[imp.tipo] = []
+                acc[imp.tipo].push(imp)
+                return acc
+            }, {});
+
             Object.entries(grupos).forEach(([tipo, impuestos]) => {
                 impuestos.forEach((imp, index) => {
-                const fila = {
-                    tipo: index === 0 ? tipo : '',
-                    impuesto: imp.impuesto,
-                    los_mochis: 0,
-                    guasave: 0,
-                    guamuchil: 0,
-                    culiacan: 0,
-                    mazatlan: 0,
-                    total: 0
-                }
-                this.estatales.forEach(e => {
-                    const oficina = this.normalizarOficina(e.oficina_descripcion)
-                    if (!fila.hasOwnProperty(oficina)) return
-                    const val = Number(e[imp.key] || 0)
-                    fila[oficina] += val
-                    fila.total += val
-                    totales[oficina] += val
-                    totales.total += val
-                })
-                filas.push(fila)
-                })
-            })
-            filas.push({
-                tipo: 'TOTALES',
-                impuesto: '',
-                ...totales
-            })
-            return filas
+
+                    const key = mapaKeys[imp.impuesto];
+                    if (!key) return;
+
+                    const fila = {
+                        tipo: index === 0 ? tipo : '',
+                        impuesto: imp.nombre_corto,
+                        los_mochis: 0,
+                        guasave: 0,
+                        guamuchil: 0,
+                        culiacan: 0,
+                        mazatlan: 0,
+                        total: 0
+                    };
+
+                    this.estatales.forEach(e => {
+                        const oficina = this.normalizarOficina(e.oficina_descripcion);
+                        if (!fila.hasOwnProperty(oficina)) return;
+
+                        const val = Number(e[key] || 0);
+                        fila[oficina] += val;
+                        fila.total += val;
+                        totales[oficina] += val;
+                        totales.total += val;
+                    });
+                    filas.push(fila);
+                });
+            });
+
+            filas.push({ tipo: 'TOTALES', impuesto: '', ...totales })
+            return filas;
         },
         periodoSeleccionado() {
             if (!this.filtros.anio && !this.filtros.mes) return '';
@@ -253,8 +280,90 @@ export default {
         await this.obtenerAnios();
         this.consultarMesActual();
         await this.cargarBarChartComparativo();
+        await this.cargarCatalogoImpuestos();
+        await this.cargarGraficaProgramadoresMes();
     },
     methods: {
+        async cargarGraficaProgramadoresMes () {
+            try {
+                const { data } = await axios.post(api.dashboard, {
+                    opcion: 7,
+                    anio: this.filtros.anio
+                });
+
+                this.datosProgramadoresMes = Array.isArray(data) ? data : [];
+                this.$nextTick(() => {
+                    this.pintarChartProgramadoresMes();
+                });
+
+            } catch (e) {
+                console.error('Error cargando gráfica programadores por mes', e);
+            }
+        },
+        pintarChartProgramadoresMes () {
+            const canvas = this.$refs.chartProgramadoresMes
+            if (!canvas) return
+
+            if (this.chartProgramadoresMes) {
+                this.chartProgramadoresMes.destroy()
+            }
+
+            const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
+
+            const programadores = [...new Set(
+                this.datosProgramadoresMes.map(d => d.usuario)
+            )]
+
+            const datasets = programadores.map(usuario => ({
+                label: usuario,
+                data: meses.map((_, i) => {
+                    const row = this.datosProgramadoresMes.find(
+                        d => d.usuario === usuario && d.mes === i + 1
+                    )
+                    return row ? Number(row.total) : 0
+                })
+            }))
+
+            this.chartProgramadoresMes = new Chart(
+                canvas.getContext('2d'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: meses,
+                        datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            datalabels: {
+                                anchor: 'end',
+                                align: 'end',
+                                formatter: v => v > 0 ? v : ''
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
+                        }
+                    }
+                }
+            )
+        },
+        async cargarCatalogoImpuestos () {
+            try {
+                const { data } = await axios.post(api.dashboard, { opcion: 6 })
+                this.catalogoImpuestos = Array.isArray(data) ? data : []
+            } catch (e) {
+                console.error('Error cargando catálogo de impuestos', e)
+                this.catalogoImpuestos = []
+            }
+        },
         async cargarOrdenesPorProgramador(anio) {
             try {
                 this.cargandoProgramadores = true
@@ -481,6 +590,7 @@ export default {
                 if (!resultado[oficina]) {
                 resultado[oficina] = {
                     oficina_descripcion: oficina,
+                    impuestos_nombre: {},
                     visitas_nomina: 0,
                     visitas_obtencionPremios: 0,
                     visitas_sorteosyjuegos: 0,
@@ -498,7 +608,6 @@ export default {
                     gabineteNomina: 0
                 };
                 }
-
                 const total = Number(item.total) || 0;
 
                 if (impuesto.startsWith('G-')) {
@@ -645,8 +754,8 @@ tbody tr:nth-of-type(odd) {
   text-overflow: ellipsis;
 }
 .dashboard-estatales th:first-child, .dashboard-estatales td:first-child {
-  width: 280px;
-  max-width: 280px;
+  width: 220px;
+  max-width: 220px;
   text-align: left;
   white-space: normal;
 }
@@ -666,7 +775,7 @@ tbody tr:nth-of-type(odd) {
 .dashboard-estatales .v-data-table thead tr:nth-child(2) th {
   border: 1px solid #ffffff;
 }
-.dashboard-estatale .dashboard-estatales td {
+.dashboard-estatales .dashboard-estatales td {
   max-width: 150px;
   text-align: center;
 }
@@ -674,7 +783,7 @@ tbody tr:nth-of-type(odd) {
   text-align: left;
 }
 .dashboard-estatales th:not(:first-child), .dashboard-estatales td:not(:first-child) {
-  max-width: 120px;
+  max-width: 150px;
   white-space: nowrap;
 }
 .v-data-table td {

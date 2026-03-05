@@ -203,6 +203,7 @@ export default {
           departamento_id: memoData.departamento_id,
           asunto: memoData.asunto?.toUpperCase() || null,
           siga_usuario_id: localStorage.getItem('siga_id'),
+          copias: memoData.copias,
           prospectos: memoData.prospectos
         });
         if (response.data.success === false) {
@@ -340,13 +341,42 @@ export default {
 
     //Botones y formularios
     async handleGuardar(memoData) {
-      try{
+      try {
         if (this.operacion === "crear") {
-          await this.crear(memoData);
+          if (!this.impresoraPredeterminada || this.impresoraPredeterminada === 'No disponible') {
+            await Swal.fire('Error', 'No hay impresora configurada en el servidor', 'error');
+            return;
+          }
+          const { value: numCopias } = await Swal.fire({
+            title: 'Número de impresiones',
+            html: `
+              <p style="margin-bottom:6px">
+                El documento se enviará a la impresora predeterminada del servidor:
+              </p>
+              <b>${this.impresoraPredeterminada}</b>
+            `,
+            input: 'number',
+            inputLabel: '¿Cuántos juegos desea imprimir?',
+            inputValue: 1,
+            showCancelButton: true,
+            inputValidator: (value) => {
+              if (!value || value < 1) {
+                return '¡Necesitas ingresar un número válido de impresiones!';
+              }
+            }
+          });
+
+          if (!numCopias) return;
+          await this.crear({
+            ...memoData,
+            copias: numCopias
+          });
+
         } else if (this.operacion === "editar") {
           await this.editar(memoData);
         }
-      }catch(error){
+
+      } catch (error) {
         console.error("Error en handleGuardar:", error);
       }
     },

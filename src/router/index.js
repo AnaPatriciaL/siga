@@ -19,6 +19,7 @@ import Acercade from "@/views/Acercade.vue";
 import Memorandum from "@/views/Memorandum.vue";
 import Dashboard from "@/views/Dashboard.vue";
 import Historial from "@/views/Historial.vue";
+import Poa from "@/views/Poa.vue";
 
 
 Vue.use(Router);
@@ -126,6 +127,12 @@ const router = new Router({
       path: "/historial",
       name: "Historial",
       component: Historial,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/poa",
+      name: "Poa",
+      component: Poa,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },

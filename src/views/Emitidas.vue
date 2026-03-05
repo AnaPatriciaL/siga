@@ -11,14 +11,12 @@
       <v-row class="mb-4" align="center">
         <v-col class="d-flex align-center">
           <!-- Boton exportar Excel -->
-          <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Emitidas'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
-            <v-tooltip top color="green darken-3">
-              <template v-slot:activator="{ on, attrs }">
-                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
-              </template>
-              <span>Exportar a Excel</span>
-            </v-tooltip>
-          </vue-excel-xlsx>
+          <v-tooltip top color="indigo darken-3" v-if="permiso">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab class="ml-3" color="green darken-3" dark v-bind="attrs" v-on="on" @click="generarFiscaweb"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+            </template>
+            <span>Generar archivo FISCAWEB</span>
+          </v-tooltip>
           <!-- Boton recargar  -->
           <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
@@ -107,9 +105,9 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
-  import VueExcelXlsx from "vue-excel-xlsx";
   import FormCrearEditar from '@/components/formCrearEditar.vue';
   import api from '@/services/apiUrls.js';
+  import * as XLSX from 'xlsx-js-style';
 
 export default {
   name: "Emitidas",
@@ -241,6 +239,96 @@ export default {
     this.obtenerAnios();
   },
  methods: {
+  async generarFiscaweb() {
+    if (this.progresoVisible) return;
+    try {
+      this.actualizarProgreso('Generando archivo ORDENES_FISCAWEB...');
+      const { data } = await axios.post(api.fiscaweb, {opcion: 1});
+
+      if (!Array.isArray(data) || !data.length) {
+        this.progresoVisible = false;
+        Swal.fire('Aviso', 'No hay información para generar el archivo.', 'warning');
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const border = {top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }};
+      const headerStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border};
+      const cellCenter = {alignment: { horizontal: 'center', vertical: 'center' }, border};
+      const cellLeft = {alignment: { horizontal: 'left', vertical: 'center' }, border};
+      const cCenterYellow = {alignment: { horizontal: 'center', vertical: 'center' }, fill: { fgColor: { rgb: 'FFF9C4' } }, border};
+      const cLeftYellow = {alignment: { horizontal: 'left', vertical: 'center' }, fill: { fgColor: { rgb: 'FFF9C4' } }, border};
+      const rows = [];
+      rows.push([
+        { v: 'ORDEN', s: headerStyle },
+        { v: 'EXPEDIENTE', s: headerStyle },
+        { v: 'OFICIO', s: headerStyle },
+        { v: 'FECORDEN', s: headerStyle },
+        { v: 'NUMOFICIO', s: headerStyle },
+        { v: 'RFC', s: headerStyle },
+        { v: 'NOMBRE', s: headerStyle },
+        { v: 'DIRECCION', s: headerStyle },
+        { v: 'OFICINA_OFICINA', s: headerStyle },
+        { v: 'FUENTE_FUENTE', s: headerStyle },
+        { v: 'SUBPROG_SUBPROG', s: headerStyle },
+        { v: 'EJERCICIO_EJERCICIO', s: headerStyle },
+        { v: 'MUNICIPIO_MUNICIPIO', s: headerStyle },
+        { v: 'METODO_METODO', s: headerStyle },
+        { v: 'JEFEDEPTO_RFC', s: headerStyle },
+        { v: 'PRESUNTIVA', s: headerStyle },
+        { v: 'PER1', s: headerStyle },
+        { v: 'EJE1_EJERCICIO', s: headerStyle },
+        { v: 'PER2', s: headerStyle },
+        { v: 'EJE2_EJERCICIO', s: headerStyle },
+        { v: 'PROGRAMADOR_RFC', s: headerStyle },
+        { v: 'PORTALUSER', s: headerStyle },
+        { v: 'FECALTASIS', s: headerStyle },
+        { v: 'ESTATUS_ESTATUS', s: headerStyle },
+        { v: 'PERIODO', s: headerStyle }
+      ]);
+      data.forEach(item => {
+        const yellow = Number(item.MODIFICADO) === 1;
+        const cCenter = yellow ? cCenterYellow : cellCenter;
+        const cLeft = yellow ? cLeftYellow   : cellLeft;
+        rows.push([
+          { v: item.ORDEN || '', s: cCenter },                 
+          { v: item.EXPEDIENTE || '', s: cCenter },                        
+          { v: item.OFICIO || '', s: cCenter },                
+          { v: item.FECORDEN || '', s: cCenter },               
+          { v: item.NUMOFICIO || '', s: cCenter },                
+          { v: item.RFC || '', s: cCenter },                       
+          { v: item.NOMBRE || '', s: cLeft },                      
+          { v: item.DIRECCION || '', s: cLeft },          
+          { v: item.OFICINA_OFICINA || '', s: cCenter },       
+          { v: item.FUENTE_FUENTE || '', s: cCenter },        
+          { v: item.SUBPROG_SUBPROG || '', s: cCenter },               
+          { v: item.EJERCICIO_EJERCICIO || '', s: cCenter },             
+          { v: item.MUNICIPIO_MUNICIPIO || '', s: cCenter },                 
+          { v: item.METODO_METODO || '', s: cCenter },                    
+          { v: item.JEFEDEPTO_RFC || '', s: cCenter },            
+          { v: item.PRESUNTIVA || '', s: cCenter },                
+          { v: item.PER1 || '', s: cCenter },                      
+          { v: item.EJE1_EJERCICIO || '', s: cCenter },                      
+          { v: item.PER2 || '', s: cCenter },                      
+          { v: item.EJE2_EJERCICIO || '', s: cCenter },                      
+          { v: item.PROGRAMADOR_RFC || '', s: cCenter },           
+          { v: item.PORTALUSER || '', s: cCenter },      
+          { v: item.FECALTASIS || '', s: cCenter },             
+          { v: item.ESTATUS_ESTATUS || '', s: cCenter },      
+          { v: item.PERIODO || '', s: cCenter }                  
+        ]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = Array(25).fill({ wch: 18 });
+      XLSX.utils.book_append_sheet(wb, ws, 'ORDENES');
+      XLSX.writeFile(wb, `ORDENES_FISCAWEB_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Error', 'No se pudo generar el archivo ORDENES_FISCAWEB', 'error');
+    } finally {
+      this.progresoVisible = false;
+    }
+  },
   async obtenerAnios() {
     try {
         const { data } = await axios.post(api.dashboard, { opcion: 1 });

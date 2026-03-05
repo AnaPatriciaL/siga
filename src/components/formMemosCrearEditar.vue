@@ -63,7 +63,6 @@
 </template>
 <script>
 import Swal from 'sweetalert2';
-
 export default {
     name: "FormMemosCrearEditar",
     props: {
@@ -181,28 +180,6 @@ export default {
         
         async validar() {
             if (this.cargando) return;
-            if (!this.impresora) {
-            await Swal.fire('Error', 'No hay impresora configurada en el servidor', 'error');
-            return;
-            }
-
-            const { value: numCopias } = await Swal.fire({
-            title: 'Número de impresiones',
-            html: `<p style="margin-bottom:6px">
-                El documento se enviará a la impresora predeterminada del servidor:
-                </p>
-                <b>${this.impresora}</b>`,
-            input: 'number',
-            inputLabel: '¿Cuántos juegos desea imprimir?',
-            inputValue: 1,
-            showCancelButton: true,
-            inputValidator: (value) => {
-                if (!value || value < 1) {
-                return '¡Necesitas ingresar un número válido de impresiones!';
-                }
-            }
-            });
-            if (!numCopias) return;
 
             var textoMostrar='';
             // Validaciones
@@ -235,7 +212,6 @@ export default {
                 }
                 const payload = {
                     ...this.memo,
-                    copias: numCopias,
                     prospectos: this.operacion === 'crear'
                         ? this.selectedProspectos.map(p => ({
                             id: p.id,
