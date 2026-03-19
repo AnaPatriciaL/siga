@@ -37,7 +37,7 @@ switch ($opcion) {
             break;
         }
         try {
-            $check = $conexion->prepare("SELECT COUNT(*) FROM poa_metas WHERE anio = :anio");
+            $check = $conexion->prepare("SELECT COUNT(*) FROM siga_poa_metas WHERE anio = :anio");
             $check->bindParam(':anio', $anio, PDO::PARAM_INT);
             $check->execute();
 
@@ -46,7 +46,7 @@ switch ($opcion) {
                 break;
             }
             $conexion->beginTransaction();
-            $insert = $conexion->prepare("INSERT INTO poa_metas (anio, mes, meta, fecha_alta) VALUES (:anio, :mes, :meta, NOW())");
+            $insert = $conexion->prepare("INSERT INTO siga_poa_metas (anio, mes, meta, fecha_alta) VALUES (:anio, :mes, :meta, NOW())");
 
             foreach ($metas as $m) {
                 $mes  = (int)($m['mes'] ?? 0);
@@ -92,7 +92,7 @@ switch ($opcion) {
             break;
         }
         try {
-            $consulta = $conexion->prepare("SELECT COUNT(*) FROM poa_metas WHERE anio = :anio");
+            $consulta = $conexion->prepare("SELECT COUNT(*) FROM siga_poa_metas WHERE anio = :anio");
             $consulta->bindParam(':anio', $anio, PDO::PARAM_INT);
             $consulta->execute();
             $existe = $consulta->fetchColumn() > 0;

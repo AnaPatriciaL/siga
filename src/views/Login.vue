@@ -84,9 +84,12 @@ export default {
           localStorage.setItem("siga_token", response.data.token);
           localStorage.setItem("siga_nombre", response.data.nombre);
           localStorage.setItem("siga_nivel", response.data.nivel);
+          localStorage.setItem("siga_acceso_ambito", response.data.acceso_ambito);
+          localStorage.setItem("siga_ambito_seleccionado", response.data.acceso_ambito === "Ambos" ? "Estatales" : response.data.acceso_ambito);
           this.$user.id = localStorage.getItem("siga_id");
           this.$user.nombre = localStorage.getItem("siga_nombre");
           this.$user.nivel = localStorage.getItem("siga_nivel");
+          this.$user.acceso_ambito = localStorage.getItem("siga_acceso_ambito");
           this.$root.$emit("authenticated");
           this.$router.push("/");
         } else {

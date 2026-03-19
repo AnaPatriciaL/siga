@@ -12,6 +12,7 @@ $response = [
     'id_usuario' => $_SESSION['id_usuario'] ?? null,
     'nombre_usuario' => $_SESSION['nombre_usuario'] ?? null,
     'nivel' => $_SESSION['nivel'] ?? null,
+    'ambito_acceso' => $_SESSION['ambito_acceso'] ?? null,
 ];
 
 // Enviar respuesta como JSON

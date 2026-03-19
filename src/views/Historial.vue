@@ -5,10 +5,10 @@
       <v-card-text>
         <v-form ref="form">
           <v-row justify="center" class="mb-7">
-            <v-col cols="12" md="3">
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field v-model="filters.orden" label="Orden" outlined class="text-h5 mayusculas" placeholder="Ingresa la orden" clearable append-icon="mdi-magnify" @keydown.enter="fetchData" @click:append="fetchData"/>
             </v-col>
-            <v-col cols="12" md="3">
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field v-model="filters.rfc" label="RFC" outlined class="text-h5 mayusculas" placeholder="Ingresa el RFC" clearable append-icon="mdi-magnify" @keydown.enter="fetchData" @click:append="fetchData"/>
             </v-col>
           </v-row>
@@ -230,4 +230,5 @@ tbody tr:nth-of-type(odd) {
   line-height: 1.2;
   white-space: normal;
 }
+
 </style>

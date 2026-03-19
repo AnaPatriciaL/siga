@@ -28,6 +28,8 @@ export default {
   comites: `${API_BASE_URL}/comites.php`,
   fiscaweb: `${API_BASE_URL}/fiscaweb.php`,
   poa: `${API_BASE_URL}/poa.php`,
+  pagos: `${API_BASE_URL}/pagos.php`,
+  cruce: `${API_BASE_URL}/cruce.php`,
   opcionesUsuario: (usuario_id) => `${API_BASE_URL}/opciones_usuario.php?usuario_id=${usuario_id}`,
   obtenerOpcionesMenu: (usuarioId) => `${API_BASE_URL}/obtener_opciones.php?usuario_id=${usuarioId}`,
 };

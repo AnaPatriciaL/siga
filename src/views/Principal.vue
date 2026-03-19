@@ -1,7 +1,10 @@
 <template>
-  <v-container fluid v-if="esNivel0">
+  <v-container fluid v-if="esNivel0 && (ambitoUsuario === 'Estatales' || ambitoUsuario === 'Ambos')">
     <dashboard></dashboard>
   </v-container>
+  <!-- Preparado para el dashboard de federales <v-container fluid v-if="esNivel0 && ambitoUsuario === 'Federales'">
+    <dashboard-federal></dashboard-federal>
+  </v-container> -->
   <v-container fill-height  v-else>
     <v-row  justify="center" align="center" class="text-center">
       <v-col cols="12" class="d-flex flex-column align-center">
@@ -20,12 +23,23 @@
 
 export default {
   name: "Principal",
+  data() {
+    return {
+      nivelUsuario: Number(localStorage.getItem("siga_nivel") || 99),
+      ambitoUsuario: localStorage.getItem("siga_ambito_seleccionado") || "Estatales"
+    };
+  },
   components: {
     Dashboard
   },
   computed: {
     esNivel0() {
-      return Number(localStorage.getItem("siga_nivel")) === 0;
+      return this.nivelUsuario === 0;
+    }
+  },
+  watch: {
+    '$route'() {
+      this.ambitoUsuario = localStorage.getItem("siga_ambito_seleccionado") || "Estatales";
     }
   }
 };

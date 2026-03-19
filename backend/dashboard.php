@@ -158,6 +158,21 @@ switch ($opcion) {
         $data=$stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
+    case 8: //CONSULTAR POA
+        $sql = "SELECT * FROM siga_poa_metas WHERE anio = YEAR(NOW())";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $data=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
+     case 9: // CONSULTAR EMITIDAS PARA GRAFICA POR IMPUESTO
+        $consulta = "SELECT anio, MONTH(fecha_orden) AS mes, COUNT(orden) AS total, impuestos FROM emitidas WHERE tipo = 'E' 
+        AND (anio = YEAR(NOW()) OR anio = YEAR(NOW())-1) GROUP BY anio, MONTH(fecha_orden), impuestos ORDER BY anio DESC, MONTH(fecha_orden) ASC";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
     default:
         echo json_encode([
             'status' => false,

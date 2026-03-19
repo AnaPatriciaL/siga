@@ -14,10 +14,11 @@ if (!isset($_GET['usuario_id'])) {
 $usuario_id = $_GET['usuario_id'];
 
 // Consulta para obtener las opciones del usuario
-$sql = "SELECT siga_opciones.id, siga_opciones.nombre_opcion, siga_opciones.ruta, siga_opciones.icono, siga_opciones.color, siga_opciones.orden 
-        FROM siga_opciones 
+$sql = "SELECT DISTINCT siga_opciones.id, siga_opciones.nombre_opcion, siga_opciones.ruta, siga_opciones.icono, siga_opciones.color, siga_opciones.orden, siga_opciones.ambito, g.nombre_grupo,
+        g.orden_grupo as orden_grupo FROM siga_opciones JOIN siga_grupos_opciones g 
+        ON g.id = siga_opciones.grupo_id
         INNER JOIN siga_usuarios_opciones ON siga_opciones.id = siga_usuarios_opciones.opcion_id 
-        WHERE siga_usuarios_opciones.usuario_id = :usuario_id";
+        WHERE siga_usuarios_opciones.usuario_id = :usuario_id ORDER BY g.orden_grupo, siga_opciones.orden";
 
 // Preparar y ejecutar la consulta
 $stmt = $conexion->prepare($sql);

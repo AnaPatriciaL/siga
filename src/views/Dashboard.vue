@@ -284,6 +284,38 @@ export default {
         await this.cargarGraficaProgramadoresMes();
     },
     methods: {
+        async obtenerMetasPOA() {
+            try {
+
+                const { data } = await axios.post(api.dashboard, {
+                opcion: 8
+                });
+
+                const metas = Array(12).fill(0);
+
+                if (Array.isArray(data)) {
+
+                data.forEach(row => {
+                    const mes = Number(row.mes);
+                    const meta = Number(row.meta);
+
+                    if (mes >= 1 && mes <= 12) {
+                    metas[mes - 1] = meta;
+                    }
+
+                });
+
+                }
+
+                return metas;
+
+            } catch (e) {
+
+                console.error("Error obteniendo metas POA", e);
+                return Array(12).fill(0);
+
+            }
+        },
         async cargarGraficaProgramadoresMes () {
             try {
                 const { data } = await axios.post(api.dashboard, {
@@ -291,7 +323,14 @@ export default {
                     anio: this.filtros.anio
                 });
 
-                this.datosProgramadoresMes = Array.isArray(data) ? data : [];
+                this.datosProgramadoresMes = Array.isArray(data)
+                    ? data.map(d => ({
+                        usuario: d.usuario,
+                        mes: Number(d.mes),
+                        anio: Number(d.anio),
+                        total: Number(d.total)
+                        }))
+                    : [];
                 this.$nextTick(() => {
                     this.pintarChartProgramadoresMes();
                 });
@@ -401,76 +440,145 @@ export default {
             try {
                 this.mostrarDetalleMes = false;
                 this.ordenesMes = [];
-                const { data } = await axios.post(api.dashboard, {opcion: 3});
-                const normalizados = data.map(d => ({anio: Number(d.anio), mes: Number(d.mes), total: Number(d.total)}));
+                const { data } = await axios.post(api.dashboard, {opcion: 9});
+                const normalizados = data.map(d => ({anio: parseInt(d.anio), mes: parseInt(d.mes), total: parseInt(d.total), impuesto: (d.impuestos || '').trim().toUpperCase()}));
                 const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO', 'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
                 const anios = [...new Set(normalizados.map(d => d.anio))].sort((a,b)=>a-b);
                 const anioActual = Math.max(...anios);
                 const anioAnterior = anioActual - 1;
                 await this.cargarOrdenesPorProgramador(anioActual);
+                const metasPOA = await this.obtenerMetasPOA();
                 const totalesActual = Array(12).fill(0);
                 const totalesAnterior = Array(12).fill(0);
-                normalizados.forEach(row => {
-                const mesIndex = row.mes - 1
-                const total = row.total
-                if (row.anio === anioActual) {
-                    totalesActual[mesIndex] = total
-                }
-                if (row.anio === anioAnterior) {
-                    totalesAnterior[mesIndex] = total
-                }
+                normalizados.forEach(d => {
+                    const mesIndex = d.mes - 1;
+                    if (d.anio === anioActual) {
+                        totalesActual[mesIndex] += d.total;
+                    }
+                    if (d.anio === anioAnterior) {
+                        totalesAnterior[mesIndex] += d.total;
+                    }
                 });
                 if (this.barChart) {
-                this.barChart.destroy();
+                    this.barChart.destroy();
                 }
 
                 this.barChart = new Chart(this.$refs.barChart, {
-                type: 'bar',
-                data: {
-                    labels: meses,
-                    datasets: [
-                    {
-                        label: anioAnterior.toString(),
-                        data: totalesAnterior
-                    },
-                    {
-                        label: anioActual.toString(),
-                        data: totalesActual
-                    }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: (evt, elements) => {
-                        if (!elements.length) return
-                        const index = elements[0].index
-                        const datasetIndex = elements[0].datasetIndex
-                        const mes = index + 1
-                        const anio = datasetIndex === 0 ? anioAnterior : anioActual
-                        this.cargarDetalleMes(anio, mes)
-                    },
-                    plugins: {
-                        legend: { position: 'top' },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            font: {
-                                weight: 'bold',
-                                size: 11
+                    type: 'bar',
+                    data: {
+                        labels: meses,
+                        datasets: [
+                             {
+                                type: 'bar',
+                                label: anioAnterior.toString(),
+                                data: totalesAnterior,
+                                backgroundColor: '#90CAF9',
+                                order: 1,
+                                animations: {
+                                y: { from: 0 }
+                                }
                             },
-                            formatter: value => value > 0 ? value : ''
-                        }
+                            {
+                                type: 'bar',
+                                label: anioActual.toString(),
+                                data: totalesActual,
+                                backgroundColor: '#F48FB1',
+                                borderColor: '#C2185B',
+                                borderWidth: 2,
+                                order: 1,
+                                animations: {
+                                y: { from: 0 }
+                                }
+                            },
+                            {
+                                type: 'line',
+                                label: 'META POA ' + anioActual,
+                                data: metasPOA,
+                                borderColor: '#880e4f',
+                                backgroundColor: '#880e4f',
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                fill: false,
+                                tension: 0.3,
+                                order: 0,
+                                animations: {
+                                x: { from: 0 }
+                                }
+                            }
+                        ]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { precision: 0 }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 1200, easing: 'easeOutQuart' },
+                        onClick: (evt, elements) => {
+                            if (!elements.length) return;
+                            if (elements[0].datasetIndex === 2) return;
+                            const index = elements[0].index;
+                            const datasetIndex = elements[0].datasetIndex;
+                            const mes = index + 1;
+                            const anio = datasetIndex === 0 ? anioAnterior : anioActual;
+                            this.cargarDetalleMes(anio, mes);
+                        },
+                        plugins: {
+                            legend: { position: 'top' },
+                            datalabels: {
+                                anchor: 'end',
+                                align: 'end',
+                                animation: false,
+                                font: {
+                                    weight: 'bold',
+                                    size: 12
+                                },
+                                formatter: value => value > 0 ? value : ''
+                            },
+                            tooltip: {
+                                mode: 'nearest',
+                                intersect: true,
+                                filter: (tooltipItem) => {
+                                    return tooltipItem.datasetIndex !== 2;
+                                },
+                                callbacks: {
+                                    label: () => null,
+                                    afterBody: (items) => {
+                                    if (!items.length) return;
+                                    const item = items[0]; 
+                                    const mesIndex = item.dataIndex;
+                                    const datasetIndex = item.datasetIndex;
+                                    const anio = datasetIndex === 0
+                                        ? anioAnterior
+                                        : anioActual;
+                                    const detalles = normalizados.filter(d =>
+                                        d.anio === anio &&
+                                        d.mes === mesIndex + 1 &&
+                                        d.total > 0
+                                    );
+                                    const resumen = {};
+                                    detalles.forEach(d => {
+                                        if (!resumen[d.impuesto]) {
+                                        resumen[d.impuesto] = 0;
+                                        }
+                                        resumen[d.impuesto] += d.total;
+                                    });
+                                    return Object.entries(resumen)
+                                        .map(([imp, total]) => `${imp}: ${total}`);
+                                    },
+                                    footer: (items) => {
+                                    if (!items.length) return;
+                                    const total = items[0].parsed.y;
+                                    return 'Total: ' + total;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
                         }
-                    }  
-                }
-            });
-
+                    }
+                });
             } catch (e) {
                 console.error('Error al cargar gráfica comparativa', e);
             }

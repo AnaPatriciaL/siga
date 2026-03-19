@@ -20,6 +20,8 @@ import Memorandum from "@/views/Memorandum.vue";
 import Dashboard from "@/views/Dashboard.vue";
 import Historial from "@/views/Historial.vue";
 import Poa from "@/views/Poa.vue";
+import Pagos from "@/views/Pagos.vue";
+import Cruce from "@/views/Cruce.vue";
 
 
 Vue.use(Router);
@@ -133,6 +135,18 @@ const router = new Router({
       path: "/poa",
       name: "Poa",
       component: Poa,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/pagos",
+      name: "Pagos",
+      component: Pagos,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/cruce",
+      name: "Cruce",
+      component: Cruce,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },
