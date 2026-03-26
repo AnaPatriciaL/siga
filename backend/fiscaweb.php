@@ -33,7 +33,7 @@ switch ($opcion) {
         $conexion->beginTransaction();
 
         try {
-            $consulta = "SELECT o.num_orden AS ORDEN, o.num_orden AS EXPEDIENTE, ' ' AS OFICIO, o.fecha_orden AS FECORDEN, '' AS NUMOFICIO, p.rfc AS RFC, p.nombre AS NOMBRE, CONCAT(IFNULL(p.calle, ''), IF(p.num_exterior <> '', CONCAT(', ', p.num_exterior), ''),
+            $consulta = "SELECT o.num_orden AS ORDEN, o.num_orden AS EXPEDIENTE, ' ' AS OFICIO, DATE_FORMAT(o.fecha_orden, '%d/%m/%Y') AS FECORDEN, '' AS NUMOFICIO, p.rfc AS RFC, p.nombre AS NOMBRE, CONCAT(IFNULL(p.calle, ''), IF(p.num_exterior <> '', CONCAT(', ', p.num_exterior), ''),
             IF(p.num_interior <> '', CONCAT(', ', p.num_interior), ''), IF(p.colonia <> '', CONCAT(', ', p.colonia), ''), IF(p.cp <> '', CONCAT(' C.P. ', p.cp), ''),
             CASE
                 WHEN p.localidad <> ''

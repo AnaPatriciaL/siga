@@ -22,6 +22,7 @@ import Historial from "@/views/Historial.vue";
 import Poa from "@/views/Poa.vue";
 import Pagos from "@/views/Pagos.vue";
 import Cruce from "@/views/Cruce.vue";
+import Captura from "@/views/Captura.vue";
 
 
 Vue.use(Router);
@@ -147,6 +148,12 @@ const router = new Router({
       path: "/cruce",
       name: "Cruce",
       component: Cruce,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/captura",
+      name: "Captura",
+      component: Captura,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },

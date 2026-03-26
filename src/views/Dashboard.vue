@@ -2,7 +2,7 @@
     <v-container fluid class="pa-8">
         <v-row class="center mb-4">
             <v-col cols="12" class="text-center">
-                <h1>DASHBOARD ÓRDENES</h1>
+                <h1>DASHBOARD ÓRDENES ESTATALES</h1>
             </v-col>
         </v-row>
         <v-row class="mb-6">

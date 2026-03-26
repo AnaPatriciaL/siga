@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://10.10.120.228/siga/backend/',
+  baseURL: process.env.VUE_APP_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   }
@@ -18,20 +18,19 @@ export default {
   obtenerCobranzas(ordenId) {
     return apiClient.get('listado_cobranzas_por_orden.php', { params: { orden_id: ordenId } });
   },
-    obtenerTotalesCobranzas(ordenId) {
+  obtenerTotalesCobranzas(ordenId) {
     return apiClient.get('total_cobranzas_por_orden.php', { params: { orden_id: ordenId } });
   },
-
   obtenerSeguimientos() {
     return apiClient.get('obtener_seguimientos.php');
   },
-    obtenerImpuestos() {
+  obtenerImpuestos() {
     return apiClient.get('obtener_impuestos.php');
   },
-     obtenerLugaresPago() {
+  obtenerLugaresPago() {
     return apiClient.get('obtener_lugares_pago.php');
   },
-   obtenerTiposPago() {
+  obtenerTiposPago() {
     return apiClient.get('obtener_tipos_pago.php');
   },
   guardarAvance(avance){

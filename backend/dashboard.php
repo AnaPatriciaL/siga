@@ -165,10 +165,31 @@ switch ($opcion) {
         $data=$stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
-     case 9: // CONSULTAR EMITIDAS PARA GRAFICA POR IMPUESTO
+    case 9: // CONSULTAR EMITIDAS PARA GRAFICA POR IMPUESTO
         $consulta = "SELECT anio, MONTH(fecha_orden) AS mes, COUNT(orden) AS total, impuestos FROM emitidas WHERE tipo = 'E' 
         AND (anio = YEAR(NOW()) OR anio = YEAR(NOW())-1) GROUP BY anio, MONTH(fecha_orden), impuestos ORDER BY anio DESC, MONTH(fecha_orden) ASC";
         $resultado = $conexion->prepare($consulta);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
+    case 10: // CONSULTAR EMITIDAS FEDERALES PARA GRAFICA
+        $consulta = "SELECT anio, MONTH(fecha_orden) AS mes, COUNT(orden) AS total FROM emitidas WHERE tipo = 'F' 
+        AND (anio = YEAR(NOW()) OR anio = YEAR(NOW())-1) GROUP BY anio, MONTH(fecha_orden) ORDER BY anio DESC, MONTH(fecha_orden) ASC";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
+    case 11: // CONSULTAR DETALLE DE ORDENES FEDERALES POR MES
+        $anio = isset($data['anio']) ? (int)$data['anio'] : 0;
+        $mes = isset($data['mes']) ? (int)$data['mes'] : 0;
+
+        $consulta = "SELECT orden AS num_orden, fecha_orden, rfc, nombre,periodo AS periodos FROM emitidas WHERE tipo = 'F' 
+        AND anio = :anio AND MONTH(fecha_orden) = :mes ORDER BY fecha_orden ASC";
+        $resultado = $conexion->prepare($consulta);
+        $resultado->bindParam(':anio', $anio, PDO::PARAM_INT);
+        $resultado->bindParam(':mes', $mes, PDO::PARAM_INT);
         $resultado->execute();
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);

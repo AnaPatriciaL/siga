@@ -663,6 +663,14 @@ switch ($opcion) {
             throw new Exception('No se proporcionó prospecto.id');
         }
         $conexion = getConexion();
+        $update = "UPDATE siga_prospectos_ordenes 
+           SET fecha_orden = :fecha_orden 
+           WHERE id_prospecto = :id_prospecto AND estatus = 1";
+        $stmtUpdate = $conexion->prepare($update);
+        $stmtUpdate->execute([
+            'fecha_orden' => $fecha_orden_vista,
+            'id_prospecto' => $prospecto_id
+        ]);
         $prospecto = getProspectoData($conexion, $prospecto_id);
         if (!$prospecto) {
             throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);

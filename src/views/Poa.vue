@@ -7,7 +7,7 @@
       </v-col>
     </v-row>
     <v-row justify="center" class="mt-4">
-      <v-col cols="12" md="4">
+      <v-col cols="12" sm="12" md="7" lg="6" xl="5">
         <v-card>
           <v-card-title class="pink darken-4 white--text py-2">CAPTURA DE POA: IMPUESTOS ESTATALES</v-card-title>
           <v-spacer></v-spacer>
