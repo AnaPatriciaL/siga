@@ -139,6 +139,7 @@ switch ($opcion) {
                   f.descripcion AS antecedente_descripcion,
                   o.num_oficio,
                   o.num_orden,
+                  CONCAT(o.num_orden, '/', RIGHT(o.anio, 2)) AS orden_anio,
                   o.fecha_orden
                 FROM siga_prospectos AS a
                 LEFT JOIN siga_prospectos_impuestos AS b ON a.impuesto_id = b.id

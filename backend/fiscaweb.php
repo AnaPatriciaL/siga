@@ -33,7 +33,7 @@ switch ($opcion) {
         $conexion->beginTransaction();
 
         try {
-            $consulta = "SELECT o.num_orden AS ORDEN, o.num_orden AS EXPEDIENTE, ' ' AS OFICIO, DATE_FORMAT(o.fecha_orden, '%d/%m/%Y') AS FECORDEN, o.fecha_orden AS FECORDEN_DB, '' AS NUMOFICIO, p.rfc AS RFC, p.nombre AS NOMBRE, CONCAT(IFNULL(p.calle, ''), IF(p.num_exterior <> '', CONCAT(', ', p.num_exterior), ''),
+            $consulta = "SELECT o.num_orden AS ORDEN, o.num_orden AS EXPEDIENTE, o.num_oficio AS OFICIO, DATE_FORMAT(o.fecha_orden, '%d/%m/%Y') AS FECORDEN, o.fecha_orden AS FECORDEN_DB, o.num_oficio AS NUMOFICIO, p.rfc AS RFC, p.nombre AS NOMBRE, CONCAT(IFNULL(p.calle, ''), IF(p.num_exterior <> '', CONCAT(', ', p.num_exterior), ''),
             IF(p.num_interior <> '', CONCAT(', ', p.num_interior), ''), IF(p.colonia <> '', CONCAT(', ', p.colonia), ''), IF(p.cp <> '', CONCAT(' C.P. ', p.cp), ''),
             CASE
                 WHEN p.localidad <> ''
@@ -48,7 +48,7 @@ switch ($opcion) {
                 WHEN m.nombre <> ''
                 THEN CONCAT(', ', m.nombre)
                 ELSE ''
-            END,', SINALOA') AS DIRECCION, of.nombre AS OFICINA_OFICINA, 'LOCAL' AS FUENTE_FUENTE,'OTRO' AS SUBPROG_SUBPROG, o.anio AS EJERCICIO_EJERCICIO, m.nombre AS MUNICIPIO_MUNICIPIO, met.nombre AS METODO_METODO, jefes.nombre AS JEFEDEPTO_RFC,'' AS PRESUNTIVA, STR_TO_DATE(SUBSTRING_INDEX(SUBSTRING_INDEX(o.periodos, '-', 1), ',', 1), '%d/%m/%Y') AS fecha_inicio,
+            END,', SINALOA') AS DIRECCION, of.nombre AS OFICINA_OFICINA, 'LOCAL' AS FUENTE_FUENTE,'OTRO' AS SUBPROG_SUBPROG, o.anio AS EJERCICIO_EJERCICIO, m.nombre_fiscaweb AS MUNICIPIO_MUNICIPIO, met.nombre AS METODO_METODO, jefes.nombre AS JEFEDEPTO_RFC,'' AS PRESUNTIVA, STR_TO_DATE(SUBSTRING_INDEX(SUBSTRING_INDEX(o.periodos, '-', 1), ',', 1), '%d/%m/%Y') AS fecha_inicio,
             STR_TO_DATE(SUBSTRING_INDEX(SUBSTRING_INDEX(o.periodos, '-', -1), ',', -1), '%d/%m/%Y') AS fecha_fin,
             CASE
             WHEN MONTH(STR_TO_DATE(SUBSTRING_INDEX(SUBSTRING_INDEX(o.periodos, '-', 1), ',', 1), '%d/%m/%Y')) = 12 THEN 'DIC'

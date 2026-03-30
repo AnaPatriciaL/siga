@@ -23,6 +23,7 @@ import Poa from "@/views/Poa.vue";
 import Pagos from "@/views/Pagos.vue";
 import Cruce from "@/views/Cruce.vue";
 import Captura from "@/views/Captura.vue";
+import EditarEmitidas from "@/views/EditarEmitidas.vue";
 
 
 Vue.use(Router);
@@ -154,6 +155,12 @@ const router = new Router({
       path: "/captura",
       name: "Captura",
       component: Captura,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/editar-emitidas",
+      name: "EditarEmitidas",
+      component: EditarEmitidas,
       meta: { requiresAuth: true },
     },
     { path: "/login", name: "login", component: Login },

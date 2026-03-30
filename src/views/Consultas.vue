@@ -162,6 +162,7 @@ export default {
         {label:"PROGRAMADOR", field:"programador_descripcion"},
         {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
+        {label:"GIRO", field:"giro"},
       ],
       prospectosie: [],
       prospectosie_no_localizados: [],

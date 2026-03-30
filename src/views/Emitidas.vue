@@ -124,7 +124,7 @@ export default {
           text: "ACCIONES",
           value: "actions",
           class: "pink darken-4 white--text elevation-1 center-header",
-          width: "100"
+          width: "80"
         },
         {
           text: "OFICIO",
@@ -134,9 +134,9 @@ export default {
         },
         {
           text: "ORDEN",
-          value: "num_orden",
+          value: "orden_anio",
           class: "pink darken-4 white--text elevation-1 center-header",
-          width: "100"
+          width: "120"
         },
         {
           text: "FECHA DE ORDEN",

@@ -230,6 +230,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    permitirEditarEmitidas: {
+      type: Boolean,
+      default: false
+    },
     operacion: String,
     prospectoieData: Object,
     municipiosListado: Array,
@@ -273,7 +277,12 @@ export default {
         return ''; // O maneja el caso donde uno o ambos están vacíos
     },
     estaBloqueado() {
-      return Number(this.prospectoie?.estatus) === 6;
+      const esEmitida = Number(this.prospectoie?.estatus) === 6;
+      const esSupervisor = !this.esUsuarioNivel1(); 
+      if (esEmitida && this.permitirEditarEmitidas && esSupervisor) {
+        return false;
+      }
+      return esEmitida;
     },
     dialog: {
       get() {
