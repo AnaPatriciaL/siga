@@ -1,43 +1,57 @@
 <template>
   <v-container>
     <v-card class="mx-auto mt-5">
-      <v-card-title class="headline grey darken-3 white--text py-1 mb-10">EDITAR EMITIDAS</v-card-title>
-      <v-card-text>
-        <v-form ref="form">
-          <v-row justify="center" class="mb-7">
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field v-model="filters.orden" label="Orden" outlined class="text-h5 mayusculas" placeholder="Ingresa la orden" clearable append-icon="mdi-magnify" @keydown.enter="fetchData" @click:append="fetchData"/>
+        <v-card-title class="headline grey darken-3 white--text py-1 mb-10">EDITAR EMITIDAS</v-card-title>
+        <v-card-text>
+            <v-form ref="form">
+            <v-row justify="center" class="mb-7">
+                <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+                <v-text-field v-model="filters.orden" label="Orden" outlined class="text-h5 mayusculas" placeholder="Ingresa la orden" clearable append-icon="mdi-magnify" @keydown.enter="fetchData" @click:append="fetchData"/>
+                </v-col>
+                <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+                <v-text-field v-model="filters.rfc" label="RFC" outlined class="text-h5 mayusculas" placeholder="Ingresa el RFC" clearable append-icon="mdi-magnify" @keydown.enter="fetchData" @click:append="fetchData"/>
+                </v-col>
+            </v-row>
+            </v-form>
+            <v-row v-if="results.length" class="mb-2">
+            <v-col cols="12" class="py-0">
+                <v-alert dense text type="success" icon="mdi-file-search">
+                <h3>Total de resultados: <strong>{{ totalRegistros }}</strong></h3>
+                </v-alert>
             </v-col>
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field v-model="filters.rfc" label="RFC" outlined class="text-h5 mayusculas" placeholder="Ingresa el RFC" clearable append-icon="mdi-magnify" @keydown.enter="fetchData" @click:append="fetchData"/>
+            <v-col cols="12" class="py-0 mb-7">
+                <v-data-table :headers="headers" :items="results" :items-per-page="results.length" hide-default-footer class="custom-table elevation-1">
+                    <template v-slot:item.fecha_orden="{ item }">{{ formatFecha(item.fecha_orden) }}</template>
+                    <template v-slot:item.seguimiento="{ item }">{{ formatFecha(item.seguimiento) }}</template>
+                    <template v-slot:item.actions="{ item }">
+                    <!-- Icono Editar en el data-table -->
+                    <v-icon large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
+                    <v-icon large class="ml-2" color="success" dark dense style="font-size: 32px" @click="generarDocumentoUnico(item)">mdi-file-word</v-icon>
+                    </template>
+                </v-data-table>
             </v-col>
-          </v-row>
-        </v-form>
-        <v-row v-if="results.length" class="mb-2">
-          <v-col cols="12" class="py-0">
-            <v-alert dense text type="success" icon="mdi-file-search">
-              <h3>Total de resultados: <strong>{{ totalRegistros }}</strong></h3>
-            </v-alert>
-          </v-col>
-          <v-col cols="12" class="py-0 mb-7">
-            <v-data-table :headers="headers" :items="results" :items-per-page="results.length" hide-default-footer class="custom-table elevation-1">
-                <template v-slot:item.fecha_orden="{ item }">{{ formatFecha(item.fecha_orden) }}</template>
-                <template v-slot:item.seguimiento="{ item }">{{ formatFecha(item.seguimiento) }}</template>
-                <template v-slot:item.actions="{ item }">
-                <!-- Icono Editar en el data-table -->
-                <v-icon large class="mr-2" color="amber" dark dense alt="Editar" @click="formEditar(item)">mdi-pencil</v-icon>
-                <v-icon large class="ml-2" color="success" dark dense style="font-size: 32px" @click="generarDocumentoUnico(item)">mdi-file-word</v-icon>
-                </template>
-            </v-data-table>
-          </v-col>
-        </v-row>
-      </v-card-text>
+            </v-row>
+        </v-card-text>
     </v-card>
     <!-- Loader -->
     <v-dialog v-model="cargando" max-width="290" persistent>
       <v-card color="pink darken-4" dark>
         <v-card-text class="pt-3">Buscando información<v-progress-linear indeterminate color="white" class="my-3" /></v-card-text>
       </v-card>
+    </v-dialog>
+    <v-dialog v-model="dialogFecha" max-width="400">
+        <v-card>
+            <v-card-title class="headline">Seleccionar fecha</v-card-title>
+            <v-card-text>
+                <p class="mb-2">Fecha actual: <strong>{{ formatFecha(itemSeleccionado?.fecha_orden) }}</strong></p>
+                <v-date-picker v-model="fechaTemp" locale="es-MX" color="primary"></v-date-picker>
+            </v-card-text>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn text @click="cancelarFecha">Cancelar</v-btn>
+                <v-btn color="primary" @click="confirmarFecha">Continuar</v-btn>
+            </v-card-actions>
+        </v-card>
     </v-dialog>
     <!-- Componente de Diálogo para CREAR y EDITAR (extraído) -->
     <form-crear-editar
@@ -69,6 +83,9 @@ export default {
     name: "EditarEmitidas",
     data() {
         return {
+            dialogFecha: false,
+            fechaTemp: null,
+            itemSeleccionado: null,
             fechaOrdenSeleccion: null,
             dialog: false,
             operacion: "",
@@ -152,6 +169,54 @@ export default {
         this.obtenerImpresora();
         },
     methods: {
+        async confirmarFecha() {
+            this.dialogFecha = false;
+            this.fechaOrdenSeleccion = this.fechaTemp;
+            try {
+                this.cargando = true;
+                const response = await axios.post(api.editarEmitidas, {opcion: 3, id: this.itemSeleccionado.id_prospectos_siga});
+                this.cargando = false;
+                if (response.data && Object.keys(response.data).length) {
+                    const data = response.data;
+                    this.operacion = "editar";
+                    this.dialog = true;
+                    this.prospectoie = {
+                        ...data,
+                        fecha_orden: this.fechaOrdenSeleccion || data.fecha_orden,
+                        id_orden: this.itemSeleccionado.id_orden_siga,
+                        id: Number(data.id),
+                        municipio_id: data.municipio_id,
+                        oficina_id: Number(data.oficina_id),
+                        fuente_id: data.fuente_id,
+                        impuesto_id: data.impuesto_id,
+                        antecedente_id: data.antecedente_id,
+                        programador_id: Number(data.programador_id),
+                        estatus: Number(data.estatus),
+                        retenedor: Number(data.retenedor ?? 0),
+                        cambio_domicilio: Number(data.cambio_domicilio ?? 0),
+                        determinado: data.determinado ?? 0,
+                        origen_id: Number(data.origen_id ?? 0),
+                    };
+                }
+
+            } catch (error) {
+                this.cargando = false;
+                this.$Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "No se pudo obtener la información"
+                });
+            }
+        },
+        cancelarFecha() {
+            this.dialogFecha = false;
+            this.itemSeleccionado = null;
+            this.fechaTemp = null;
+        },
+        formatoISO(fecha) {
+            if (!fecha) return "";
+            return fecha.split("T")[0];
+        },
         async obtenerImpresora() {
             try {
                 const { data } = await axios.post(api.generarOrdenes, {
@@ -279,65 +344,14 @@ export default {
             }
         },
         async formEditar(item) {
-            try {
-                const fechaActual = this.formatFecha(item.fecha_orden);
-
-                const { value: nuevaFecha, isConfirmed } = await this.$Swal.fire({
-                    title: 'Fecha de la orden',
-                    html: `<p>Fecha actual: <strong>${this.formatFecha(item.fecha_orden)}</strong></p>
-                            <p>Si deseas cambiar la fecha, selecciónala a continuación:</p>`,
-                    input: 'date',
-                    inputValue: item.fecha_orden, 
-                    showCancelButton: true,
-                    confirmButtonText: 'Continuar',
-                    cancelButtonText: 'Cancelar',
-                    confirmButtonColor: '#3085d6'
-                });
-
-                if (!isConfirmed) return;
-                const fechaFinal = nuevaFecha ? nuevaFecha : item.fecha_orden;
-                if (fechaFinal === item.fecha_orden) {
-                    console.log("La fecha no cambió");
-                }
-                this.fechaOrdenSeleccion = fechaFinal;
-                this.cargando = true;
-                const response = await axios.post(api.editarEmitidas, {opcion: 3, id: item.id_prospectos_siga});
-                this.cargando = false;
-                if (response.data && Object.keys(response.data).length) {
-                    const data = response.data;
-                    this.operacion = "editar";
-                    this.dialog = true;
-                    this.prospectoie = {
-                        ...data,
-                        id_orden: item.id_orden_siga,
-                        id: Number(data.id),
-                        municipio_id: Number(data.municipio_id),
-                        oficina_id: Number(data.oficina_id),
-                        fuente_id: Number(data.fuente_id),
-                        impuesto_id: Number(data.impuesto_id),
-                        antecedente_id: Number(data.antecedente_id),
-                        programador_id: Number(data.programador_id),
-                        estatus: Number(data.estatus),
-                        retenedor: Number(data.retenedor ?? 0),
-                        cambio_domicilio: Number(data.cambio_domicilio ?? 0),
-                        determinado: Number(data.determinado ?? 0),
-                        origen_id: Number(data.origen_id ?? 0),
-                    };
-                }
-
-            } catch (error) {
-                this.cargando = false;
-                this.$Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: "No se pudo obtener la información para editar"
-                });
-            }
+            this.itemSeleccionado = item;
+            this.fechaTemp = this.formatoISO(item.fecha_orden);
+            this.dialogFecha = true;
         },
         formatFecha(fecha) {
             if (!fecha) return "";
-            const separador = fecha.includes("-") ? "-" : "/";
-            const [anio, mes, dia] = fecha.split(separador);
+            fecha = fecha.split("T")[0];
+            const [anio, mes, dia] = fecha.split("-");
             return `${dia}/${mes}/${anio}`;
         },
         async fetchData() {

@@ -74,6 +74,7 @@ switch ($opcion) {
         $id = $data['id'] ?? null;
         $consulta = "SELECT
                     a.*,
+                    DATE_FORMAT(a.fecha_acta, '%d/%m/%Y') AS fecha_acta,
                     b.impuesto AS impuesto,
                     b.descripcion AS impuestos_descripcion,
                     d.usuario AS programador_descripcion,
@@ -126,7 +127,7 @@ switch ($opcion) {
                     o.num_oficio,
                     o.num_orden,
                     CONCAT(o.num_orden, '/', RIGHT(o.anio, 2)) AS orden_anio,
-                    o.fecha_orden
+                    o.fecha_orden AS fecha_orden
                     FROM siga_prospectos AS a
                     LEFT JOIN siga_prospectos_impuestos AS b ON a.impuesto_id = b.id
                     LEFT JOIN siga_prospectos_programadores AS d ON a.programador_id = d.id
@@ -190,6 +191,9 @@ switch ($opcion) {
             }
             if (!empty($fecha_acta)) {
                 $dateObj = DateTime::createFromFormat('d/m/Y', $fecha_acta);
+                if (!$dateObj) {
+                    $dateObj = DateTime::createFromFormat('Y-m-d', $fecha_acta);
+                }
                 if ($dateObj) {
                     $fecha_acta = $dateObj->format('Y-m-d');
                 }
