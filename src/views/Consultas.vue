@@ -44,7 +44,7 @@
           </vue-excel-xlsx>
         </v-col>
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
@@ -162,6 +162,7 @@ export default {
         {label:"PROGRAMADOR", field:"programador_descripcion"},
         {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
+        {label:"GIRO", field:"giro"},
       ],
       prospectosie: [],
       prospectosie_no_localizados: [],
@@ -171,8 +172,8 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
         fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
-        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta: '', origen_id:null, 
-        representante_legal: null, estatus: 1,
+        programador_descripcion: null, retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta: '', 
+        origen_id:null, representante_legal: null, estatus: 1,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -198,7 +199,7 @@ export default {
   },
   methods: {
     esUsuarioNivel0() {
-      const nivel = Number(localStorage.getItem('nivel'));
+      const nivel = Number(localStorage.getItem('siga_nivel'));
       if (nivel === 0) {
         return true
       }else
@@ -232,7 +233,12 @@ export default {
         .post(api.crud, { opcion: 1, estatus_prospecto:0 })
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.prospectosie = response.data;
+            this.prospectosie = response.data.map(item => ({
+              ...item,
+              cambio_domicilio: Number(item.cambio_domicilio ?? 0),
+              retenedor: Number(item.retenedor ?? 0),
+              origen_id: Number(item.origen_id ?? 0)
+            }));
 
             // Filtrar los registros con antecedente_id = 7
             this.prospectosie_no_localizados = this.prospectosie
@@ -448,7 +454,7 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(api.oficinas).then((response) => {
+      axios.post(api.oficinas_listado).then((response) => {
         this.oficinas_listado = response.data;
       });
     },
@@ -472,7 +478,7 @@ export default {
     },
 
     obtieneusuarios: function () {
-      const usuarioId = localStorage.getItem('id');
+      const usuarioId = localStorage.getItem('siga_id');
       axios.post(api.programadores, {  opcion: 2, id: usuarioId  }).then((response) => {
         this.programadores_listado = response.data;
       });
@@ -485,10 +491,12 @@ export default {
     },
     //Botones y formularios
     async handleGuardar(prospectoieData, periodosParaAgregar) {
+      const periodosClonados = Array.isArray(periodosParaAgregar) ? [...periodosParaAgregar] : [];
+
       if (this.operacion === "crear") {
-        await this.crear(prospectoieData, periodosParaAgregar);
+        await this.crear(prospectoieData, periodosClonados);
       } else if (this.operacion === "editar") {
-        await this.editar(prospectoieData, periodosParaAgregar);
+        await this.editar(prospectoieData, periodosClonados);
       }
     },
 
@@ -530,8 +538,9 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
+      this.prospectoie.programador_descripcion = objeto.programador_descripcion;
       this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
@@ -540,7 +549,7 @@ export default {
       this.prospectoie.representante_legal=objeto.representante_legal;
       this.prospectoie.observaciones=objeto.observaciones;
       this.prospectoie.estatus_descripcion=objeto.estatus_descripcion;
-      this.prospectoie.estatus=objeto.estatus;
+      this.prospectoie.estatus = Number(objeto.estatus);
     },
     
     convertirFecha(fechaCaptura) {

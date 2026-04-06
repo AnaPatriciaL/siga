@@ -1,66 +1,41 @@
 /* eslint-disable */
 <template>
   <v-app>
-    <v-navigation-drawer
-      app
-      class="grey darken-3"
-      v-model="drawer"
-      v-if="isAuthenticated"
-    >
+    <v-navigation-drawer app class="grey darken-3" v-model="drawer" v-if="isAuthenticated">
       <!-- Navigation Drawer Header -->
       <v-list-item class="grey darken-3 py-1">
         <v-list-item-content class="text-center">
-          <v-list-item-title class="title white--text center"
-            >SIGA</v-list-item-title
-          >
+          <v-list-item-title class="title white--text center">SIGA</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-
       <v-divider></v-divider>
-
       <v-list dense class="grey darken-3">
         <!-- Principal -->
-        <v-list-item
-          link
-          :to="{ name: 'Principal' }"
-          @click="cerrarOpcion"
-          active-class="menu-item--active"
-          exact
-          class="grey--text"
-        >
+        <v-list-item link :to="{ name: 'Principal' }" @click="cerrarOpcion" active-class="menu-item--active" exact class="grey--text">
           <v-list-item-icon>
-            <v-icon :color="isActive('Principal') ? 'white' : 'teal'"
-              >mdi-home</v-icon>
+            <v-icon :color="isActive('Principal') ? 'white' : 'teal'">mdi-home</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title :class="{ 'white--text': isActive('Principal') }"
-              >Principal</v-list-item-title
-            >
+            <v-list-item-title :class="{ 'white--text': isActive('Principal') }">Principal</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-
         <!-- Opciones de usuario dinámicas -->
-        <v-list-item
-          v-for="opcion in opcionesMenu"
-          :key="opcion.orden"
-          :to="{ name: opcion.ruta }"
-          @click="cerrarOpcion"
-          active-class="menu-item--active"
-          class="grey--text"
-        >
-          <v-list-item-icon>
-            <v-icon :color="isActive(opcion.ruta) ? 'white' : (opcion.color || 'grey')">
-              {{ opcion.icono || "mdi-view-dashboard" }}
-              <!-- Icono por defecto si no hay color o icono -->
-            </v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title
-              :class="{ 'white--text': isActive(opcion.ruta) }"
-              >{{ opcion.nombre_opcion }}</v-list-item-title
-            >
-          </v-list-item-content>
-        </v-list-item>
+        <div v-for="(grupos, ambito) in menuPorAmbito" :key="ambito">
+          <v-subheader class="white--text font-weight-bold">{{ ambito }}</v-subheader>
+          <v-list-group v-for="(items, grupo) in grupos" :key="grupo" prepend-icon="mdi-folder" no-action>
+            <template v-slot:activator>
+              <v-list-item-title class="white--text">{{ grupo }}</v-list-item-title>
+            </template>
+            <v-list-item v-for="opcion in items" :key="opcion.id" :to="{ name: opcion.ruta }" @click="seleccionarAmbito(ambito)" active-class="menu-item--active" class="grey--text">
+              <v-list-item-icon>
+                <v-icon :color="isActive(opcion.ruta) ? 'white' : (opcion.color || 'grey')">{{ opcion.icono || "mdi-view-dashboard" }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-content>
+                <v-list-item-title :class="{ 'white--text': isActive(opcion.ruta) }">{{ opcion.nombre_opcion }}</v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list-group>
+        </div>
         <!-- Acerca de (opción fija al final del menú) -->
         <v-list-item link :to="{ name: 'Acercade' }" @click="cerrarOpcion" active-class="menu-item--active" class="grey--text">
           <v-list-item-icon>
@@ -70,7 +45,6 @@
             <v-list-item-title :class="{ 'white--text': isActive('Acercade') }">Acerca de</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-
         <v-spacer></v-spacer>
         <div class="bottom-item">
           <v-list-item link @click="logout" active-class="menu-item--active">
@@ -78,25 +52,19 @@
               <v-icon class="white--text">mdi-account</v-icon>
             </v-list-item-icon>
             <v-list-item-content>
-              <v-list-item-title class="white--text bold"
-                >Salir</v-list-item-title
-              >
+              <v-list-item-title class="white--text bold">Salir</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </div>
       </v-list>
     </v-navigation-drawer>
-
     <!-- App Toolbar -->
     <v-app-bar app color="pink darken-4" dark v-if="isAuthenticated">
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-toolbar-title>Sistema Integral de Gestión de Auditorías</v-toolbar-title>
       <v-spacer></v-spacer>
-      <span v-if="isAuthenticated" class="white--text"
-        >Bienvenido, {{ usuarioLogueado }}</span
-      >
+      <span v-if="isAuthenticated" class="white--text">Bienvenido, {{ usuarioLogueado }}</span>
     </v-app-bar>
-
     <!-- Main Content -->
     <v-main class="grey lighten-2">
       <router-view></router-view>
@@ -113,10 +81,73 @@ export default {
   data() {
     return {
       drawer: false,
-      isAuthenticated: !!localStorage.getItem("token"),
-      usuarioLogueado: localStorage.getItem("nombre") || "",
+      isAuthenticated: !!localStorage.getItem("siga_token"),
+      usuarioLogueado: localStorage.getItem("siga_nombre") || "",
+      ambitoAcceso: localStorage.getItem("siga_acceso_ambito") || "",
+      ambitoSeleccionado: localStorage.getItem("siga_ambito_seleccionado") || "Estatales",
       opcionesMenu: [],
     };
+  },
+  computed: {
+    tieneFederales() {
+      return this.opcionesMenu.some(op => op.ambito === "Federales");
+    },
+    menuPorAmbito() {
+      const resultado = {};
+      const estatales = this.menuAgrupadoPor("Estatales");
+      if (Object.keys(estatales).length > 0) {
+        resultado["Estatales"] = estatales;
+      }
+      if (this.ambitoAcceso === "Ambos") {
+        const federales = this.menuAgrupadoPor("Federales");
+        if (Object.keys(federales).length > 0) {
+          resultado["Federales"] = federales;
+        }
+      }
+      return resultado;
+    },
+    menuAgrupado() {
+      const grupos = {};
+      this.opcionesMenu.forEach(op => {
+        const grupo = op.nombre_grupo || "Otros";
+        if (!grupos[grupo]) {
+          grupos[grupo] = {
+            orden: op.orden_grupo,
+            items: []
+          };
+        }
+        grupos[grupo].items.push(op);
+      });
+      return Object.keys(grupos)
+        .sort((a, b) => grupos[a].orden - grupos[b].orden)
+        .reduce((obj, key) => {
+          obj[key] = grupos[key].items;
+          return obj;
+        }, {});
+    },
+    menuAgrupadoPor() {
+      return (ambito) => {
+        const grupos = {};
+        this.opcionesMenu
+          .filter(op => op.ambito === ambito || op.ambito === "Ambos")
+          .forEach(op => {
+            const grupo = op.nombre_grupo || "Otros";
+            if (!grupos[grupo]) {
+              grupos[grupo] = {
+                orden: op.orden_grupo,
+                items: []
+              };
+            }
+            grupos[grupo].items.push(op);
+          });
+        return Object.keys(grupos)
+          .sort((a, b) => grupos[a].orden - grupos[b].orden)
+          .reduce((obj, key) => {
+            obj[key] = grupos[key].items;
+            return obj;
+          }, {});
+      }
+    }
   },
   mounted() {
     document.title = "SATES - SIGA";
@@ -124,15 +155,19 @@ export default {
     this.$root.$on("authenticated", this.checkAuthentication);
   },
   methods: {
+    seleccionarAmbito(ambito) {
+      localStorage.setItem("siga_ambito_seleccionado", ambito);
+    },
     async cargarOpcionesMenu() {
       try {
-        const usuarioId = localStorage.getItem("id");
+        const usuarioId = localStorage.getItem("siga_id");
         if (!usuarioId) {
           console.warn("No se encontró un ID de usuario en localStorage.");
           return;
         }
 
         const response = await fetch(api.obtenerOpcionesMenu(usuarioId));
+        // api.obtenerOpcionesMenu(usuarioId, ambitoSeleccionado); federales
 
         // Validar si la respuesta es correcta
         if (!response.ok) {
@@ -177,13 +212,16 @@ export default {
     },
     logout() {
       // Redirigir al usuario a la vista de login
-      localStorage.removeItem("id");
-      localStorage.removeItem("token");
-      localStorage.removeItem("nombre");
-      localStorage.removeItem("nivel");
+      localStorage.removeItem("siga_id");
+      localStorage.removeItem("siga_token");
+      localStorage.removeItem("siga_nombre");
+      localStorage.removeItem("siga_nivel");
+      localStorage.removeItem("siga_acceso_ambito");
+      localStorage.removeItem("siga_ambito_seleccionado");
       this.$user.id = null;
       this.$user.nombre = null;
       this.$user.nivel = null;
+      this.$user.acceso_ambito = null;
       this.isAuthenticated = false;
       this.usuarioLogueado = "";
       this.opcionesMenu = [];
@@ -191,10 +229,11 @@ export default {
     },
     
     checkAuthentication() {
-      const token = localStorage.getItem("token");
-      const id = localStorage.getItem("id");
-      const nombre = localStorage.getItem("nombre");
-      const nivel = localStorage.getItem("nivel");
+      const token = localStorage.getItem("siga_token");
+      const id = localStorage.getItem("siga_id");
+      const nombre = localStorage.getItem("siga_nombre");
+      const nivel = localStorage.getItem("siga_nivel");
+      const acceso_ambito = localStorage.getItem("siga_acceso_ambito");
 
       // Convierte el token en un valor booleano (true si existe, false si no)
       this.isAuthenticated = !!token; 

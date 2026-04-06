@@ -10,13 +10,13 @@
       </v-row>
       <v-row class="mb-4" align="center">
         <v-col class="d-flex align-center">
-          <!-- Boton exportar Excel -->
+          <!-- Boton exportar Excel
           <v-tooltip top color="green darken-3" v-if="permiso">
             <template v-slot:activator="{ on, attrs }">
               <v-btn fab class="green ml-3 mt-2" dark v-bind="attrs" v-on="on" @click="exportarExcelConEstilo"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
             </template>
             <span>Exportar a Excel</span>
-          </v-tooltip>
+          </v-tooltip> -->
           <!-- Boton recargar  -->
           <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
@@ -26,12 +26,12 @@
           </v-tooltip>  
         </v-col>            
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
       <!-- Tabla y formulario -->
-      <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
+      <v-data-table v-model="selectedProspectos" :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca" show-select>
         <template v-slot:item.tipo="{ item }">
           <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
           <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
@@ -59,6 +59,18 @@
           </v-tooltip>
         </template>
       </v-data-table>
+      <v-row class="mt-4">
+        <v-col class="d-flex justify-end">
+          <v-btn :loading="progresoVisible" color="teal" dark @click="generarListadoComite" :disabled="selectedProspectos.length === 0  || progresoVisible" class="mr-2">Generar listado comité ({{ selectedProspectos.length }})</v-btn>
+          <v-btn :loading="progresoVisible" color="blue-grey" dark @click="autorizarProspectosSeleccionados" :disabled="selectedProspectos.length === 0 || progresoVisible">Autorizar órdenes seleccionadas ({{ selectedProspectos.length }})</v-btn>
+        </v-col>
+      </v-row>
+      <v-dialog v-model="progresoVisible" persistent max-width="400">
+      <v-card class="pa-4" style="text-align: center;">
+        <v-progress-circular indeterminate size="50"></v-progress-circular>
+        <div class="mt-3">{{ progresoMensaje }}</div>
+      </v-card>
+    </v-dialog>   
     </v-container>
     <!-- Componente de Diálogo para CREAR y EDITAR (extraído) -->
     <form-crear-editar
@@ -98,9 +110,18 @@ export default {
   data() {
     return {
       busca: "",
+      selectedProspectos: [],
       dialogAntecedente: false,
+      progresoVisible: false,
+      progresoMensaje: "",
       prospectoSeleccionado: null,
       encabezados: [
+        {
+          text: "",
+          value: "data-table-select",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "20"
+        },
         {
           text: "RFC",
           value: "rfc",
@@ -117,7 +138,7 @@ export default {
           text: "DOMICILIO COMPLETO",
           value: "domicilio_completo",
           class: "pink darken-4 white--text elevation-1",
-          width: "500"
+          width: "400"
         },
         {
           text: "PERIODOS",
@@ -144,10 +165,16 @@ export default {
           width:"70"
         },
         {
+          text: "FOLIO LISTADO",
+          value: "folio_listado",
+          class: "pink darken-4 white--text elevation-1",
+          width: "70"
+        },
+        {
           text: "ACCIONES",
           value: "actions",
           class: "pink darken-4 white--text elevation-1",
-          width:"140"
+          width: "160"
         },
       ],
       columnas: [
@@ -169,6 +196,7 @@ export default {
         {label:"PROGRAMADOR", field:"programador_descripcion"},
         {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
+        {label:"GIRO", field:"giro"},
       ],
       prospectosie: [],
       prospectosie_no_localizados: [],
@@ -178,8 +206,8 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
         fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
-        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, origen_id:null, 
-        representante_legal: null, estatus: 4,
+        programador_descripcion: null, retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, 
+        origen_id:null, representante_legal: null, estatus: 4,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -204,7 +232,92 @@ export default {
     this.obtieneantecedentes(),
     this.obtienemunicipios()
   },
- methods: {
+  methods: {
+    async generarListadoComite() {
+      if (this.selectedProspectos.length === 0) return;
+      const ids = new Set(this.selectedProspectos.map(p => p.id));
+      const seleccionados = this.prospectosie.filter(p => ids.has(p.id));
+
+      const confirm = await Swal.fire({
+        title: '¿Enviar al comité?',
+        text: `Se enviarán ${seleccionados.length} prospectos.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, enviar',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      const payload = {opcion: 1, prospectos: seleccionados.map(p => ({ id: p.id }))};
+
+      this.progresoVisible = true;
+      this.progresoMensaje = 'Generando listado de comité...';
+
+      try {
+        const resp = await axios.post(api.comites, payload);
+        if (!resp.data || resp.data.status !== true) {
+          throw new Error(resp.data?.msg || 'Error en el servidor');
+        }
+        this.exportarExcelConEstilo(seleccionados);
+        Swal.fire({
+          title: 'Listado generado',
+          text: 'Se envió al comité y se descargó el Excel correctamente.',
+          icon: 'success'
+        });
+
+        this.selectedProspectos = [];
+        this.mostrar();
+
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Error', 'No se pudo generar el listado.', 'error');
+      } finally {
+        this.progresoVisible = false;
+      }
+    },
+    async autorizarProspectosSeleccionados() {
+      if (this.selectedProspectos.length === 0) return;
+
+      const total = this.selectedProspectos.length;
+      let autorizados = 0;
+
+      this.progresoVisible = true;
+      this.progresoMensaje = 'Iniciando autorización...';
+
+      try {
+        for (let i = 0; i < total; i++) {
+          const prospecto = this.selectedProspectos[i];
+          this.actualizarProgreso(`Autorizando prospecto ${i + 1} de ${total}...`);
+
+          await axios.post(api.crud, {
+            opcion: 5,
+            id: prospecto.id,
+            estatus: 5
+          });
+
+          autorizados++;
+        }
+
+        Swal.fire({
+          title: 'Proceso completado',
+          text: `${autorizados} prospectos autorizados correctamente.`,
+          icon: 'success'
+        });
+
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Error', 'Ocurrió un problema al autorizar prospectos.', 'error');
+      } finally {
+        this.progresoVisible = false;
+        this.selectedProspectos = [];
+        this.mostrar();
+      }
+    },
+    actualizarProgreso(texto) {
+      this.progresoMensaje = texto;
+      this.progresoVisible = true;
+    },
     confirmarPendiente({ antecedente_id, observaciones }) {
       if (!this.prospectoSeleccionado) return;
 
@@ -235,9 +348,10 @@ export default {
         this.prospectoSeleccionado = null;
       });
     },
-    exportarExcelConEstilo() {
+    exportarExcelConEstilo(lista = null) {
       // Filtrar los prospectos para incluir solo aquellos con estatus 4
-      const prospectosFiltrados = this.prospectosie.filter(p => Number(p.estatus) === 4);
+      const base = Array.isArray(lista) && lista.length ? lista : this.prospectosie.filter(p => Number(p.estatus) === 4);
+      const prospectosFiltrados = base;
       const cruceData = prospectosFiltrados.filter(p => Number(p.origen_id) === 0);
       const prospectoData = prospectosFiltrados.filter(p => Number(p.origen_id) === 1);
 
@@ -589,6 +703,7 @@ export default {
       this.dialogAntecedente = true;
     },
     mostrar: function () {
+      this.selectedProspectos = [];
       axios
         .post(api.crud, { opcion: 1, estatus_prospecto:4 })
         .then((response) => {
@@ -598,7 +713,13 @@ export default {
               const impuestoB = b.impuesto || '';
               return impuestoA.localeCompare(impuestoB);
             });
-            this.prospectosie = datosOrdenados;
+            const datosNormalizados = datosOrdenados.map(item => ({
+              ...item,
+              cambio_domicilio: Number(item.cambio_domicilio ?? 0),
+              retenedor: Number(item.retenedor ?? 0),
+              origen_id: Number(item.origen_id ?? 0)
+            }));
+            this.prospectosie = datosNormalizados;;
             this.prospectosie_no_localizados = this.prospectosie
             .filter(item => Number(item.antecedente_id) === 7) 
             .map(item => ({ ...item }));
@@ -731,7 +852,7 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(api.oficinas).then((response) => {
+      axios.post(api.oficinas_listado).then((response) => {
         this.oficinas_listado = response.data;
       });
     },
@@ -806,8 +927,9 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
+      this.prospectoie.programador_descripcion = objeto.programador_descripcion;
       this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);

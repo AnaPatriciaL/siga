@@ -17,6 +17,13 @@ import Programadores from "@/views/Programadores.vue";
 import Oficinas from "@/views/Oficinas.vue";
 import Acercade from "@/views/Acercade.vue";
 import Memorandum from "@/views/Memorandum.vue";
+import Dashboard from "@/views/Dashboard.vue";
+import Historial from "@/views/Historial.vue";
+import Poa from "@/views/Poa.vue";
+import Pagos from "@/views/Pagos.vue";
+import Cruce from "@/views/Cruce.vue";
+import Captura from "@/views/Captura.vue";
+import EditarEmitidas from "@/views/EditarEmitidas.vue";
 
 
 Vue.use(Router);
@@ -114,13 +121,55 @@ const router = new Router({
       component: Memorandum,
       meta: { requiresAuth: true },
     },
+    {
+      path: "/dashboard",
+      name: "Dashboard",
+      component: Dashboard,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/historial",
+      name: "Historial",
+      component: Historial,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/poa",
+      name: "Poa",
+      component: Poa,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/pagos",
+      name: "Pagos",
+      component: Pagos,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/cruce",
+      name: "Cruce",
+      component: Cruce,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/captura",
+      name: "Captura",
+      component: Captura,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/editar-emitidas",
+      name: "EditarEmitidas",
+      component: EditarEmitidas,
+      meta: { requiresAuth: true },
+    },
     { path: "/login", name: "login", component: Login },
   ],
 });
 
 // Guard de navegación
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("siga_token");
 
   // Si el usuario está autenticado y quiere ir a /login, redirigir a la ruta principal
   if (token) {

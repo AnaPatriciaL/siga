@@ -11,14 +11,12 @@
       <v-row class="mb-4" align="center">
         <v-col class="d-flex align-center">
           <!-- Boton exportar Excel -->
-          <vue-excel-xlsx v-if="permiso" :data="prospectosie" :columns="columnas" :file-name="'Emitidas'" :file-type="'xlsx'" :sheet-name="'ProspectosIE'">
-            <v-tooltip top color="green darken-3">
-              <template v-slot:activator="{ on, attrs }">
-                <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
-              </template>
-              <span>Exportar a Excel</span>
-            </v-tooltip>
-          </vue-excel-xlsx>
+          <v-tooltip top color="indigo darken-3" v-if="permiso">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab class="ml-3" color="green darken-3" dark v-bind="attrs" v-on="on" @click="generarFiscaweb"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+            </template>
+            <span>Generar archivo FISCAWEB</span>
+          </v-tooltip>
           <!-- Boton recargar  -->
           <v-tooltip right color="light-blue darken-4">
             <template v-slot:activator="{ on, attrs }">
@@ -28,12 +26,17 @@
           </v-tooltip>
         </v-col>              
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
+      <v-row class="mb-4" align="center">
+        <v-col class="d-flex align-center" cols="12" md="2"><v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details class="mr-4"/></v-col>
+        <v-col cols="12" md="2"><v-btn color="pink darken-4 white--text" @click="consultar">CONSULTAR</v-btn></v-col>       
+        <v-spacer></v-spacer>
+      </v-row>
       <!-- Tabla y formulario -->
-      <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" class="elevation-1" :search="busca">
+      <v-data-table :headers="encabezados" :items="prospectosie" item-key="id" :search="busca" class="tabla-emitidas">
         <template v-slot:item.tipo="{ item }">
           <v-icon v-if="item.antecedente_id==6" large class="mr-2" color="blue-grey darken-2" dark dense>mdi-cog-sync</v-icon>
           <v-icon v-if="item.antecedente_id==7" large class="mr-2" color="pink accent-3" dark dense>mdi-map-marker-remove</v-icon>
@@ -41,12 +44,12 @@
         </template>
         <!-- Acciones -->
         <template v-slot:item.actions="{ item }">
-          <v-tooltip top>
+          <!-- <v-tooltip top>
             <template v-slot:activator="{ on, attrs }">
               <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="amber" dark dense style="font-size: 32px" @click="formEditar(item)">mdi-pencil</v-icon>
             </template>
             <span>Editar Prospecto</span>
-          </v-tooltip>
+          </v-tooltip> -->
           <v-tooltip top>
             <template v-slot:activator="{ on, attrs }">
               <v-icon v-bind="attrs" v-on="on" large class="ml-2" color="black" dark dense style="font-size: 32px" @click="vistaPrevia(item)">mdi-file-eye</v-icon>
@@ -102,65 +105,80 @@
 <script>
   import Swal from 'sweetalert2';
   import axios from 'axios';
-  import VueExcelXlsx from "vue-excel-xlsx";
   import FormCrearEditar from '@/components/formCrearEditar.vue';
   import api from '@/services/apiUrls.js';
+  import * as XLSX from 'xlsx-js-style';
 
 export default {
   name: "Emitidas",
   data() {
     return {
       busca: "",
+      filtros: {anio: null},
+      anios: [],
+      anioActual: new Date().getFullYear(),
       progresoVisible: false,
       progresoMensaje: "",
       encabezados: [
         {
+          text: "ACCIONES",
+          value: "actions",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "80"
+        },
+        {
+          text: "OFICIO",
+          value: "num_oficio",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "70"
+        },
+        {
+          text: "ORDEN",
+          value: "orden_anio",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "120"
+        },
+        {
+          text: "FECHA DE ORDEN",
+          value: "fecha_orden",
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "120"
+        },
+         {
           text: "RFC",
           value: "rfc",
           class: "pink darken-4 white--text elevation-1 center-header",
-          width:"70"
+          width: "70"
         },
         {
           text: "NOMBRE",
           value: "nombre",
-          class: "pink darken-4 white--text elevation-1",
-          width:"250"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "250"
         },
         {
           text: "DOMICILIO COMPLETO",
           value: "domicilio_completo",
-          class: "pink darken-4 white--text elevation-1",
-          width: "500"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "350"
         },
         {
           text: "PERIODOS",
           value: "periodos",
-          class: "pink darken-4 white--text elevation-1",
-          width:"150"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "100"
         },
         {
           text: "IMPUESTO",
           value: "impuesto",
-          class: "pink darken-4 white--text elevation-1",
-          width:"70"
-        },
-        {
-          text: "TIPO",
-          value: "tipo",
-          class: "pink darken-4 white--text elevation-1",
+          class: "pink darken-4 white--text elevation-1 center-header",
           width: "50"
         },
         {
           text: "PROGRAMADOR",
           value: "programador_descripcion",
-          class: "pink darken-4 white--text elevation-1",
-          width:"70"
-        },
-        {
-          text: "ACCIONES",
-          value: "actions",
-          class: "pink darken-4 white--text elevation-1",
-          width:"140"
+          class: "pink darken-4 white--text elevation-1 center-header",
+          width: "40"
         },
       ],
       columnas: [
@@ -191,8 +209,8 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
         fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
-        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, origen_id:null,  
-        representante_legal: null, estatus: 6,
+        programador_descripcion: null, retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, 
+        origen_id:null, representante_legal: null, estatus: 6,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -212,15 +230,137 @@ export default {
   },
   created() {
     this.obtenerPermisos();
-    this.mostrar(),
-    this.obtieneoficinas(),
-    this.obtienefuentes(),
-    this.obtieneimpuestos(),
-    this.obtieneusuarios(),
-    this.obtieneantecedentes()
-    this.obtienemunicipios()
+    this.obtieneoficinas();
+    this.obtienefuentes();
+    this.obtieneimpuestos();
+    this.obtieneusuarios();
+    this.obtieneantecedentes();
+    this.obtienemunicipios();
+    this.obtenerAnios();
   },
  methods: {
+  async generarFiscaweb() {
+    if (this.progresoVisible) return;
+    try {
+      this.actualizarProgreso('Generando archivo ORDENES_FISCAWEB...');
+      const { data } = await axios.post(api.fiscaweb, {opcion: 1});
+
+      if (!Array.isArray(data) || !data.length) {
+        this.progresoVisible = false;
+        Swal.fire('Aviso', 'No hay información para generar el archivo.', 'warning');
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const border = {top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }};
+      const headerStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border};
+      const cellCenter = {alignment: { horizontal: 'center', vertical: 'center' }, border};
+      const cellLeft = {alignment: { horizontal: 'left', vertical: 'center' }, border};
+      const cCenterYellow = {alignment: { horizontal: 'center', vertical: 'center' }, fill: { fgColor: { rgb: 'FFF9C4' } }, border};
+      const cLeftYellow = {alignment: { horizontal: 'left', vertical: 'center' }, fill: { fgColor: { rgb: 'FFF9C4' } }, border};
+      const rows = [];
+      rows.push([
+        { v: 'ORDEN', s: headerStyle },
+        { v: 'EXPEDIENTE', s: headerStyle },
+        { v: 'OFICIO', s: headerStyle },
+        { v: 'FECORDEN', s: headerStyle },
+        { v: 'NUMOFICIO', s: headerStyle },
+        { v: 'RFC', s: headerStyle },
+        { v: 'NOMBRE', s: headerStyle },
+        { v: 'DIRECCION', s: headerStyle },
+        { v: 'OFICINA_OFICINA', s: headerStyle },
+        { v: 'FUENTE_FUENTE', s: headerStyle },
+        { v: 'SUBPROG_SUBPROG', s: headerStyle },
+        { v: 'EJERCICIO_EJERCICIO', s: headerStyle },
+        { v: 'MUNICIPIO_MUNICIPIO', s: headerStyle },
+        { v: 'METODO_METODO', s: headerStyle },
+        { v: 'JEFEDEPTO_RFC', s: headerStyle },
+        { v: 'PRESUNTIVA', s: headerStyle },
+        { v: 'PER1', s: headerStyle },
+        { v: 'EJE1_EJERCICIO', s: headerStyle },
+        { v: 'PER2', s: headerStyle },
+        { v: 'EJE2_EJERCICIO', s: headerStyle },
+        { v: 'PROGRAMADOR_RFC', s: headerStyle },
+        { v: 'PORTALUSER', s: headerStyle },
+        { v: 'FECALTASIS', s: headerStyle },
+        { v: 'ESTATUS_ESTATUS', s: headerStyle },
+        { v: 'PERIODO', s: headerStyle }
+      ]);
+      data.forEach(item => {
+        const yellow = Number(item.MODIFICADO) === 1;
+        const cCenter = yellow ? cCenterYellow : cellCenter;
+        const cLeft = yellow ? cLeftYellow   : cellLeft;
+        rows.push([
+          { v: item.ORDEN || '', s: cCenter },                 
+          { v: item.EXPEDIENTE || '', s: cCenter },                        
+          { v: item.OFICIO || '', s: cCenter },                
+          { v: item.FECORDEN || '', s: cCenter },               
+          { v: item.NUMOFICIO || '', s: cCenter },                
+          { v: item.RFC || '', s: cCenter },                       
+          { v: item.NOMBRE || '', s: cLeft },                      
+          { v: item.DIRECCION || '', s: cLeft },          
+          { v: item.OFICINA_OFICINA || '', s: cCenter },       
+          { v: item.FUENTE_FUENTE || '', s: cCenter },        
+          { v: item.SUBPROG_SUBPROG || '', s: cCenter },               
+          { v: item.EJERCICIO_EJERCICIO || '', s: cCenter },             
+          { v: item.MUNICIPIO_MUNICIPIO || '', s: cCenter },                 
+          { v: item.METODO_METODO || '', s: cCenter },                    
+          { v: item.JEFEDEPTO_RFC || '', s: cCenter },            
+          { v: item.PRESUNTIVA || '', s: cCenter },                
+          { v: item.PER1 || '', s: cCenter },                      
+          { v: item.EJE1_EJERCICIO || '', s: cCenter },                      
+          { v: item.PER2 || '', s: cCenter },                      
+          { v: item.EJE2_EJERCICIO || '', s: cCenter },                      
+          { v: item.PROGRAMADOR_RFC || '', s: cCenter },           
+          { v: item.PORTALUSER || '', s: cCenter },      
+          { v: item.FECALTASIS || '', s: cCenter },             
+          { v: item.ESTATUS_ESTATUS || '', s: cCenter },      
+          { v: item.PERIODO || '', s: cCenter }                  
+        ]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = Array(25).fill({ wch: 18 });
+      XLSX.utils.book_append_sheet(wb, ws, 'ORDENES');
+      XLSX.writeFile(wb, `ORDENES_FISCAWEB_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Error', 'No se pudo generar el archivo ORDENES_FISCAWEB', 'error');
+    } finally {
+      this.progresoVisible = false;
+    }
+  },
+  async obtenerAnios() {
+    try {
+        const { data } = await axios.post(api.dashboard, { opcion: 1 });
+        this.anios = data.map(item => Number(item.anio));
+        if (this.anios.includes(this.anioActual)) {
+          this.filtros.anio = this.anioActual;
+        } else if (this.anios.length) {
+          this.filtros.anio = this.anios[0];
+        }
+        this.mostrar();
+    } catch (e) {
+        console.error('No se pudieron obtener los años', e);
+        this.anios = [];
+    }
+  },
+  async consultar() {
+    if (this.filtros.anio == null) {
+        Swal.fire('Advertencia', 'Por favor, selecciona un año antes de consultar.', 'warning');
+        return;
+    }
+    try { 
+        const { data } = await axios.post(api.emitidas, {
+            opcion: 2,
+            anio: this.filtros.anio
+        });
+        this.anioConsultado = this.filtros.anio;           
+    }catch (e)
+    {
+        console.error('Error al consultar los datos de emitidas', e);
+        Swal.fire('Error', 'No se pudieron obtener los datos de emitidas', 'error');
+    }
+  },
   cerrarVistaPrevia() {
       this.dialogVistaPrevia = false;
       if (this.pdfSrc) {
@@ -281,10 +421,15 @@ export default {
     },
     mostrar: function () {
       axios
-        .post(api.crud, { opcion: 1, estatus_prospecto:6 })
+        .post(api.emitidas, { opcion: 2, anio: this.filtros.anio})
         .then((response) => {
           if (Array.isArray(response.data)) {
-            this.prospectosie = response.data;
+            this.prospectosie = response.data.map(item => ({
+              ...item,
+              cambio_domicilio: Number(item.cambio_domicilio ?? 0),
+              retenedor: Number(item.retenedor ?? 0),
+              origen_id: Number(item.origen_id ?? 0)
+            }));
 
             // Filtrar los registros con antecedente_id = 7
             this.prospectosie_no_localizados = this.prospectosie
@@ -390,7 +535,7 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(api.oficinas).then((response) => {
+      axios.post(api.oficinas_listado).then((response) => {
         this.oficinas_listado = response.data;
       });
     },
@@ -465,8 +610,9 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
+      this.prospectoie.programador_descripcion = objeto.programador_descripcion;
       this.prospectoie.retenedor=Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);
@@ -565,7 +711,17 @@ tbody tr:nth-of-type(odd) {
   text-transform: uppercase
 }
 
-.center-header {
-  text-align: center;
+.tabla-emitidas thead th {
+  align-items: center !important;   
+  justify-content: center !important;
+  text-align: center !important;
+  height: 64px;             
+  padding: 0 8px !important;
+}
+
+.tabla-emitidas thead th .v-data-table-header__text {
+  display: block;
+  line-height: 1.2;
+  white-space: normal;
 }
 </style>

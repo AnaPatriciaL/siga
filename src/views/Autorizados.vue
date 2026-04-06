@@ -28,7 +28,7 @@
           </v-tooltip>
         </v-col>             
         <v-spacer></v-spacer>
-        <v-col COL="6">
+        <v-col cols="6">
           <v-text-field v-model="busca" append-icon="mdi-magnify" label="Buscar" single-line hide-details></v-text-field>
         </v-col>
       </v-row>
@@ -246,6 +246,12 @@ export default {
           width:"70"
         },
         {
+          text: "LISTADO",
+          value: "folio_listado",
+          class: "pink darken-4 white--text elevation-1",
+          width: "50"
+        },
+        {
           text: "ACCIONES",
           value: "actions",
           class: "pink darken-4 white--text elevation-1 text-center",
@@ -271,6 +277,7 @@ export default {
         {label:"PROGRAMADOR", field:"programador_descripcion"},
         {label:"REPRESETANTE LEGAL", field:"representante_legal"},
         {label:"OBSERVACIONES", field:"observaciones"},
+        {label:"GIRO", field:"giro"},
       ],
       prospectosie: [],
       prospectosie_no_localizados: [],
@@ -280,8 +287,8 @@ export default {
       prospectoie: { id: null, fecha_captura: null, rfc: null, nombre: null, calle: null, num_exterior: null, num_interior: null,
         colonia: null, cp: null, localidad: null, municipio_id:null, municipio: null, oficina_descripcion: null, oficina_id: null, 
         fuente_id:null, giro: null, periodos: null, impuesto_id: null, antecedente_id:null, determinado: 0, programador_id: null, 
-        retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, origen_id:null, 
-        representante_legal: null, estatus: 5,
+        programador_descripcion: null, retenedor:null, cambio_domicilio:null, domicilio_anterior:null, notificador:null, fecha_acta:null, 
+        origen_id:null, representante_legal: null, estatus: 5,
       },
       impuestos_listado: [],
       antecedentes_listado:[],
@@ -589,7 +596,7 @@ export default {
           <b>${this.impresoraPredeterminada}</b>
         `,
         input: 'number',
-        inputLabel: '¿Cuántas juegos desea imprimir?',
+        inputLabel: '¿Cuántos juegos desea imprimir?',
         inputValue: 1,
         showCancelButton: true,
         inputValidator: (value) => {
@@ -638,7 +645,7 @@ export default {
           <b>${this.impresoraPredeterminada}</b>
         `,
         input: 'number',
-        inputLabel: '¿Cuántas juegos desea imprimir?',
+        inputLabel: '¿Cuántos juegos desea imprimir?',
         inputValue: 1,
         showCancelButton: true,
         inputValidator: (value) => {
@@ -744,7 +751,7 @@ export default {
             opcion: 4, // Opción para REIMPRIMIR
             prospecto: item,
             copias: numCopias,
-            usuario_id: this.sessionData.id,
+            usuario_id: this.sessionData.id_usuario,
             fecha_orden: this.fechaOrden,
           };
           console.log("Enviando datos para REIMPRESIÓN:", data);
@@ -752,7 +759,7 @@ export default {
           // Es una GENERACIÓN NUEVA
           data = {
             prospecto: item,
-            usuario_id: this.sessionData.id,
+            usuario_id: this.sessionData.id_usuario,
             fecha_orden: this.fechaOrden,
             copias: numCopias
           };
@@ -876,61 +883,58 @@ export default {
         });
       }
     },
-    seleccionarProspecto: function (item) {
-      // Validar si el prospecto tiene una orden generada
+    seleccionarProspecto(item) {
+
       if (!this.tieneOrdenGenerada(item)) {
         Swal.fire({
           title: 'Acción no permitida',
           text: 'Debe generar la orden para este prospecto antes de enviarlo a emitidas.',
           icon: 'warning',
-          confirmButtonText: 'Entendido',
-          showCancelButton: false,
-          showConfirmButton: false,
           timer: 2000,
-          timerProgressBar: true,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          allowEnterKey: false
+          showConfirmButton: false
         });
-        return; // Detener la ejecución si no hay orden
+        return;
       }
 
       Swal.fire({
         title: '¿Enviar este prospecto a emitidas?',
-        text: "Esta acción enviará el prospecto a emitidas.",
+        text: 'Esta acción enviará el prospecto a emitidas.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
         confirmButtonText: 'Enviar',
         cancelButtonText: 'Cancelar'
       }).then((result) => {
-        if (result.isConfirmed) {
-          axios.post(api.crud, {
-            opcion: 5, // Opción para actualizar solo el estatus
-            id: item.id,
-            estatus: 6
-          }).then(response => {
-            Swal.fire({
-              title:'¡Emitida!',
-              text:'El prospecto ha sido enviado a emitidas.',
-              icon:'success',
-              showCancelButton: false,
-              showConfirmButton: false,
-              timer: 2000,
-              timerProgressBar: true,
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              allowEnterKey: false
-            });
-            this.mostrar(); // Recargar la tabla para reflejar el cambio
-            this.actualizarOrdenesCount(); // Actualizar los conteos de órdenes
 
-          }).catch(error => {
-            Swal.fire('Error', 'No se pudo enviar el prospecto.', 'error');
-            console.error("Error al cambiar estatus:", error);
+        if (!result.isConfirmed) return;
+
+        // Emitir
+        axios.post(api.emitidas, {
+          opcion: 1,
+          prospecto_id: item.id
+        })
+        .then(resp => {
+          if (!resp.data.status) {
+            Swal.fire('Error', resp.data.msg, 'error');
+            return;
+          }
+
+          Swal.fire({
+            title: '¡Emitida!',
+            text: 'El prospecto ha sido enviado a emitidas.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
           });
-        }
+
+          this.mostrar();
+          this.actualizarOrdenesCount();
+
+        })
+        .catch(error => {
+          console.error(error);
+          Swal.fire('Error', 'No se pudo completar la operación', 'error');
+        });
+
       });
     },
     async mostrar() {
@@ -938,10 +942,14 @@ export default {
         const response = await axios.post(api.crud, { opcion: 1, estatus_prospecto: 5 });
 
         if (Array.isArray(response.data)) {
-          this.prospectosie = response.data.map(p => ({
+          const datosNormalizados = response.data.map(p => ({
             ...p,
-            tieneOrden: false 
+            cambio_domicilio: Number(p.cambio_domicilio ?? 0),
+            retenedor: Number(p.retenedor ?? 0),
+            origen_id: Number(p.origen_id ?? 0),
+            tieneOrden: false
           }));
+          this.prospectosie = datosNormalizados;
 
           this.prospectosie_no_localizados = this.prospectosie
             .filter(p => Number(p.antecedente_id) === 7);
@@ -1068,7 +1076,7 @@ export default {
     },
 
     obtieneoficinas: function () {
-      axios.post(api.oficinas).then((response) => {
+      axios.post(api.oficinas_listado).then((response) => {
         this.oficinas_listado = response.data;
       });
     },
@@ -1143,8 +1151,9 @@ export default {
       this.prospectoie.antecedente_id=objeto.antecedente_id;
       this.prospectoie.impuesto_id=objeto.impuesto_id;
       this.prospectoie.programador_id=objeto.programador_id;
+      this.prospectoie.programador_descripcion = objeto.programador_descripcion;
       this.prospectoie.retenedor = Number(objeto.retenedor ?? 0);
-      this.prospectoie.cambio_domicilio=objeto.cambio_domicilio;
+      this.prospectoie.cambio_domicilio = Number(objeto.cambio_domicilio ?? 0);
       this.prospectoie.domicilio_anterior=objeto.domicilio_anterior;
       this.prospectoie.notificador=objeto.notificador;
       this.prospectoie.fecha_acta=this.convertirFecha(objeto.fecha_acta);

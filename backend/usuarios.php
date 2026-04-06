@@ -15,20 +15,28 @@ $response = ['mensaje' => 'Operación no realizada'];
 try {
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'POST': // Crear Usuario
-            if (!isset($data['usuario'], $data['nombre'], $data['contrasena'])) {
+            if (!isset($data['usuario'], $data['nombre'], $data['contrasena'], $data['nivel'], $data['programador_id'], $data['iniciales'])) {
                 throw new Exception('Faltan datos para crear el usuario');
             }
 
             $usuario = $data['usuario'];
             $nombre = $data['nombre'];
             $contrasena = password_hash($data['contrasena'], PASSWORD_BCRYPT);
+            $nivel = $data['nivel'];
+            $programador_id = $data['programador_id'];
+            $iniciales = $data['iniciales'];
+            $activo = isset($data['activo']) ? $data['activo'] : 1;
 
-            $consulta = "INSERT INTO siga_usuarios (nombre, usuario, contrasena) VALUES (:nombre, :usuario, :contrasena)";
+            $consulta = "INSERT INTO siga_usuarios (nombre, usuario, contrasena, nivel, programador_id, iniciales, activo) VALUES (:nombre, :usuario, :contrasena, :nivel, :programador_id, :iniciales, :activo)";
             $resultado = $conexion->prepare($consulta);
             $resultado->execute([
                 ':usuario' => $usuario,
                 ':nombre' => $nombre,
                 ':contrasena' => $contrasena,
+                ':nivel' => $nivel,
+                ':programador_id' => $programador_id,
+                ':iniciales' => $iniciales,
+                ':activo' => $activo
             ]);
 
             $response['mensaje'] = 'Usuario registrado correctamente';
@@ -41,22 +49,28 @@ try {
             break;
 
         case 'PUT': // Actualizar Usuario
-            if (!isset($data['id'], $data['usuario'], $data['nombre'],$data['contrasena'], $data['activo'])) {
+            if (!isset($data['id'], $data['usuario'], $data['nombre'], $data['activo'])) {
                 throw new Exception('Faltan datos para actualizar el usuario');
             }
 
-            $consulta = "UPDATE siga_usuarios SET nombre = :nombre, usuario = :usuario, contrasena = :contrasena, activo = :activo, nivel= :nivel, programador_id= :programador_id, iniciales= :iniciales WHERE id = :id";
-            $resultado = $conexion->prepare($consulta);
-            $resultado->execute([
+            $params = [
                 ':id' => $data['id'],
                 ':usuario' => $data['usuario'],
                 ':nombre' => $data['nombre'],
-                ':contrasena' => password_hash($data['contrasena'], PASSWORD_BCRYPT),
                 ':activo' => $data['activo'],
                 ':nivel' => $data['nivel'],
                 ':programador_id' => $data['programador_id'],
                 ':iniciales' => $data['iniciales']
-            ]);
+            ];
+
+            $sql_password = "";
+            if (!empty($data['contrasena'])) {
+                $sql_password = ", contrasena = :contrasena";
+                $params[':contrasena'] = password_hash($data['contrasena'], PASSWORD_BCRYPT);
+            }
+            $consulta = "UPDATE siga_usuarios SET nombre = :nombre, usuario = :usuario, activo = :activo, nivel= :nivel, programador_id= :programador_id, iniciales= :iniciales $sql_password WHERE id = :id";
+            $resultado = $conexion->prepare($consulta);
+            $resultado->execute($params);
 
             $response['mensaje'] = 'Usuario actualizado correctamente';
             break;

@@ -2,7 +2,7 @@ const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
 
 export default {
   crud: `${API_BASE_URL}/crud_prospectosie.php`,
-  oficinas: `${API_BASE_URL}/oficinas_listado.php`,
+  oficinas_listado: `${API_BASE_URL}/oficinas_listado.php`,
   fuentes: `${API_BASE_URL}/fuentes_listado.php`,
   programadores: `${API_BASE_URL}/programadores_listado.php`,
   impuestos: `${API_BASE_URL}/impuestos_listado.php`,
@@ -20,7 +20,17 @@ export default {
   asignarOpciones: `${API_BASE_URL}/asignarOpciones.php`,
   programadoresListado: `${API_BASE_URL}/programadores.php`,
   usuarios: `${API_BASE_URL}/usuarios.php`,
-  oficinas_listado: `${API_BASE_URL}/oficinas.php`,
+  oficinas: `${API_BASE_URL}/oficinas.php`,
+  emitidas: `${API_BASE_URL}/enviar_emitidas.php`,
+  memos: `${API_BASE_URL}/memos.php`,
+  dashboard: `${API_BASE_URL}/dashboard.php`,
+  historial: `${API_BASE_URL}/historial.php`,
+  comites: `${API_BASE_URL}/comites.php`,
+  fiscaweb: `${API_BASE_URL}/fiscaweb.php`,
+  poa: `${API_BASE_URL}/poa.php`,
+  pagos: `${API_BASE_URL}/pagos.php`,
+  cruce: `${API_BASE_URL}/cruce.php`,
+  editarEmitidas: `${API_BASE_URL}/editarEmitidas.php`,
   opcionesUsuario: (usuario_id) => `${API_BASE_URL}/opciones_usuario.php?usuario_id=${usuario_id}`,
   obtenerOpcionesMenu: (usuarioId) => `${API_BASE_URL}/obtener_opciones.php?usuario_id=${usuarioId}`,
 };

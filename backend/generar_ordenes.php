@@ -9,6 +9,7 @@ require_once __DIR__ . '/vendor/tecnickcom/tcpdf/tcpdf.php';
 \PhpOffice\PhpWord\Settings::setPdfRendererPath(__DIR__ . '/vendor/tecnickcom/tcpdf');
 \PhpOffice\PhpWord\Settings::setPdfRendererName('TCPDF');
 use PhpOffice\PhpWord\TemplateProcessor;
+use PhpOffice\PhpWord\Shared\Xml;
 
 function getConexion() {
     $objeto = new Conexion();
@@ -143,13 +144,14 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
 
     $anio_orden = date('Y', strtotime($fecha_orden ?? 'now'));
 
-    // Verificar si ya existe una orden para el mismo prospecto, con los mismos periodos y en el mismo año.
+    // Verificar si ya existe una orden para el mismo prospecto, con los mismos periodos.
     $stmt_orden = $conexion->prepare(
         "SELECT * FROM siga_prospectos_ordenes 
          WHERE id_prospecto = ? AND periodos = ? AND estatus = 1"
     );
     $stmt_orden->execute([$prospecto_id, $periodos_prospecto]);
     $orden_existente = $stmt_orden->fetch(PDO::FETCH_ASSOC);
+
     if ($orden_existente) {
         $stmt_folio = $conexion->prepare("SELECT * FROM siga_prospectos_folios_oficios WHERE num_folio = ?");
         $stmt_folio->execute([$orden_existente['num_oficio']]);
@@ -158,6 +160,7 @@ function getFolioOrCreate(PDO $conexion, $prospecto_id, $create = false, $id_gen
         $folio['num_folio'] = str_pad($folio['num_folio'], 5, '0', STR_PAD_LEFT);
         return $folio;
     }
+    
     if (!$create) {
         // Para la vista previa, generamos un número de orden temporal sin guardarlo
         return ['num_folio' => 'XXXXX', 'anio' => date('Y'), 'num_orden' => 'XXXX'];
@@ -375,6 +378,17 @@ function getDocumentacion($conexion, $rfc) {
     return $documentacion;                
 }
 
+function setSafeWordValue($tp, $key, $value)
+{
+    $safe = htmlspecialchars(
+        (string)($value ?? ''),
+        ENT_QUOTES | ENT_XML1,
+        'UTF-8'
+    );
+
+    $tp->setValue($key, $safe, 1, false);
+}
+
 function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, array $firmas, $fecha_orden_str, $prefix) {
     $fecha_formateada = formatDateToSpanish($fecha_orden_str);
     $template_file = "{$prefix}.docx";
@@ -412,7 +426,8 @@ function fillTemplateFromData(PDO $conexion, array $prospecto, array $folio, arr
     $templateProcessor->setValue('anio', $folio['anio'] ?? date('Y'));
     $templateProcessor->setValue('anio2', substr($folio['anio'] ?? date('Y'), -2));
     $templateProcessor->setValue('rfc', $prospecto['rfc'] ?? '');
-    $templateProcessor->setValue('nombre', $prospecto['nombre'] ?? '');
+    setSafeWordValue($templateProcessor, 'nombre', $prospecto['nombre']);
+    //$templateProcessor->setValue('nombre',$prospecto['nombre'] ?? '');              
     $templateProcessor->setValue('domicilio_completo', $prospecto['domicilio_completo'] ?? '');
     $templateProcessor->setValue('calle_numero', $prospecto['calle_numero'] ?? '');
     $templateProcessor->setValue('ciudad_estado', $prospecto['ciudad_estado'] ?? '');    
@@ -509,6 +524,26 @@ if (isset($_POST['data'])) {
 }
 $opcion = isset($data['opcion']) ? $data['opcion'] : 0;
 
+function getDocumentoBasePath(string $prefix, string $impuesto, string $fechaOrden, string $tipoDocumento) {
+    $base = __DIR__ . '/ordenes_generadas/';
+    $anio = date('Y', strtotime($fechaOrden));
+    $mes  = date('m', strtotime($fechaOrden));
+
+    if (strpos($prefix, 'G') === 0) {
+        $tipo = 'gabinete';
+    } elseif (strpos($prefix, 'M') === 0) {
+        $tipo = 'cartas';
+    } else {
+        $tipo = 'visitas';
+    }
+
+    $path = "{$base}{$anio}/{$mes}/{$tipo}/{$impuesto}/{$tipoDocumento}/";
+    if (!is_dir($path)) {
+        mkdir($path, 0777, true);
+    }
+    return rtrim($path, '/') . '/';
+}
+
 switch ($opcion) {
     case 1: // VISTA PREVIA (no crea folio ni inserta orden)
         $prospecto_id = $data['prospecto']['id'] ?? null;
@@ -541,8 +576,8 @@ switch ($opcion) {
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
         $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
-        $savePath = __DIR__ . '/ordenes_generadas/';
-        if (!is_dir($savePath)) {
+        $savePath = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden_vista, 'vista_previa');
+            if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
         }
         $tmpDocx = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_VP.docx';
@@ -619,7 +654,7 @@ switch ($opcion) {
              echo json_encode(['error' => 'Error al actualizar la orden: ' . $e->getMessage()]);
          }
          break;
-    case 4: // VISTA PREVIA AUTORIZADA 
+    case 4: // VISTA PREVIA AUTORIZADA (reimpresion)
         $prospecto_id = $data['prospecto']['id'] ?? null;
         $fecha_orden_vista = $data['fecha_orden'] ?? date('Y-m-d');
         $copias = isset($data['copias']) ? intval($data['copias']) : 1;
@@ -628,19 +663,18 @@ switch ($opcion) {
             throw new Exception('No se proporcionó prospecto.id');
         }
         $conexion = getConexion();
+        $update = "UPDATE siga_prospectos_ordenes 
+           SET fecha_orden = :fecha_orden 
+           WHERE id_prospecto = :id_prospecto AND estatus = 1";
+        $stmtUpdate = $conexion->prepare($update);
+        $stmtUpdate->execute([
+            'fecha_orden' => $fecha_orden_vista,
+            'id_prospecto' => $prospecto_id
+        ]);
         $prospecto = getProspectoData($conexion, $prospecto_id);
         if (!$prospecto) {
             throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
         }
-
-        if (isset($prospecto['periodos'])) {
-             $update_sql = "UPDATE siga_prospectos_ordenes 
-                            SET fecha_orden = ? 
-                            WHERE id_prospecto = ? AND periodos = ? AND estatus = 1";
-             $stmt_update = $conexion->prepare($update_sql);
-             $stmt_update->execute([$fecha_orden_vista, $prospecto_id, $prospecto['periodos']]);
-        }
-
         $impuesto_id = $prospecto['impuesto_id'];
         $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
         if (!$impuestoInfo) {
@@ -660,7 +694,7 @@ switch ($opcion) {
         $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
         $firmas = getFirmas($conexion);
         $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
-        $savePath = __DIR__ . '/ordenes_generadas/';
+        $savePath = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden_vista, 'reimpresion');
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
         }
@@ -671,14 +705,14 @@ switch ($opcion) {
         }
         $pdfFilePath = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_AUTORIZADA' . '.pdf';
 
-        /*file_put_contents(__DIR__ . "/impresion.log",
+        file_put_contents(__DIR__ . "/impresion.log",
             "Backend está a punto de imprimir (Case 4): $tmpDocx\n",
             FILE_APPEND
         );
         $impreso = imprimirPDF($pdfFilePath, $copias);
         if (!$impreso) {
             error_log("No se pudo imprimir el PDF (Case 4): $pdfFilePath");
-        }*/
+        }
 
         sendPdfInline($pdfFilePath, 'vista_previa.pdf');
         } catch (Exception $e) {
@@ -730,56 +764,57 @@ switch ($opcion) {
     case 6: // VISTA PREVIA EMITIDA (no crea folio ni inserta orden)
         $prospecto_id = $data['prospecto']['id'] ?? null;
         try {
-        if (!$prospecto_id) {
-            throw new Exception('No se proporcionó prospecto.id');
-        }
-        $conexion = getConexion();
-        $prospecto = getProspectoData($conexion, $prospecto_id);
-        if (!$prospecto) {
-            throw new Exception("No se encontró el prospecto con ID: " . $prospecto_id);
-        }
+            if (!$prospecto_id) {
+                throw new Exception('No se proporcionó prospecto.id');
+            }
+            $conexion = getConexion();
+            $prospecto = getProspectoData($conexion, $prospecto_id);
+            if (!$prospecto) {
+                throw new Exception("No se encontró el prospecto con ID: $prospecto_id");
+            }
+            $stmt_fecha = $conexion->prepare("SELECT fecha_orden FROM siga_prospectos_ordenes WHERE id_prospecto = ? AND estatus = 1 ORDER BY id_orden DESC LIMIT 1");
+            $stmt_fecha->execute([$prospecto_id]);
+            $orden_data = $stmt_fecha->fetch(PDO::FETCH_ASSOC);
+            if (!$orden_data) {
+                throw new Exception("No existe una orden emitida para este prospecto.");
+            }
+            $fecha_orden = $orden_data['fecha_orden'];
+            $impuestoInfo = getImpuestoInfo($conexion, $prospecto['impuesto_id']);
+            if (!$impuestoInfo) {
+                throw new Exception("No se encontró información del impuesto.");
+            }
 
-        $stmt_fecha = $conexion->prepare("SELECT fecha_orden FROM siga_prospectos_ordenes WHERE id_prospecto = ? AND periodos = ? AND estatus = 1");
-        $stmt_fecha->execute([$prospecto_id, $prospecto['periodos']]);
-        $orden_data = $stmt_fecha->fetch(PDO::FETCH_ASSOC);
-        
-        $fecha_orden_vista = $orden_data['fecha_orden'] ?? ($data['fecha_orden'] ?? date('Y-m-d'));
+            $prefix = $impuestoInfo['prefix'];
+            $nombre_documento = $prefix;
 
-        $impuesto_id = $prospecto['impuesto_id'];
-        $impuestoInfo = getImpuestoInfo($conexion, $impuesto_id);
-        if (!$impuestoInfo) {
-            throw new Exception("No se encontró información para el impuesto_id: $impuesto_id");
-        }
-        $prefix = $impuestoInfo['prefix'];
-        $nombre_documento = $prefix;
-        $templateFile = "{$prefix}.docx";
-        if ($prospecto['cambio_domicilio'] == 1) {
-            $templateFile = "{$prefix} - CD.docx";
-            $nombre_documento = "{$prefix} - CD";
-        } elseif (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
-            $templateFile = "{$prefix} - NR.docx";
-            $nombre_documento = "{$prefix} - NR";
-        }
+            if ($prospecto['cambio_domicilio'] == 1) {
+                $nombre_documento = "{$prefix} - CD";
+            } elseif (isset($prospecto['fuente_id']) && in_array($prospecto['fuente_id'], [1, 2])) {
+                $nombre_documento = "{$prefix} - NR";
+            }
 
-        $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden_vista);
-        $firmas = getFirmas($conexion);
-        $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden_vista, $prefix);
-        $savePath = __DIR__ . '/ordenes_generadas/';
-        if (!is_dir($savePath)) {
-            mkdir($savePath, 0777, true);
-        }
-        $tmpDocx = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_EMITIDA' . '.docx';
-        $templateProcessor->saveAs($tmpDocx);
-        if (!convertDocxToPdf($tmpDocx, $savePath)) {
-            throw new Exception("Error al convertir DOCX a PDF con LibreOffice.");
-        }
-        $pdfFilePath = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_EMITIDA' . '.pdf';
+            $rfc = strtoupper($prospecto['rfc']);
+            $basePathEmitidas = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'emitidas');
+            $basePathReimpresion = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'reimpresion');
+            $pdfAutorizado = "{$basePathReimpresion}{$nombre_documento}_{$rfc}_{$fecha_orden}_AUTORIZADA.pdf";
+            $pdfDefault    = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}.pdf";
+            $pdfEmitido = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}_EMITIDA.pdf";
 
-        sendPdfInline($pdfFilePath, 'vista_previa.pdf');
+            if (file_exists($pdfAutorizado)) {
+                sendPdfInline($pdfAutorizado, 'vista_previa.pdf');
+            }
+
+            if (file_exists($pdfDefault)) {
+                sendPdfInline($pdfDefault, 'vista_previa.pdf');
+            }
+            if (file_exists($pdfEmitido)) {
+                sendPdfInline($pdfEmitido, 'vista_previa.pdf');
+            }
+            throw new Exception("No se encontró ningún documento generado para este prospecto.");
+
         } catch (Exception $e) {
             header("Content-Type: text/plain");
-            echo "Error al generar PDF:\n" . $e->getMessage() . "\n\n";
-            echo $e->getTraceAsString();
+            echo "Error en vista previa emitida:\n" . $e->getMessage();
         }
         break;
     case 7: // OBTENER IMPRESORA PREDETERMINADA
@@ -822,7 +857,7 @@ switch ($opcion) {
             $folio = getFolioOrCreate($conexion, $prospecto_id, true, $id_generador, $fecha_orden);
             $firmas = getFirmas($conexion);
             $templateProcessor = fillTemplateFromData($conexion, $prospecto, $folio, $firmas, $fecha_orden, $prefix);
-            $savePath = __DIR__ . '/ordenes_generadas/';
+            $savePath = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'emitidas');
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
