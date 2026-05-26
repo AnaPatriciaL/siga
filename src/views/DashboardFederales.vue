@@ -13,6 +13,55 @@
                     <v-card-title class="font-weight-bold">COMPARATIVO DE ÓRDENES FEDERALES EMITIDAS POR MES</v-card-title>
                     <v-card-text style="height: 350px"><canvas ref="barChart"></canvas></v-card-text>
                 </v-card>
+                <!-- TABLA INVERTIDA -->
+                <v-card elevation="2">
+                    <div class="dashboard-federales">
+                        <v-row class="mb-4 mt-2" align="center">
+                            <v-col cols="12" md="2">
+                                <v-select v-model="filtros.anio" :items="anios" label="Año" dense outlined hide-details/>
+                            </v-col>
+                            <v-col cols="12" md="2">
+                                <v-select v-model="filtros.mes" :items="meses" item-text="text" item-value="value" label="Mes" dense outlined hide-details/>
+                            </v-col>
+                            <v-col cols="12" md="2">
+                                <v-btn color="pink darken-4 white--text" @click="consultarFederales">MOSTRAR</v-btn>
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <v-text-field label="Periodo seleccionado" :value="periodoSeleccionado" outlined dense hide-details readonly/>
+                            </v-col>
+                            <v-col cols="12" md="1" v-if="puedeExportar">
+                                <v-tooltip top color="green darken-3">
+                                    <template v-slot:activator="{ on, attrs }">
+                                        <v-btn fab class="green ml-3" dark v-bind="attrs" v-on="on" @click="exportarExcelFederales"><v-icon large>mdi-microsoft-excel</v-icon></v-btn>
+                                    </template>
+                                <span>Exportar a Excel</span>
+                                </v-tooltip>
+                            </v-col>
+                        </v-row>
+                        <!-- TABLA -->
+                        <v-data-table :headers="encabezadosInvertidosFederales" :items="tablaInvertidaFederales" hide-default-header hide-default-footer :items-per-page="-1" dense class="elevation-1">
+                            <template v-slot:header>
+                                <thead>
+                                    <tr class="grey darken-1">
+                                        <th v-for="h in encabezadosInvertidosFederales" :key="h.value" class="white--text text-center">{{ h.text }}</th>
+                                    </tr>
+                                </thead>
+                            </template>
+                            <template v-slot:item="{ item }">
+                                <tr :class="item.tipo === 'TOTALES' ? 'grey lighten-3 font-weight-bold' : ''">
+                                <td :class="item.tipo && item.tipo !== 'TOTALES' ? 'pink darken-4 white--text font-weight-bold text-center' : 'text-center font-weight-bold'">{{ item.tipo }}</td>
+                                <td :class="item.impuesto ? 'font-weight-bold text-left' : ''">{{ item.impuesto }}</td>
+                                <td>{{ item.los_mochis }}</td>
+                                <td>{{ item.guasave }}</td>
+                                <td>{{ item.guamuchil }}</td>
+                                <td>{{ item.culiacan }}</td>
+                                <td>{{ item.mazatlan }}</td>
+                                <td>{{ item.total }}</td>
+                                </tr>
+                            </template>
+                        </v-data-table>
+                    </div>
+                </v-card>
             </v-col>
         </v-row>
         <v-dialog v-model="mostrarDetalleMes" max-width="1200px" persistent scrollable>
@@ -38,6 +87,7 @@
     import Swal from 'sweetalert2';
     import axios from 'axios';
     import api from '@/services/apiUrls.js';
+    import * as XLSX from 'xlsx-js-style';
     import Chart from 'chart.js/auto';
     import ChartDataLabels from 'chartjs-plugin-datalabels';
     Chart.register(ChartDataLabels);
@@ -46,6 +96,22 @@ export default {
     name: "DashboardFederales",
     data() {
         return {
+            anioConsultado: null,
+            mesConsultado: null,
+            filtros: { anio: null, mes: null },
+            anios: [],
+            encabezadosInvertidosFederales: [
+                { text: 'TIPO', value: 'tipo' },
+                { text: 'IMPUESTO', value: 'impuesto' },
+                { text: 'LOS MOCHIS', value: 'los_mochis' },
+                { text: 'GUASAVE', value: 'guasave' },
+                { text: 'GUAMÚCHIL', value: 'guamuchil' },
+                { text: 'CULIACÁN', value: 'culiacan' },
+                { text: 'MAZATLÁN', value: 'mazatlan' },
+                { text: 'TOTAL', value: 'total' }
+            ],
+            federales: [],
+            catalogoFederales: [],
             mostrarDetalleMes: false,
             mesDetalle: null,
             anioDetalle: null,
@@ -79,18 +145,171 @@ export default {
             };
     },
     computed: {
+        puedeExportar() {
+            return this.federales.length > 0
+        },
+        periodoSeleccionado() {
+            if (!this.filtros.anio && !this.filtros.mes) return '';
+            const anio = this.filtros.anio ?? '';
+            const mesObj = this.meses.find(m => m.value === this.filtros.mes);
+            const mes = mesObj ? mesObj.text : '';
+            return `AÑO: ${anio}    |    MES: ${mes}`;
+        },
         mesDetalleTexto() {
             const m = this.meses.find(x => x.value === this.mesDetalle)
             return m ? m.text : ''
+        },
+        tablaInvertidaFederales() {
+            if (!this.catalogoFederales.length) return [];
+            const filas = [];
+            const totales = {
+                los_mochis: 0,
+                guasave: 0,
+                guamuchil: 0,
+                culiacan: 0,
+                mazatlan: 0,
+                total: 0
+            };
+            const mapaOficinas = {
+                1: 'los_mochis',
+                2: 'guasave',
+                3: 'guamuchil',
+                4: 'culiacan',
+                5: 'mazatlan'
+            };
+            const grupos = this.catalogoFederales.reduce((acc, item) => {
+                if (!acc[item.tipo]) acc[item.tipo] = [];
+                acc[item.tipo].push(item);
+                return acc;}, {});
+
+            Object.entries(grupos).forEach(([tipo, items]) => {
+                items.forEach((imp, index) => {
+                    const fila = {tipo: index === 0 ? tipo : '',
+                        impuesto: imp.depto,
+                        los_mochis: 0,
+                        guasave: 0,
+                        guamuchil: 0,
+                        culiacan: 0,
+                        mazatlan: 0,
+                        total: 0};
+                    this.federales.forEach(f => {
+                        if (f.tipo !== imp.tipo || f.depto !== imp.depto) return;
+                        const keyOficina = mapaOficinas[f.oficina];
+                        if (!keyOficina) return;
+                        const val = Number(f.total_ordenes || 0);
+                        fila[keyOficina] += val;
+                        fila.total += val;
+                        totales[keyOficina] += val;
+                        totales.total += val;
+                    });
+                    filas.push(fila);
+                });
+            });
+            filas.push({ tipo: 'TOTALES', impuesto: '', ...totales });
+            return filas;
         }
     },
     components:{
 
     },
     async created() {
+        await this.obtenerAnios();
+        await this.cargarCatalogoFederales();
+        await this.consultarMesActual();
         await this.cargarBarChartComparativo();
     },
     methods: {
+        exportarExcelFederales() {
+            const wb = XLSX.utils.book_new()
+            const border = {top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }}
+            const titleStyle = {font: { bold: true, sz: 16 }, alignment: { horizontal: 'center', vertical: 'center' }}
+            const headerStyle = {font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '616161' } }, alignment: { horizontal: 'center', vertical: 'center' }, border}
+            const tipoStyle = {font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: 'AD1457' } }, alignment: { horizontal: 'center', vertical: 'center' }, border}
+            const cellCenter = {alignment: { horizontal: 'center', vertical: 'center' }, border}
+            const cellLeft = {alignment: { horizontal: 'left', vertical: 'center' }, border}
+            const totalStyle = {font: { bold: true }, fill: { fgColor: { rgb: 'E0E0E0' } }, alignment: { horizontal: 'center', vertical: 'center' }, border}
+            const rows = []
+            rows.push([{ v: `REPORTE DE ÓRDENES FEDERALES | ${this.periodoSeleccionado}`, s: titleStyle }])
+            rows.push([])
+            rows.push([{ v: 'TIPO', s: headerStyle },
+                { v: 'IMPUESTO', s: headerStyle },
+                { v: 'LOS MOCHIS', s: headerStyle },
+                { v: 'GUASAVE', s: headerStyle },
+                { v: 'GUAMÚCHIL', s: headerStyle },
+                { v: 'CULIACÁN', s: headerStyle },
+                { v: 'MAZATLÁN', s: headerStyle },
+                { v: 'TOTAL', s: headerStyle }])
+            this.tablaInvertidaFederales.forEach(row => {
+                const isTotal = row.tipo === 'TOTALES'
+                rows.push([
+                { v: row.tipo || '', s: isTotal ? totalStyle : tipoStyle },
+                { v: row.impuesto || '', s: isTotal ? totalStyle : cellLeft },
+                { v: row.los_mochis, s: isTotal ? totalStyle : cellCenter },
+                { v: row.guasave, s: isTotal ? totalStyle : cellCenter },
+                { v: row.guamuchil, s: isTotal ? totalStyle : cellCenter },
+                { v: row.culiacan, s: isTotal ? totalStyle : cellCenter },
+                { v: row.mazatlan, s: isTotal ? totalStyle : cellCenter },
+                { v: row.total, s: isTotal ? totalStyle : cellCenter }
+                ])
+            })
+            const ws = XLSX.utils.aoa_to_sheet(rows)
+            ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }]
+            ws['!cols'] = [
+                { wch: 24 },
+                { wch: 14 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 }
+            ]
+            XLSX.utils.book_append_sheet(wb, ws, 'Órdenes Federales')
+            XLSX.writeFile(wb, 'Reporte_Ordenes_Federales.xlsx')
+        },
+        async consultarMesActual() {
+            const fechaActual = new Date();
+            const anioActual = fechaActual.getFullYear();
+
+            if (this.anios.includes(anioActual)) {
+                this.filtros.anio = anioActual;
+            } else if (this.anios.length) {
+                this.filtros.anio = this.anios[0];
+            }
+
+            this.filtros.mes = fechaActual.getMonth() + 1;
+
+            await this.consultarFederales();
+        },
+        async obtenerAnios() {
+            try {
+                const { data } = await axios.post(api.dashboard, { opcion: 1 });
+                this.anios = data.map(item => Number(item.anio));
+            } catch (e) {
+                console.error('No se pudieron obtener los años', e);
+                this.anios = [];
+            }
+        },
+        async cargarCatalogoFederales() {
+            try {
+                const { data } = await axios.post(api.dashboard, {opcion: 12});
+                this.catalogoFederales = data;
+            } catch (e) {
+                console.error('Error catálogo federales', e);
+                this.catalogoFederales = [];
+            }
+        },
+        async consultarFederales() {
+            try {
+                this.anioConsultado = this.filtros.anio;
+                this.mesConsultado = this.filtros.mes;
+                const { data } = await axios.post(api.dashboard, {opcion: 13, anio: this.filtros.anio, mes: this.filtros.mes});
+                this.federales = data;
+            } catch (e) {
+                console.error('Error federales', e);
+                this.federales = [];
+            }
+        },
         cerrarDetalleMes() {
             this.mostrarDetalleMes = false
             this.ordenesMes = []

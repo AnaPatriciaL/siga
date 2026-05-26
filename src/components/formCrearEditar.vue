@@ -133,7 +133,7 @@
                 </v-col>
                 <!-- Domicilio Anterior -->
                 <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="6">
-                  <v-text-field dense class="my-0 py-0 mayusculas" v-model="prospectoie.domicilio_anterior" @blur="trimCampo('domicilio_anterior')" label="Domicilio Anterior" outlined/>
+                  <v-text-field dense class="my-0 py-0" v-model="prospectoie.domicilio_anterior" @blur="trimCampo('domicilio_anterior')" label="Domicilio Anterior" outlined/>
                 </v-col>
                 <!-- Notificador / Visitador -->
                 <v-col v-if="prospectoie.cambio_domicilio === 1" class="my-0 py-0" cols="12" md="4">
@@ -481,6 +481,7 @@ export default {
             this.prospectoie.giro = data.giro;
             this.prospectoie.municipio_id = data.municipio_id;
             this.prospectoie.oficina_id = data.oficina_id;
+            this.prospectoie.representante_legal = data.representante_legal;
           } else {
             Swal.fire('Info', `No se encontró información para el RFC: ${this.prospectoie.rfc}`, 'info');
           }

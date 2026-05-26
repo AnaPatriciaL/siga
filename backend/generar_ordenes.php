@@ -544,6 +544,20 @@ function getDocumentoBasePath(string $prefix, string $impuesto, string $fechaOrd
     return rtrim($path, '/') . '/';
 }
 
+function generarBaseName($nombre_documento, $rfc, $fecha, $num_orden, $prefix) {
+    if (preg_match('/^(M|G)-(.*)$/', $prefix, $match)) {
+        $prefixLimpio = $match[2];
+    } else {
+        $prefixLimpio = $prefix;
+    }
+    $prefijosConOrden = ['ISJ','IOP','IEJA'];
+    if (in_array($prefixLimpio, $prefijosConOrden, true)) {
+        return $nombre_documento . '_' . strtoupper($rfc) . '_' . $fecha . '_' . $num_orden;
+    }
+
+    return $nombre_documento . '_' . strtoupper($rfc) . '_' . $fecha;
+}
+
 switch ($opcion) {
     case 1: // VISTA PREVIA (no crea folio ni inserta orden)
         $prospecto_id = $data['prospecto']['id'] ?? null;
@@ -698,13 +712,16 @@ switch ($opcion) {
         if (!is_dir($savePath)) {
             mkdir($savePath, 0777, true);
         }
-        $tmpDocx = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_AUTORIZADA' . '.docx';
+        //$tmpDocx = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_AUTORIZADA' . '.docx';
+        $baseName = generarBaseName($nombre_documento,$prospecto['rfc'],$fecha_orden_vista,$folio['num_orden'],$prefix);
+        $tmpDocx = $savePath . $baseName . '_AUTORIZADA.docx';
+
         $templateProcessor->saveAs($tmpDocx);
         if (!convertDocxToPdf($tmpDocx, $savePath)) {
             throw new Exception("Error al convertir DOCX a PDF con LibreOffice.");
         }
-        $pdfFilePath = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_AUTORIZADA' . '.pdf';
-
+        //$pdfFilePath = $savePath . $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden_vista . '_AUTORIZADA' . '.pdf';
+        $pdfFilePath = $savePath . $baseName . '_AUTORIZADA.pdf';
         file_put_contents(__DIR__ . "/impresion.log",
             "Backend está a punto de imprimir (Case 4): $tmpDocx\n",
             FILE_APPEND
@@ -796,19 +813,37 @@ switch ($opcion) {
             $rfc = strtoupper($prospecto['rfc']);
             $basePathEmitidas = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'emitidas');
             $basePathReimpresion = getDocumentoBasePath($prefix, $nombre_documento, $fecha_orden, 'reimpresion');
-            $pdfAutorizado = "{$basePathReimpresion}{$nombre_documento}_{$rfc}_{$fecha_orden}_AUTORIZADA.pdf";
-            $pdfDefault    = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}.pdf";
-            $pdfEmitido = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}_EMITIDA.pdf";
+            //$pdfAutorizado = "{$basePathReimpresion}{$nombre_documento}_{$rfc}_{$fecha_orden}_AUTORIZADA.pdf";
+            //$pdfDefault    = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}.pdf";
+            //$pdfEmitido = "{$basePathEmitidas}{$nombre_documento}_{$rfc}_{$fecha_orden}_EMITIDA.pdf";
+            $folio = getFolioOrCreate($conexion, $prospecto_id, false, null, $fecha_orden);
+            $baseNameNuevo = generarBaseName($nombre_documento,$rfc,$fecha_orden,$folio['num_orden'],$prefix);
+            $baseNameViejo = $nombre_documento . '_' . $rfc . '_' . $fecha_orden;
+            $pdfAutorizadoNuevo = "{$basePathReimpresion}{$baseNameNuevo}_AUTORIZADA.pdf";
+            $pdfDefaultNuevo    = "{$basePathEmitidas}{$baseNameNuevo}.pdf";
+            $pdfEmitidoNuevo    = "{$basePathEmitidas}{$baseNameNuevo}_EMITIDA.pdf";
+            $pdfAutorizadoViejo = "{$basePathReimpresion}{$baseNameViejo}_AUTORIZADA.pdf";
+            $pdfDefaultViejo    = "{$basePathEmitidas}{$baseNameViejo}.pdf";
+            $pdfEmitidoViejo    = "{$basePathEmitidas}{$baseNameViejo}_EMITIDA.pdf";
 
-            if (file_exists($pdfAutorizado)) {
-                sendPdfInline($pdfAutorizado, 'vista_previa.pdf');
+            // 1. Buscar NUEVO
+            if (file_exists($pdfAutorizadoNuevo)) {
+                sendPdfInline($pdfAutorizadoNuevo, 'vista_previa.pdf');
             }
-
-            if (file_exists($pdfDefault)) {
-                sendPdfInline($pdfDefault, 'vista_previa.pdf');
+            if (file_exists($pdfDefaultNuevo)) {
+                sendPdfInline($pdfDefaultNuevo, 'vista_previa.pdf');
             }
-            if (file_exists($pdfEmitido)) {
-                sendPdfInline($pdfEmitido, 'vista_previa.pdf');
+            if (file_exists($pdfEmitidoNuevo)) {
+                sendPdfInline($pdfEmitidoNuevo, 'vista_previa.pdf');
+            }
+            if (file_exists($pdfAutorizadoViejo)) {
+                sendPdfInline($pdfAutorizadoViejo, 'vista_previa.pdf');
+            }
+            if (file_exists($pdfDefaultViejo)) {
+                sendPdfInline($pdfDefaultViejo, 'vista_previa.pdf');
+            }
+            if (file_exists($pdfEmitidoViejo)) {
+                sendPdfInline($pdfEmitidoViejo, 'vista_previa.pdf');
             }
             throw new Exception("No se encontró ningún documento generado para este prospecto.");
 
@@ -861,7 +896,8 @@ switch ($opcion) {
             if (!is_dir($savePath)) {
                 mkdir($savePath, 0777, true);
             }
-            $baseName = $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden; // Ej: ISN_RFC1234_2023-10-27
+            //$baseName = $nombre_documento . '_' . strtoupper($prospecto['rfc']) . '_' . $fecha_orden; // Ej: ISN_RFC1234_2023-10-27
+            $baseName = generarBaseName($nombre_documento,$prospecto['rfc'],$fecha_orden,$folio['num_orden'],$prefix);
             $finalDocx = $savePath . $baseName . '.docx';
             $finalPdf  = $savePath . $baseName . '.pdf';
             $templateProcessor->saveAs($finalDocx);

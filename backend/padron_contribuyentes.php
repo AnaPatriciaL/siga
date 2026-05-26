@@ -8,7 +8,7 @@ $_POST = json_decode(file_get_contents("php://input"), true);
 
 $rfc = (isset($_POST['rfc'])) ? $_POST['rfc'] : '';
 
-$consulta1 = "SELECT rfc, nombre, calle, num_exterior, num_interior, colonia, localidad, cp, municipio_id, giro, oficina_id
+$consulta1 = "SELECT rfc, nombre, calle, num_exterior, num_interior, colonia, localidad, cp, municipio_id, giro, oficina_id, representante_legal
 			FROM siga_prospectos 
 			WHERE rfc = :rfc ORDER BY id DESC LIMIT 1";
 $stmt = $conexion->prepare($consulta1);

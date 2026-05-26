@@ -194,6 +194,39 @@ switch ($opcion) {
         $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
+    case 12: // CONSULTAR CATALOGO DE IMPUESTOS FEDERALES
+        $sql = "SELECT tipo, depto FROM sia_metodos WHERE clave NOT LIKE '%-%' AND tipo <> '' GROUP BY tipo, depto ORDER BY tipo";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $data=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        break;
+    case 13: // CONSULTAR REGISTROS FEDERALES
+        $anio = isset($data['anio']) ? (int)$data['anio'] : 0;
+        $mes = isset($data['mes']) ? (int)$data['mes'] : 0;
+
+        if ($mes === 0) {
+            $consulta = "SELECT m.tipo, m.depto, COUNT(e.orden) AS total_ordenes, e.oficina, of.descripcion FROM sia_metodos m 
+            LEFT JOIN emitidas e ON e.orden LIKE CONCAT(m.clave, '%') LEFT JOIN cat_oficinas of ON e.oficina = of.id 
+            WHERE m.clave NOT LIKE '%-%' AND m.tipo <> '' AND e.tipo = 'F' AND e.anio = :anio GROUP BY m.tipo, m.depto, e.oficina 
+            ORDER BY m.tipo, m.depto";
+            $resultado = $conexion->prepare($consulta);
+            $resultado->bindParam(':anio', $anio, PDO::PARAM_INT);
+            $resultado->execute();
+            $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        } else{
+            $consulta = "SELECT m.tipo, m.depto, COUNT(e.orden) AS total_ordenes, e.oficina, of.descripcion FROM sia_metodos m LEFT JOIN emitidas e ON e.orden LIKE CONCAT(m.clave, '%') 
+            LEFT JOIN cat_oficinas of ON e.oficina = of.id WHERE m.clave NOT LIKE '%-%' AND m.tipo <> '' AND e.tipo = 'F' AND e.anio = :anio AND MONTH(e.fecha_orden) = :mes 
+            GROUP BY m.tipo, m.depto, e.oficina ORDER BY m.tipo, m.depto";
+            $resultado = $conexion->prepare($consulta);
+            $resultado->bindParam(':anio', $anio, PDO::PARAM_INT);
+            $resultado->bindParam(':mes', $mes, PDO::PARAM_INT);
+            $resultado->execute();
+            $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        break;
     default:
         echo json_encode([
             'status' => false,
